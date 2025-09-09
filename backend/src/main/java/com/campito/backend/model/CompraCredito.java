@@ -63,7 +63,8 @@ public class CompraCredito {
         LocalDateTime fechaCreacion, 
         EspacioTrabajo espacioTrabajo, 
         MotivoTransaccion motivo, 
-        ContactoTransferencia comercio) {
+        ContactoTransferencia comercio, 
+        Tarjeta tarjeta) {
         this.fechaCompra = fechaCompra;
         this.montoTotal = montoTotal;
         this.cantidadCuotas = cantidadCuotas;
@@ -74,5 +75,6 @@ public class CompraCredito {
         this.espacioTrabajo = espacioTrabajo;
         this.motivo = motivo;
         this.comercio = comercio;
+        this.tarjeta = tarjeta;
     }
 }
