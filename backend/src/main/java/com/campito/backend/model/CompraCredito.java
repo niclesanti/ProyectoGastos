@@ -22,8 +22,8 @@ public class CompraCredito {
     @Column(name = "cantidad_cuotas", nullable = false)
     private int cantidadCuotas;
 
-    @Column(name = "tasa_interes", nullable = false)
-    private int tasaInteres;
+    @Column(name = "cuotas_pagadas", nullable = false)
+    private int cuotasPagadas;
 
     @Column(name = "descripcion", length = 100)
     private String descripcion;
@@ -47,7 +47,7 @@ public class CompraCredito {
     private ContactoTransferencia comercio;
 
     @ManyToOne
-    @JoinColumn(name = "tarjeta_id")
+    @JoinColumn(name = "tarjeta_id", nullable = false)
     private Tarjeta tarjeta;
 
     public CompraCredito() {
@@ -57,24 +57,39 @@ public class CompraCredito {
         LocalDate fechaCompra, 
         Float montoTotal, 
         int cantidadCuotas, 
-        int tasaInteres, 
         String descripcion, 
         String nombreCompletoAuditoria, 
-        LocalDateTime fechaCreacion, 
-        EspacioTrabajo espacioTrabajo, 
-        MotivoTransaccion motivo, 
-        ContactoTransferencia comercio, 
-        Tarjeta tarjeta) {
+        LocalDateTime fechaCreacion) {
         this.fechaCompra = fechaCompra;
         this.montoTotal = montoTotal;
         this.cantidadCuotas = cantidadCuotas;
-        this.tasaInteres = tasaInteres;
+        this.cuotasPagadas = 0; // Inicialmente, ninguna cuota ha sido pagada
         this.descripcion = descripcion;
         this.nombreCompletoAuditoria = nombreCompletoAuditoria;
         this.fechaCreacion = fechaCreacion;
+    }
+
+    public void pagarCuota() {
+        if (this.cuotasPagadas < this.cantidadCuotas) {
+            this.cuotasPagadas++;
+        } else {
+            throw new IllegalStateException("Todas las cuotas ya han sido pagadas.");
+        }
+    }
+
+    public void setEspacioTrabajo(EspacioTrabajo espacioTrabajo) {
         this.espacioTrabajo = espacioTrabajo;
+    }
+
+    public void setMotivo(MotivoTransaccion motivo) {
         this.motivo = motivo;
+    }
+
+    public void setComercio(ContactoTransferencia comercio) {
         this.comercio = comercio;
+    }
+
+    public void setTarjeta(Tarjeta tarjeta) {
         this.tarjeta = tarjeta;
     }
 }

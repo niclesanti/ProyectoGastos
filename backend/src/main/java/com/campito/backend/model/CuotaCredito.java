@@ -35,13 +35,11 @@ public class CuotaCredito {
     public CuotaCredito() {
     }
 
-    public CuotaCredito(int numeroCuota, LocalDate fechaVencimiento, Float montoCuota,
-            CompraCredito compraCredito) {
+    public CuotaCredito(int numeroCuota, LocalDate fechaVencimiento, Float montoCuota) {
         this.numeroCuota = numeroCuota;
         this.fechaVencimiento = fechaVencimiento;
         this.montoCuota = montoCuota;
         this.pagada = false;
-        this.compraCredito = compraCredito;
     }
 
     public void pagarCuota() {
@@ -50,5 +48,9 @@ public class CuotaCredito {
 
     public void asociarTransaccion(Transaccion transaccion) {
         this.transaccionAsociada = transaccion;
+    }
+
+    public void setCompraCredito(CompraCredito compraCredito) {
+        this.compraCredito = compraCredito;
     }
 }

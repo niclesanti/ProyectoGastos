@@ -61,4 +61,15 @@ public class ControllerAdvisor {
         return new ResponseEntity<>(exceptionInfo, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ExceptionInfo> handleIllegalStateException(IllegalStateException ex, WebRequest request) {
+        ExceptionInfo exceptionInfo = new ExceptionInfo(
+                ex.getMessage(),
+                request.getDescription(false),
+                String.valueOf(System.currentTimeMillis()),
+                HttpStatus.CONFLICT.value()
+        );
+        return new ResponseEntity<>(exceptionInfo, HttpStatus.CONFLICT);
+    }
+
 }
