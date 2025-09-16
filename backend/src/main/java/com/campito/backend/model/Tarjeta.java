@@ -22,10 +22,10 @@ public class Tarjeta {
     private String redDePago;
 
     @Column(name = "fecha_cierre", nullable = false)
-    private LocalDate fechaCierre;
+    private Integer diaCierre;
 
     @Column(name = "fecha_vencimiento_pago", nullable = false)
-    private LocalDate fechaVencimientoPago;
+    private Integer diaVencimientoPago;
 
     public Tarjeta() {
     }
@@ -34,13 +34,24 @@ public class Tarjeta {
         String numeroTarjeta,  
         String entidadFinanciera, 
         String redDePago, 
-        LocalDate fechaCierre, 
-        LocalDate fechaVencimientoPago) {
+        Integer diaCierre, 
+        Integer diaVencimientoPago) {
         this.numeroTarjeta = numeroTarjeta;
         this.entidadFinanciera = entidadFinanciera;
         this.redDePago = redDePago;
-        this.fechaCierre = fechaCierre;
-        this.fechaVencimientoPago = fechaVencimientoPago;
+        this.diaCierre = diaCierre;
+        this.diaVencimientoPago = diaVencimientoPago;
     }
 
+    public Long getId() {
+        return id;
+    }
+
+    public Integer getDiaCierre() {
+        return diaCierre;
+    }
+
+    public Integer getDiaVencimientoPago() {
+        return diaVencimientoPago;
+    }
 }

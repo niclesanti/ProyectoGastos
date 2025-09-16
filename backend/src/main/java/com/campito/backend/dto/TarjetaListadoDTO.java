@@ -7,8 +7,8 @@ public record TarjetaListadoDTO(
         String numeroTarjeta,
         String entidadFinanciera,
         String redDePago,
-        LocalDate fechaCierre,
-        LocalDate fechaVencimientoPago
+        Integer diaCierre,
+        Integer diaVencimientoPago
 ) {
 
 }

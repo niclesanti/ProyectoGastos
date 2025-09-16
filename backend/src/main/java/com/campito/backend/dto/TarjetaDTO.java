@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import com.campito.backend.model.Tarjeta;
 
 import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -21,19 +23,21 @@ public record TarjetaDTO(
         @NotBlank(message = "La red de pago no puede estar vacía")
         String redDePago,
         @NotNull(message = "La fecha no puede ser nula")
-        @FutureOrPresent(message = "La fecha debe ser en el presente o futuro")
-        LocalDate fechaCierre,
+        @Min(value = 1, message = "El minimo valor es 1")
+        @Max(value = 29, message = "El maximo valor es 29")
+        Integer diaCierre,
         @NotNull(message = "La fecha no puede ser nula")
-        @FutureOrPresent(message = "La fecha debe ser en el presente o futuro")
-        LocalDate fechaVencimientoPago
+        @Min(value = 1, message = "El minimo valor es 1")
+        @Max(value = 29, message = "El maximo valor es 29")
+        Integer diaVencimientoPago
 ) {
     public Tarjeta toTarjeta() {
         return new Tarjeta(
                 this.numeroTarjeta,
                 this.entidadFinanciera,
                 this.redDePago,
-                this.fechaCierre,
-                this.fechaVencimientoPago
+                this.diaCierre,
+                this.diaVencimientoPago
         );
     }
 }

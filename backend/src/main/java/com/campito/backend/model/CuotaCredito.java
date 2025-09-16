@@ -53,4 +53,21 @@ public class CuotaCredito {
     public void setCompraCredito(CompraCredito compraCredito) {
         this.compraCredito = compraCredito;
     }
+
+    public void setFechaVencimiento(LocalDate fechaVencimiento) {
+        this.fechaVencimiento = fechaVencimiento;
+    }
+
+    public void setMontoCuota(Float montoCuota) {
+        this.montoCuota = montoCuota;
+    }
+    
+    public void setPagada(boolean pagada) {
+        this.pagada = pagada;
+    }
+
+    public void setNumeroCuota(int numeroCuota) {
+        this.numeroCuota = numeroCuota;
+    }
+
 }

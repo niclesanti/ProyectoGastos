@@ -58,15 +58,13 @@ public class CompraCredito {
         Float montoTotal, 
         int cantidadCuotas, 
         String descripcion, 
-        String nombreCompletoAuditoria, 
-        LocalDateTime fechaCreacion) {
+        String nombreCompletoAuditoria) {
         this.fechaCompra = fechaCompra;
         this.montoTotal = montoTotal;
         this.cantidadCuotas = cantidadCuotas;
         this.cuotasPagadas = 0; // Inicialmente, ninguna cuota ha sido pagada
         this.descripcion = descripcion;
         this.nombreCompletoAuditoria = nombreCompletoAuditoria;
-        this.fechaCreacion = fechaCreacion;
     }
 
     public void pagarCuota() {
@@ -91,5 +89,57 @@ public class CompraCredito {
 
     public void setTarjeta(Tarjeta tarjeta) {
         this.tarjeta = tarjeta;
+    }
+
+    public void setFechaCreacion(LocalDateTime fechaCreacion) {
+        this.fechaCreacion = fechaCreacion;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public LocalDate getFechaCompra() {
+        return fechaCompra;
+    }
+
+    public Float getMontoTotal() {
+        return montoTotal;
+    }
+
+    public int getCantidadCuotas() {
+        return cantidadCuotas;
+    }
+
+    public int getCuotasPagadas() {
+        return cuotasPagadas;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public String getNombreCompletoAuditoria() {
+        return nombreCompletoAuditoria;
+    }
+
+    public LocalDateTime getFechaCreacion() {
+        return fechaCreacion;
+    }
+
+    public EspacioTrabajo getEspacioTrabajo() {
+        return espacioTrabajo;
+    }
+
+    public MotivoTransaccion getMotivo() {
+        return motivo;
+    }
+
+    public ContactoTransferencia getComercio() {
+        return comercio;
+    }
+
+    public Tarjeta getTarjeta() {
+        return tarjeta;
     }
 }

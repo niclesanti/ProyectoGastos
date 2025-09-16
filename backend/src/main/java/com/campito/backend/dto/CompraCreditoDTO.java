@@ -1,7 +1,6 @@
 package com.campito.backend.dto;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 import com.campito.backend.model.CompraCredito;
 
@@ -31,9 +30,6 @@ public record CompraCreditoDTO(
     @Size(max = 100, message = "El nombre completo no puede exceder los 100 caracteres")
     @NotBlank(message = "El nombre completo no puede estar vacío")
     String nombreCompletoAuditoria,
-    @NotNull(message = "La fecha no puede ser nula")
-    @PastOrPresent(message = "La fecha debe ser en el pasado o presente")
-    LocalDateTime fechaCreacion,
     @NotNull(message = "El ID del espacio de trabajo no puede ser nulo")
     Long espacioTrabajoId,
     @NotNull(message = "El ID del motivo de la transacción no puede ser nulo")
@@ -48,8 +44,7 @@ public record CompraCreditoDTO(
             this.montoTotal,
             this.cantidadCuotas,
             this.descripcion,
-            this.nombreCompletoAuditoria,
-            this.fechaCreacion
+            this.nombreCompletoAuditoria
         );
     }
 }
