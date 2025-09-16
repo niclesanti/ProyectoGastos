@@ -1,6 +1,5 @@
 package com.campito.backend.model;
 
-import java.time.LocalDate;
 
 import jakarta.persistence.*;
 

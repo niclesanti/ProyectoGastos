@@ -1,6 +1,5 @@
 package com.campito.backend.dto;
 
-import java.time.LocalDate;
 
 public record TarjetaListadoDTO(
     Long id,
