@@ -27,7 +27,9 @@ public record TarjetaDTO(
         @NotNull(message = "La fecha no puede ser nula")
         @Min(value = 1, message = "El minimo valor es 1")
         @Max(value = 29, message = "El maximo valor es 29")
-        Integer diaVencimientoPago
+        Integer diaVencimientoPago,
+        @NotNull(message = "El ID del espacio de trabajo no puede ser nulo")
+        Long espacioTrabajoId
 ) {
     public Tarjeta toTarjeta() {
         return new Tarjeta(

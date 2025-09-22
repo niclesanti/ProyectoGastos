@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.campito.backend.dto.CompraCreditoDTO;
 import com.campito.backend.dto.CompraCreditoListadoDTO;
+import com.campito.backend.dto.TarjetaDTO;
+import com.campito.backend.dto.TarjetaListadoDTO;
 import com.campito.backend.service.CompraCreditoService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,5 +44,16 @@ public class ComprasCreditoController {
         return new ResponseEntity<>(nuevaCompra, HttpStatus.CREATED);
     }
 
-
+    @Operation(summary = "Registrar una nueva tarjeta de credito",
+                description = "Permite registrar una nueva tarjeta de crédito en el sistema.",
+                responses = {
+                    @ApiResponse(responseCode = "201", description = "Tarjeta de crédito registrada correctamente"),
+                    @ApiResponse(responseCode = "400", description = "Error al registrar la tarjeta de crédito"),
+                    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+                })
+    @PostMapping("/registrarTarjeta")
+    public ResponseEntity<TarjetaListadoDTO> registrarTarjeta(@Valid @RequestBody TarjetaDTO tarjetaDTO) {
+        TarjetaListadoDTO nuevaTarjeta = comprasCreditoService.registrarTarjeta(tarjetaDTO);
+        return new ResponseEntity<>(nuevaTarjeta, HttpStatus.CREATED);
+    }
 }

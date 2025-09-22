@@ -1,5 +1,7 @@
 package com.campito.backend.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -167,8 +169,43 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     @Override
     @Transactional
     public TarjetaListadoDTO registrarTarjeta(TarjetaDTO tarjetaDTO) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'registrarTarjeta'");
+        if(tarjetaDTO == null) {
+            logger.warn("Intento de registrar una tarjeta nula.");
+            throw new IllegalArgumentException("La tarjeta no puede ser nula");
+        }
+        logger.info("Iniciando registro de tarjeta {} en espacio ID {}", tarjetaDTO.numeroTarjeta(), tarjetaDTO.espacioTrabajoId());
+        try {
+            if(tarjetaDTO.espacioTrabajoId() == null) {
+                logger.warn("ID de espacio de trabajo nulo al registrar tarjeta.");
+                throw new IllegalArgumentException("El espacio de trabajo de la tarjeta no puede ser nulo");
+            }
+
+            EspacioTrabajo espacio = espacioRepository.findById(tarjetaDTO.espacioTrabajoId()).orElseThrow(() -> {
+                String msg = "Espacio de trabajo con ID " + tarjetaDTO.espacioTrabajoId() + " no encontrado";
+                logger.warn(msg);
+                return new EntityNotFoundException(msg);
+            });
+
+            Tarjeta tarjeta = tarjetaDTO.toTarjeta();
+            tarjeta.setEspacioTrabajo(espacio);
+
+            Tarjeta tarjetaGuardada = tarjetaRepository.save(tarjeta);
+            logger.info("Tarjeta ID {} registrada exitosamente en espacio ID {}.", tarjetaGuardada.getId(), espacio.getId());
+            
+            return new TarjetaListadoDTO(
+                tarjetaGuardada.getId(),
+                tarjetaGuardada.getNumeroTarjeta(),
+                tarjetaGuardada.getEntidadFinanciera(),
+                tarjetaGuardada.getRedDePago(),
+                tarjetaGuardada.getDiaCierre(),
+                tarjetaGuardada.getDiaVencimientoPago(),
+                tarjetaGuardada.getEspacioTrabajo().getId()
+            );
+
+        } catch (Exception e) {
+            logger.error("Error inesperado al registrar una tarjeta en espacio ID {}: {}", tarjetaDTO.espacioTrabajoId(), e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Override
