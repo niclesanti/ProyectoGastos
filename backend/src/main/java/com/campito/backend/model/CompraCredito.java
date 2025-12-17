@@ -4,9 +4,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "compras_credito")
+@Getter  // Genera getters para todos los campos
+@NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)
+@AllArgsConstructor  // Genera constructor con todos los argumentos
+@Builder // Implementa el patrón Builder para construcción fluida de objetos
 public class CompraCredito {
 
     @Id
@@ -31,41 +40,29 @@ public class CompraCredito {
     @Column(name = "nombre_completo_auditoria", nullable = false, length = 100)
     private String nombreCompletoAuditoria;
 
+    @Setter
     @Column(name = "fecha_creacion", nullable = false)
     private LocalDateTime fechaCreacion;
 
+    @Setter
     @ManyToOne
     @JoinColumn(name = "espacio_trabajo_id", nullable = false)
     private EspacioTrabajo espacioTrabajo;
 
+    @Setter
     @ManyToOne
     @JoinColumn(name = "motivo_transaccion_id", nullable = false)
     private MotivoTransaccion motivo;
 
+    @Setter
     @ManyToOne
     @JoinColumn(name = "comercio_id")
     private ContactoTransferencia comercio;
 
+    @Setter
     @ManyToOne
     @JoinColumn(name = "tarjeta_id", nullable = false)
     private Tarjeta tarjeta;
-
-    public CompraCredito() {
-    }
-
-    public CompraCredito(
-        LocalDate fechaCompra, 
-        Float montoTotal, 
-        int cantidadCuotas, 
-        String descripcion, 
-        String nombreCompletoAuditoria) {
-        this.fechaCompra = fechaCompra;
-        this.montoTotal = montoTotal;
-        this.cantidadCuotas = cantidadCuotas;
-        this.cuotasPagadas = 0; // Inicialmente, ninguna cuota ha sido pagada
-        this.descripcion = descripcion;
-        this.nombreCompletoAuditoria = nombreCompletoAuditoria;
-    }
 
     public void pagarCuota() {
         if (this.cuotasPagadas < this.cantidadCuotas) {
@@ -73,73 +70,5 @@ public class CompraCredito {
         } else {
             throw new IllegalStateException("Todas las cuotas ya han sido pagadas.");
         }
-    }
-
-    public void setEspacioTrabajo(EspacioTrabajo espacioTrabajo) {
-        this.espacioTrabajo = espacioTrabajo;
-    }
-
-    public void setMotivo(MotivoTransaccion motivo) {
-        this.motivo = motivo;
-    }
-
-    public void setComercio(ContactoTransferencia comercio) {
-        this.comercio = comercio;
-    }
-
-    public void setTarjeta(Tarjeta tarjeta) {
-        this.tarjeta = tarjeta;
-    }
-
-    public void setFechaCreacion(LocalDateTime fechaCreacion) {
-        this.fechaCreacion = fechaCreacion;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public LocalDate getFechaCompra() {
-        return fechaCompra;
-    }
-
-    public Float getMontoTotal() {
-        return montoTotal;
-    }
-
-    public int getCantidadCuotas() {
-        return cantidadCuotas;
-    }
-
-    public int getCuotasPagadas() {
-        return cuotasPagadas;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public String getNombreCompletoAuditoria() {
-        return nombreCompletoAuditoria;
-    }
-
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
-    }
-
-    public EspacioTrabajo getEspacioTrabajo() {
-        return espacioTrabajo;
-    }
-
-    public MotivoTransaccion getMotivo() {
-        return motivo;
-    }
-
-    public ContactoTransferencia getComercio() {
-        return comercio;
-    }
-
-    public Tarjeta getTarjeta() {
-        return tarjeta;
     }
 }

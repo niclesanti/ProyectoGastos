@@ -2,15 +2,12 @@ package com.campito.backend.dto;
 
 import java.time.LocalDate;
 
-import com.campito.backend.model.CuotaCredito;
-
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
-public record CuotaCreditoDTO(
-    Long id,
+public record CuotaCreditoDTORequest(
     @NotNull(message = "El numero de cuota no puede ser nulo")
     @Min(value = 0, message = "El numero de cuota no puede ser negativo")
     @Max(value = 100, message = "El numero de cuota no puede exceder los 100")
@@ -26,10 +23,5 @@ public record CuotaCreditoDTO(
     Long idCompraCredito,
     Long idTransaccionAsociada
 ) {
-    public CuotaCredito toCuotaCredito() {
-        return new CuotaCredito(
-            this.numeroCuota,
-            this.fechaVencimiento,
-            this.montoCuota);
-    }
+
 }

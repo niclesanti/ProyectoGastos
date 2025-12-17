@@ -2,8 +2,6 @@ package com.campito.backend.dto;
 
 import java.time.LocalDate;
 
-import com.campito.backend.model.CompraCredito;
-
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -11,8 +9,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 
-public record CompraCreditoDTO(
-    Long id,
+public record CompraCreditoDTORequest(
     @NotNull(message = "La fecha no puede ser nula")
     @PastOrPresent(message = "La fecha debe ser en el pasado o presente")
     LocalDate fechaCompra,
@@ -38,13 +35,5 @@ public record CompraCreditoDTO(
     @NotNull(message = "El ID de la tarjeta no puede ser nulo")
     Long tarjetaId
 ) {
-    public CompraCredito toCompraCredito() {
-        return new CompraCredito(
-            this.fechaCompra,
-            this.montoTotal,
-            this.cantidadCuotas,
-            this.descripcion,
-            this.nombreCompletoAuditoria
-        );
-    }
+
 }

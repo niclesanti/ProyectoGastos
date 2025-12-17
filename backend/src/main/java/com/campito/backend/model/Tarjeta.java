@@ -2,9 +2,18 @@ package com.campito.backend.model;
 
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "tarjetas")
+@Getter  // Genera getters para todos los campos
+@NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)
+@AllArgsConstructor  // Genera constructor con todos los argumentos
+@Builder // Implementa el patrón Builder para construcción fluida de objetos
 public class Tarjeta {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,56 +35,9 @@ public class Tarjeta {
     @Column(name = "dia_vencimiento_pago", nullable = false)
     private Integer diaVencimientoPago;
 
+    @Setter
     @ManyToOne
     @JoinColumn(name = "espacio_trabajo_id", nullable = false)
     private EspacioTrabajo espacioTrabajo;
-
-    public Tarjeta() {
-    }
-
-    public Tarjeta(
-        String numeroTarjeta,  
-        String entidadFinanciera, 
-        String redDePago, 
-        Integer diaCierre, 
-        Integer diaVencimientoPago) {
-        this.numeroTarjeta = numeroTarjeta;
-        this.entidadFinanciera = entidadFinanciera;
-        this.redDePago = redDePago;
-        this.diaCierre = diaCierre;
-        this.diaVencimientoPago = diaVencimientoPago;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Integer getDiaCierre() {
-        return diaCierre;
-    }
-
-    public Integer getDiaVencimientoPago() {
-        return diaVencimientoPago;
-    }
-
-    public void setEspacioTrabajo(EspacioTrabajo espacioTrabajo) {
-        this.espacioTrabajo = espacioTrabajo;
-    }
-
-    public EspacioTrabajo getEspacioTrabajo() {
-        return espacioTrabajo;
-    }
-
-    public String getNumeroTarjeta() {
-        return numeroTarjeta;
-    }
-
-    public String getEntidadFinanciera() {
-        return entidadFinanciera;
-    }
-
-    public String getRedDePago() {
-        return redDePago;
-    }
 
 }

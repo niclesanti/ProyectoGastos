@@ -3,7 +3,7 @@ package com.campito.backend.dto;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-public record CompraCreditoListadoDTO(
+public record CompraCreditoDTOResponse(
     Long id,
     LocalDate fechaCompra,
     Float montoTotal,

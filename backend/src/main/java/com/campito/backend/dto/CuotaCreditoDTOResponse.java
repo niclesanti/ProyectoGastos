@@ -2,7 +2,7 @@ package com.campito.backend.dto;
 
 import java.time.LocalDate;
 
-public record CuotaCreditoListadoDTO(
+public record CuotaCreditoDTOResponse(
     Long id,
     int numeroCuota,
     LocalDate fechaVencimiento,

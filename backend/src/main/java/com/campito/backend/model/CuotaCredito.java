@@ -3,9 +3,19 @@ package com.campito.backend.model;
 import java.time.LocalDate;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "cuotas_credito")
+@Getter  // Genera getters para todos los campos
+@Setter  // Genera setters para todos los campos
+@NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)
+@AllArgsConstructor  // Genera constructor con todos los argumentos
+@Builder // Implementa el patrón Builder para construcción fluida de objetos
 public class CuotaCredito {
 
     @Id
@@ -32,16 +42,6 @@ public class CuotaCredito {
     @JoinColumn(name = "transaccion_id")
     private Transaccion transaccionAsociada;
 
-    public CuotaCredito() {
-    }
-
-    public CuotaCredito(int numeroCuota, LocalDate fechaVencimiento, Float montoCuota) {
-        this.numeroCuota = numeroCuota;
-        this.fechaVencimiento = fechaVencimiento;
-        this.montoCuota = montoCuota;
-        this.pagada = false;
-    }
-
     public void pagarCuota() {
         this.pagada = true;
     }
@@ -49,25 +49,4 @@ public class CuotaCredito {
     public void asociarTransaccion(Transaccion transaccion) {
         this.transaccionAsociada = transaccion;
     }
-
-    public void setCompraCredito(CompraCredito compraCredito) {
-        this.compraCredito = compraCredito;
-    }
-
-    public void setFechaVencimiento(LocalDate fechaVencimiento) {
-        this.fechaVencimiento = fechaVencimiento;
-    }
-
-    public void setMontoCuota(Float montoCuota) {
-        this.montoCuota = montoCuota;
-    }
-    
-    public void setPagada(boolean pagada) {
-        this.pagada = pagada;
-    }
-
-    public void setNumeroCuota(int numeroCuota) {
-        this.numeroCuota = numeroCuota;
-    }
-
 }
