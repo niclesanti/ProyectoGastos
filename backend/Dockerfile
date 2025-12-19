@@ -29,7 +29,7 @@ RUN ./mvnw package -DskipTests
 
 # --- Etapa 2: Ejecución (Runner) ---
 # Esta etapa no cambia. Sigue siendo igual de ligera y eficiente.
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
