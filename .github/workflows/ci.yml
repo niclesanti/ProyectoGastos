@@ -25,6 +25,9 @@ jobs:
         java-version: '21'
         cache: 'maven'
     
+    - name: Dar permisos de ejecución a mvnw
+      run: chmod +x backend/mvnw
+    
     - name: Ejecutar tests
       run: |
         cd backend
