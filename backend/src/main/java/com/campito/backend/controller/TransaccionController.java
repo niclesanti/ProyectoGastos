@@ -2,7 +2,6 @@ package com.campito.backend.controller;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,19 +10,20 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.campito.backend.dto.ContactoDTO;
-import com.campito.backend.dto.ContactoListadoDTO;
+import com.campito.backend.dto.ContactoDTORequest;
+import com.campito.backend.dto.ContactoDTOResponse;
 import com.campito.backend.dto.DashboardInfoDTO;
-import com.campito.backend.dto.MotivoDTO;
-import com.campito.backend.dto.MotivoListadoDTO;
+import com.campito.backend.dto.MotivoDTORequest;
+import com.campito.backend.dto.MotivoDTOResponse;
 import com.campito.backend.dto.TransaccionBusquedaDTO;
-import com.campito.backend.dto.TransaccionDTO;
-import com.campito.backend.dto.TransaccionListadoDTO;
+import com.campito.backend.dto.TransaccionDTORequest;
+import com.campito.backend.dto.TransaccionDTOResponse;
 import com.campito.backend.service.TransaccionService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,14 +33,10 @@ import org.springframework.http.ResponseEntity;
 @RestController
 @RequestMapping("/transaccion")
 @Tag(name = "Transaccion", description = "Operaciones para la gestión de transacciones")
+@RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
 public class TransaccionController {
 
     private final TransaccionService transaccionService;
-
-    @Autowired
-    public TransaccionController(TransaccionService transaccionService) {
-        this.transaccionService = transaccionService;
-    }
 
     @Operation(summary = "Registrar una nueva transacción",
                 description = "Permite registrar una nueva transacción en el sistema.",
@@ -50,8 +46,8 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/registrar")
-    public ResponseEntity<TransaccionDTO> registrarTransaccion(@Valid @RequestBody TransaccionDTO transaccionDTO) {
-        TransaccionDTO nuevaTransaccion = transaccionService.registrarTransaccion(transaccionDTO);
+    public ResponseEntity<TransaccionDTOResponse> registrarTransaccion(@Valid @RequestBody TransaccionDTORequest transaccionDTO) {
+        TransaccionDTOResponse nuevaTransaccion = transaccionService.registrarTransaccion(transaccionDTO);
         return new ResponseEntity<>(nuevaTransaccion, HttpStatus.CREATED);
     }
 
@@ -76,8 +72,8 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/buscar")
-    public ResponseEntity<List<TransaccionListadoDTO>> buscarTransaccion(@Valid @RequestBody TransaccionBusquedaDTO datosBusqueda) {
-        List<TransaccionListadoDTO> transacciones = transaccionService.buscarTransaccion(datosBusqueda);
+    public ResponseEntity<List<TransaccionDTOResponse>> buscarTransaccion(@Valid @RequestBody TransaccionBusquedaDTO datosBusqueda) {
+        List<TransaccionDTOResponse> transacciones = transaccionService.buscarTransaccion(datosBusqueda);
         return new ResponseEntity<>(transacciones, HttpStatus.OK);
     }
 
@@ -89,8 +85,8 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/contacto/registrar")
-    public ResponseEntity<ContactoDTO> registrarContactoTransferencia(@Valid @RequestBody ContactoDTO contactoDTO) {
-        ContactoDTO nuevoContacto = transaccionService.registrarContactoTransferencia(contactoDTO);
+    public ResponseEntity<ContactoDTOResponse> registrarContactoTransferencia(@Valid @RequestBody ContactoDTORequest contactoDTO) {
+        ContactoDTOResponse nuevoContacto = transaccionService.registrarContactoTransferencia(contactoDTO);
         return new ResponseEntity<>(nuevoContacto, HttpStatus.CREATED);
     }
 
@@ -102,8 +98,8 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/contacto/listar/{idEspacioTrabajo}")
-    public ResponseEntity<List<ContactoListadoDTO>> listarContactos(@PathVariable Long idEspacioTrabajo) {
-        List<ContactoListadoDTO> contactos = transaccionService.listarContactos(idEspacioTrabajo);
+    public ResponseEntity<List<ContactoDTOResponse>> listarContactos(@PathVariable Long idEspacioTrabajo) {
+        List<ContactoDTOResponse> contactos = transaccionService.listarContactos(idEspacioTrabajo);
         return new ResponseEntity<>(contactos, HttpStatus.OK);
     }
 
@@ -115,8 +111,8 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/motivo/registrar")
-    public ResponseEntity<MotivoDTO> nuevoMotivoTransaccion(@Valid @RequestBody MotivoDTO motivoDTO) {
-        MotivoDTO nuevoMotivo = transaccionService.nuevoMotivoTransaccion(motivoDTO);
+    public ResponseEntity<MotivoDTOResponse> nuevoMotivoTransaccion(@Valid @RequestBody MotivoDTORequest motivoDTO) {
+        MotivoDTOResponse nuevoMotivo = transaccionService.nuevoMotivoTransaccion(motivoDTO);
         return new ResponseEntity<>(nuevoMotivo, HttpStatus.CREATED);
     }
 
@@ -128,8 +124,8 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/motivo/listar/{idEspacioTrabajo}")
-    public ResponseEntity<List<MotivoListadoDTO>> listarMotivos(@PathVariable Long idEspacioTrabajo) {
-        List<MotivoListadoDTO> motivos = transaccionService.listarMotivos(idEspacioTrabajo);
+    public ResponseEntity<List<MotivoDTOResponse>> listarMotivos(@PathVariable Long idEspacioTrabajo) {
+        List<MotivoDTOResponse> motivos = transaccionService.listarMotivos(idEspacioTrabajo);
         return new ResponseEntity<>(motivos, HttpStatus.OK);
     }
 
@@ -141,8 +137,8 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/buscarRecientes/{idEspacio}")
-    public ResponseEntity<List<TransaccionListadoDTO>> buscarTransaccionesRecientes(@PathVariable Long idEspacio) {
-        List<TransaccionListadoDTO> transacciones = transaccionService.buscarTransaccionesRecientes(idEspacio);
+    public ResponseEntity<List<TransaccionDTOResponse>> buscarTransaccionesRecientes(@PathVariable Long idEspacio) {
+        List<TransaccionDTOResponse> transacciones = transaccionService.buscarTransaccionesRecientes(idEspacio);
         return new ResponseEntity<>(transacciones, HttpStatus.OK);
     }
 

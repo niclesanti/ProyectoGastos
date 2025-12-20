@@ -2,6 +2,9 @@ package com.campito.backend.service;
 
 import com.campito.backend.dao.*;
 import com.campito.backend.dto.*;
+import com.campito.backend.mapper.ContactoTransferenciaMapper;
+import com.campito.backend.mapper.MotivoTransaccionMapper;
+import com.campito.backend.mapper.TransaccionMapper;
 import com.campito.backend.model.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +47,13 @@ public class TransaccionServiceTest {
 
     @Mock
     private CuentaBancariaService cuentaBancariaService;
+    
+    @Mock
+    private TransaccionMapper transaccionMapper;
+    @Mock
+    private ContactoTransferenciaMapper contactoTransferenciaMapper;
+    @Mock
+    private MotivoTransaccionMapper motivoTransaccionMapper;
 
     @InjectMocks
     private TransaccionServiceImpl transaccionService;
@@ -55,19 +65,89 @@ public class TransaccionServiceTest {
 
     @BeforeEach
     void setUp() {
-        usuarioAdmin = new Usuario("Admin", "admin@test.com", "foto.jpg", ProveedorAutenticacion.MANUAL, "123", "ADMIN", true, LocalDateTime.now(), LocalDateTime.now());
+        usuarioAdmin = new Usuario();
         usuarioAdmin.setId(1L);
+        usuarioAdmin.setNombre("Admin");
+        usuarioAdmin.setEmail("admin@test.com");
+        usuarioAdmin.setFotoPerfil("foto.jpg");
+        usuarioAdmin.setProveedor(ProveedorAutenticacion.MANUAL);
+        usuarioAdmin.setIdProveedor("123");
+        usuarioAdmin.setRol("ADMIN");
+        usuarioAdmin.setActivo(true);
+        usuarioAdmin.setFechaRegistro(LocalDateTime.now());
+        usuarioAdmin.setFechaUltimoAcceso(LocalDateTime.now());
 
-        espacioTrabajo = new EspacioTrabajo("Espacio de Prueba", 1000.0f, usuarioAdmin);
+        espacioTrabajo = new EspacioTrabajo();
         espacioTrabajo.setId(1L);
+        espacioTrabajo.setNombre("Espacio de Prueba");
+        espacioTrabajo.setSaldo(1000.0f);
+        espacioTrabajo.setUsuarioAdmin(usuarioAdmin);
 
-        motivoTransaccion = new MotivoTransaccion("Venta");
+        motivoTransaccion = new MotivoTransaccion();
         motivoTransaccion.setId(1L);
+        motivoTransaccion.setMotivo("Venta");
         motivoTransaccion.setEspacioTrabajo(espacioTrabajo);
 
-        contactoTransferencia = new ContactoTransferencia("Cliente A");
+        contactoTransferencia = new ContactoTransferencia();
         contactoTransferencia.setId(1L);
+        contactoTransferencia.setNombre("Cliente A");
         contactoTransferencia.setEspacioTrabajo(espacioTrabajo);
+        
+        // Mock transaccionMapper behavior
+        lenient().when(transaccionMapper.toEntity(any(TransaccionDTORequest.class))).thenAnswer(invocation -> {
+            TransaccionDTORequest dto = invocation.getArgument(0);
+            Transaccion t = new Transaccion();
+            t.setTipo(dto.tipo());
+            t.setMonto(dto.monto());
+            t.setFecha(dto.fecha());
+            t.setDescripcion(dto.descripcion());
+            t.setNombreCompletoAuditoria(dto.nombreCompletoAuditoria());
+            return t;
+        });
+        
+        lenient().when(transaccionMapper.toResponse(any(Transaccion.class))).thenAnswer(invocation -> {
+            Transaccion t = invocation.getArgument(0);
+            return new TransaccionDTOResponse(
+                t.getId(),
+                t.getFecha(),
+                t.getMonto(),
+                t.getTipo(),
+                t.getDescripcion(),
+                t.getNombreCompletoAuditoria(),
+                t.getFechaCreacion(),
+                t.getEspacioTrabajo() != null ? t.getEspacioTrabajo().getId() : null,
+                t.getEspacioTrabajo() != null ? t.getEspacioTrabajo().getNombre() : null,
+                t.getMotivo() != null ? t.getMotivo().getId() : null,
+                t.getMotivo() != null ? t.getMotivo().getMotivo() : null,
+                t.getContacto() != null ? t.getContacto().getId() : null,
+                t.getContacto() != null ? t.getContacto().getNombre() : null,
+                t.getCuentaBancaria() != null ? t.getCuentaBancaria().getNombre() : null
+            );
+        });
+        
+        // Mock contactoTransferenciaMapper behavior
+        lenient().when(contactoTransferenciaMapper.toEntity(any(ContactoDTORequest.class))).thenAnswer(invocation -> {
+            ContactoDTORequest dto = invocation.getArgument(0);
+            ContactoTransferencia c = new ContactoTransferencia(dto.nombre());
+            return c;
+        });
+        
+        lenient().when(contactoTransferenciaMapper.toResponse(any(ContactoTransferencia.class))).thenAnswer(invocation -> {
+            ContactoTransferencia c = invocation.getArgument(0);
+            return new ContactoDTOResponse(c.getId(), c.getNombre());
+        });
+        
+        // Mock motivoTransaccionMapper behavior
+        lenient().when(motivoTransaccionMapper.toEntity(any(MotivoDTORequest.class))).thenAnswer(invocation -> {
+            MotivoDTORequest dto = invocation.getArgument(0);
+            MotivoTransaccion m = new MotivoTransaccion(dto.motivo());
+            return m;
+        });
+        
+        lenient().when(motivoTransaccionMapper.toResponse(any(MotivoTransaccion.class))).thenAnswer(invocation -> {
+            MotivoTransaccion m = invocation.getArgument(0);
+            return new MotivoDTOResponse(m.getId(), m.getMotivo());
+        });
     }
 
     // Tests para registrarTransaccion
@@ -83,7 +163,7 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarTransaccion_cuandoIdEspacioTrabajoNulo_entoncesLanzaExcepcion() {
-        TransaccionDTO dto = new TransaccionDTO(null, LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", null, 1L, null, null);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", null, 1L, null, null);
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             transaccionService.registrarTransaccion(dto);
         });
@@ -93,7 +173,7 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarTransaccion_cuandoIdMotivoNulo_entoncesLanzaExcepcion() {
-        TransaccionDTO dto = new TransaccionDTO(null, LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, null, null, null);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, null, null, null);
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             transaccionService.registrarTransaccion(dto);
         });
@@ -103,7 +183,7 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarTransaccion_cuandoEspacioTrabajoNoExiste_entoncesLanzaExcepcion() {
-        TransaccionDTO dto = new TransaccionDTO(null, LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 99L, 1L, null, null);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 99L, 1L, null, null);
         when(espacioRepository.findById(99L)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
@@ -115,7 +195,7 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarTransaccion_cuandoMotivoNoExiste_entoncesLanzaExcepcion() {
-        TransaccionDTO dto = new TransaccionDTO(null, LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, 99L, null, null);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, 99L, null, null);
         when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -128,7 +208,7 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarTransaccion_cuandoIdContactoExistePeroContactoNoExiste_entoncesLanzaExcepcion() {
-        TransaccionDTO dto = new TransaccionDTO(null, LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, 1L, 99L, null);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, 1L, 99L, null);
         when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(contactoRepository.findById(99L)).thenReturn(Optional.empty());
@@ -142,7 +222,7 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarTransaccion_cuandoOpcionCorrecta_entoncesRegistroExitoso() {
-        TransaccionDTO dto = new TransaccionDTO(null, LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, 1L, 1L, null);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, 1L, 1L, null);
         when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(contactoRepository.findById(1L)).thenReturn(Optional.of(contactoTransferencia));
@@ -153,7 +233,7 @@ public class TransaccionServiceTest {
         });
         when(espacioRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
 
-        TransaccionDTO result = transaccionService.registrarTransaccion(dto);
+        TransaccionDTOResponse result = transaccionService.registrarTransaccion(dto);
 
         assertNotNull(result);
         assertEquals(1L, result.id());
@@ -169,7 +249,7 @@ public class TransaccionServiceTest {
         cuentaBancaria.setId(1L);
         cuentaBancaria.setSaldoActual(500.0f);
 
-        TransaccionDTO dto = new TransaccionDTO(null, LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, 1L, 1L, 1L);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, 1L, 1L, 1L);
 
         when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
@@ -183,12 +263,11 @@ public class TransaccionServiceTest {
         when(espacioRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
 
         // Act
-        TransaccionDTO result = transaccionService.registrarTransaccion(dto);
+        TransaccionDTOResponse result = transaccionService.registrarTransaccion(dto);
 
         // Assert
         assertNotNull(result);
         assertEquals(1L, result.id());
-        assertEquals(1L, result.idCuentaBancaria());
         verify(transaccionRepository, times(1)).save(any(Transaccion.class));
         verify(espacioRepository, times(1)).save(any(EspacioTrabajo.class));
         verify(cuentaBancariaService, times(1)).actualizarCuentaBancaria(1L, TipoTransaccion.INGRESO, 100f);
@@ -219,8 +298,18 @@ public class TransaccionServiceTest {
 
     @Test
     void removerTransaccion_cuandoOpcionCorrecta_entoncesRemueveTransaccionYActualizaEspacio() {
-        Transaccion transaccion = new Transaccion(TipoTransaccion.GASTO, 50.0f, LocalDate.now(), "Gasto Test", "Auditor", LocalDateTime.now(), espacioTrabajo, motivoTransaccion, null);
-        transaccion.setId(1L);
+        Transaccion transaccion = Transaccion.builder()
+            .id(1L)
+            .tipo(TipoTransaccion.GASTO)
+            .monto(50.0f)
+            .fecha(LocalDate.now())
+            .descripcion("Gasto Test")
+            .nombreCompletoAuditoria("Auditor")
+            .fechaCreacion(LocalDateTime.now())
+            .espacioTrabajo(espacioTrabajo)
+            .motivo(motivoTransaccion)
+            .contacto(null)
+            .build();
         espacioTrabajo.setSaldo(950.0f); // Saldo después del gasto
 
         when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
@@ -242,9 +331,18 @@ public class TransaccionServiceTest {
         cuentaBancaria.setId(1L);
         cuentaBancaria.setSaldoActual(400.0f);
 
-        Transaccion transaccion = new Transaccion(TipoTransaccion.GASTO, 100.0f, LocalDate.now(), "Gasto Test", "Auditor", LocalDateTime.now(), espacioTrabajo, motivoTransaccion, null);
-        transaccion.setId(1L);
-        transaccion.setCuentaBancaria(cuentaBancaria);
+        Transaccion transaccion = Transaccion.builder()
+            .id(1L)
+            .tipo(TipoTransaccion.GASTO)
+            .monto(100.0f)
+            .fecha(LocalDate.now())
+            .descripcion("Gasto Test")
+            .nombreCompletoAuditoria("Auditor")
+            .fechaCreacion(LocalDateTime.now())
+            .espacioTrabajo(espacioTrabajo)
+            .motivo(motivoTransaccion)
+            .cuentaBancaria(cuentaBancaria)
+            .build();
         espacioTrabajo.setSaldo(900.0f); // Saldo después del gasto
 
         when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
@@ -271,9 +369,18 @@ public class TransaccionServiceTest {
         cuentaBancaria.setId(1L);
         cuentaBancaria.setSaldoActual(600.0f);
 
-        Transaccion transaccion = new Transaccion(TipoTransaccion.INGRESO, 100.0f, LocalDate.now(), "Ingreso Test", "Auditor", LocalDateTime.now(), espacioTrabajo, motivoTransaccion, null);
-        transaccion.setId(1L);
-        transaccion.setCuentaBancaria(cuentaBancaria);
+        Transaccion transaccion = Transaccion.builder()
+            .id(1L)
+            .tipo(TipoTransaccion.INGRESO)
+            .monto(100.0f)
+            .fecha(LocalDate.now())
+            .descripcion("Ingreso Test")
+            .nombreCompletoAuditoria("Auditor")
+            .fechaCreacion(LocalDateTime.now())
+            .espacioTrabajo(espacioTrabajo)
+            .motivo(motivoTransaccion)
+            .cuentaBancaria(cuentaBancaria)
+            .build();
         espacioTrabajo.setSaldo(1100.0f); // Saldo después del ingreso
 
         when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
@@ -327,10 +434,20 @@ public class TransaccionServiceTest {
     @Test
     void buscarTransaccion_cuandoBusquedaConAnio_entoncesBusquedaExitosa() {
         TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, 2023, null, null, 1L);
-        List<Transaccion> transacciones = Collections.singletonList(new Transaccion(TipoTransaccion.INGRESO, 100f, LocalDate.of(2023, 1, 1), "Test", "User", LocalDateTime.now(), espacioTrabajo, motivoTransaccion, null));
+        Transaccion t = Transaccion.builder()
+            .tipo(TipoTransaccion.INGRESO)
+            .monto(100f)
+            .fecha(LocalDate.of(2023, 1, 1))
+            .descripcion("Test")
+            .nombreCompletoAuditoria("User")
+            .fechaCreacion(LocalDateTime.now())
+            .espacioTrabajo(espacioTrabajo)
+            .motivo(motivoTransaccion)
+            .build();
+        List<Transaccion> transacciones = Collections.singletonList(t);
         when(transaccionRepository.findAll(any(Specification.class))).thenReturn(transacciones);
 
-        List<TransaccionListadoDTO> result = transaccionService.buscarTransaccion(dto);
+        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
@@ -341,10 +458,20 @@ public class TransaccionServiceTest {
     @Test
     void buscarTransaccion_cuandoBusquedaConAnioYMes_entoncesBusquedaExitosa() {
         TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(1, 2023, null, null, 1L);
-        List<Transaccion> transacciones = Collections.singletonList(new Transaccion(TipoTransaccion.INGRESO, 100f, LocalDate.of(2023, 1, 1), "Test", "User", LocalDateTime.now(), espacioTrabajo, motivoTransaccion, null));
+        Transaccion t = Transaccion.builder()
+            .tipo(TipoTransaccion.INGRESO)
+            .monto(100f)
+            .fecha(LocalDate.of(2023, 1, 1))
+            .descripcion("Test")
+            .nombreCompletoAuditoria("User")
+            .fechaCreacion(LocalDateTime.now())
+            .espacioTrabajo(espacioTrabajo)
+            .motivo(motivoTransaccion)
+            .build();
+        List<Transaccion> transacciones = Collections.singletonList(t);
         when(transaccionRepository.findAll(any(Specification.class))).thenReturn(transacciones);
 
-        List<TransaccionListadoDTO> result = transaccionService.buscarTransaccion(dto);
+        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
@@ -355,10 +482,21 @@ public class TransaccionServiceTest {
     @Test
     void buscarTransaccion_cuandoBusquedaConContacto_entoncesBusquedaExitosa() {
         TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, "Cliente A", 1L);
-        List<Transaccion> transacciones = Collections.singletonList(new Transaccion(TipoTransaccion.INGRESO, 100f, LocalDate.now(), "Test", "User", LocalDateTime.now(), espacioTrabajo, motivoTransaccion, contactoTransferencia));
+        Transaccion t = Transaccion.builder()
+            .tipo(TipoTransaccion.INGRESO)
+            .monto(100f)
+            .fecha(LocalDate.now())
+            .descripcion("Test")
+            .nombreCompletoAuditoria("User")
+            .fechaCreacion(LocalDateTime.now())
+            .espacioTrabajo(espacioTrabajo)
+            .motivo(motivoTransaccion)
+            .contacto(contactoTransferencia)
+            .build();
+        List<Transaccion> transacciones = Collections.singletonList(t);
         when(transaccionRepository.findAll(any(Specification.class))).thenReturn(transacciones);
 
-        List<TransaccionListadoDTO> result = transaccionService.buscarTransaccion(dto);
+        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
@@ -369,10 +507,20 @@ public class TransaccionServiceTest {
     @Test
     void buscarTransaccion_cuandoBusquedaConMotivo_entoncesBusquedaExitosa() {
         TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, "Venta", null, 1L);
-        List<Transaccion> transacciones = Collections.singletonList(new Transaccion(TipoTransaccion.INGRESO, 100f, LocalDate.now(), "Test", "User", LocalDateTime.now(), espacioTrabajo, motivoTransaccion, null));
+        Transaccion t = Transaccion.builder()
+            .tipo(TipoTransaccion.INGRESO)
+            .monto(100f)
+            .fecha(LocalDate.now())
+            .descripcion("Test")
+            .nombreCompletoAuditoria("User")
+            .fechaCreacion(LocalDateTime.now())
+            .espacioTrabajo(espacioTrabajo)
+            .motivo(motivoTransaccion)
+            .build();
+        List<Transaccion> transacciones = Collections.singletonList(t);
         when(transaccionRepository.findAll(any(Specification.class))).thenReturn(transacciones);
 
-        List<TransaccionListadoDTO> result = transaccionService.buscarTransaccion(dto);
+        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
@@ -383,10 +531,20 @@ public class TransaccionServiceTest {
     @Test
     void buscarTransaccion_cuandoBusquedaSinFiltros_entoncesBusquedaExitosa() {
         TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, null, 1L);
-        List<Transaccion> transacciones = Collections.singletonList(new Transaccion(TipoTransaccion.INGRESO, 100f, LocalDate.now(), "Test", "User", LocalDateTime.now(), espacioTrabajo, motivoTransaccion, null));
+        Transaccion t = Transaccion.builder()
+            .tipo(TipoTransaccion.INGRESO)
+            .monto(100f)
+            .fecha(LocalDate.now())
+            .descripcion("Test")
+            .nombreCompletoAuditoria("User")
+            .fechaCreacion(LocalDateTime.now())
+            .espacioTrabajo(espacioTrabajo)
+            .motivo(motivoTransaccion)
+            .build();
+        List<Transaccion> transacciones = Collections.singletonList(t);
         when(transaccionRepository.findAll(any(Specification.class))).thenReturn(transacciones);
 
-        List<TransaccionListadoDTO> result = transaccionService.buscarTransaccion(dto);
+        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
@@ -399,7 +557,7 @@ public class TransaccionServiceTest {
         TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, null, 1L);
         when(transaccionRepository.findAll(any(Specification.class))).thenReturn(Collections.emptyList());
 
-        List<TransaccionListadoDTO> result = transaccionService.buscarTransaccion(dto);
+        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
@@ -419,14 +577,14 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarContactoTransferencia_cuandoNombreContactoNuloOVacio_entoncesLanzaExcepcion() {
-        ContactoDTO dtoVacio = new ContactoDTO(null, "", 1L);
+        ContactoDTORequest dtoVacio = new ContactoDTORequest("", 1L);
         IllegalArgumentException exceptionVacio = assertThrows(IllegalArgumentException.class, () -> {
             transaccionService.registrarContactoTransferencia(dtoVacio);
         });
         assertEquals("El contacto no puede ser nulo", exceptionVacio.getMessage());
         verify(contactoRepository, never()).save(any(ContactoTransferencia.class));
 
-        ContactoDTO dtoNulo = new ContactoDTO(null, null, 1L);
+        ContactoDTORequest dtoNulo = new ContactoDTORequest(null, 1L);
         IllegalArgumentException exceptionNulo = assertThrows(IllegalArgumentException.class, () -> {
             transaccionService.registrarContactoTransferencia(dtoNulo);
         });
@@ -436,7 +594,7 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarContactoTransferencia_cuandoIdEspacioTrabajoNulo_entoncesLanzaExcepcion() {
-        ContactoDTO dto = new ContactoDTO(null, "Nombre Contacto", null);
+        ContactoDTORequest dto = new ContactoDTORequest("Nombre Contacto", null);
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             transaccionService.registrarContactoTransferencia(dto);
         });
@@ -446,7 +604,7 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarContactoTransferencia_cuandoEspacioTrabajoNoExiste_entoncesLanzaExcepcion() {
-        ContactoDTO dto = new ContactoDTO(null, "Nombre Contacto", 99L);
+        ContactoDTORequest dto = new ContactoDTORequest("Nombre Contacto", 99L);
         when(espacioRepository.findById(99L)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
@@ -458,7 +616,7 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarContactoTransferencia_cuandoOpcionCorrecta_entoncesRegistroExitoso() {
-        ContactoDTO dto = new ContactoDTO(null, "Nuevo Contacto", 1L);
+        ContactoDTORequest dto = new ContactoDTORequest("Nuevo Contacto", 1L);
         when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
         when(contactoRepository.save(any(ContactoTransferencia.class))).thenAnswer(invocation -> {
             ContactoTransferencia contacto = invocation.getArgument(0);
@@ -466,7 +624,7 @@ public class TransaccionServiceTest {
             return contacto;
         });
 
-        ContactoDTO result = transaccionService.registrarContactoTransferencia(dto);
+        ContactoDTOResponse result = transaccionService.registrarContactoTransferencia(dto);
 
         assertNotNull(result);
         assertEquals(1L, result.id());
@@ -487,14 +645,14 @@ public class TransaccionServiceTest {
 
     @Test
     void nuevoMotivoTransaccion_cuandoMotivoNuloOVacio_entoncesLanzaExcepcion() {
-        MotivoDTO dtoVacio = new MotivoDTO(null, "", 1L);
+        MotivoDTORequest dtoVacio = new MotivoDTORequest("", 1L);
         IllegalArgumentException exceptionVacio = assertThrows(IllegalArgumentException.class, () -> {
             transaccionService.nuevoMotivoTransaccion(dtoVacio);
         });
         assertEquals("El motivo no puede ser nulo", exceptionVacio.getMessage());
         verify(motivoRepository, never()).save(any(MotivoTransaccion.class));
 
-        MotivoDTO dtoNulo = new MotivoDTO(null, null, 1L);
+        MotivoDTORequest dtoNulo = new MotivoDTORequest(null, 1L);
         IllegalArgumentException exceptionNulo = assertThrows(IllegalArgumentException.class, () -> {
             transaccionService.nuevoMotivoTransaccion(dtoNulo);
         });
@@ -504,7 +662,7 @@ public class TransaccionServiceTest {
 
     @Test
     void nuevoMotivoTransaccion_cuandoIdEspacioTrabajoNulo_entoncesLanzaExcepcion() {
-        MotivoDTO dto = new MotivoDTO(null, "Nuevo Motivo", null);
+        MotivoDTORequest dto = new MotivoDTORequest("Nuevo Motivo", null);
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             transaccionService.nuevoMotivoTransaccion(dto);
         });
@@ -514,7 +672,7 @@ public class TransaccionServiceTest {
 
     @Test
     void nuevoMotivoTransaccion_cuandoEspacioTrabajoNoExiste_entoncesLanzaExcepcion() {
-        MotivoDTO dto = new MotivoDTO(null, "Nuevo Motivo", 99L);
+        MotivoDTORequest dto = new MotivoDTORequest("Nuevo Motivo", 99L);
         when(espacioRepository.findById(99L)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
@@ -526,7 +684,7 @@ public class TransaccionServiceTest {
 
     @Test
     void nuevoMotivoTransaccion_cuandoOpcionCorrecta_entoncesRegistroExitoso() {
-        MotivoDTO dto = new MotivoDTO(null, "Nuevo Motivo", 1L);
+        MotivoDTORequest dto = new MotivoDTORequest("Nuevo Motivo", 1L);
         when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(invocation -> {
             MotivoTransaccion motivo = invocation.getArgument(0);
@@ -534,7 +692,7 @@ public class TransaccionServiceTest {
             return motivo;
         });
 
-        MotivoDTO result = transaccionService.nuevoMotivoTransaccion(dto);
+        MotivoDTOResponse result = transaccionService.nuevoMotivoTransaccion(dto);
 
         assertNotNull(result);
         assertEquals(1L, result.id());
@@ -557,7 +715,7 @@ public class TransaccionServiceTest {
     void listarContactos_cuandoNoExistenContactos_entoncesRetornaListaVacia() {
         when(contactoRepository.findByEspacioTrabajo_Id(1L)).thenReturn(Collections.emptyList());
 
-        List<ContactoListadoDTO> result = transaccionService.listarContactos(1L);
+        List<ContactoDTOResponse> result = transaccionService.listarContactos(1L);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
@@ -570,7 +728,7 @@ public class TransaccionServiceTest {
         contactos.add(contactoTransferencia);
         when(contactoRepository.findByEspacioTrabajo_Id(1L)).thenReturn(contactos);
 
-        List<ContactoListadoDTO> result = transaccionService.listarContactos(1L);
+        List<ContactoDTOResponse> result = transaccionService.listarContactos(1L);
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
@@ -595,7 +753,7 @@ public class TransaccionServiceTest {
     void listarMotivos_cuandoNoExistenMotivos_entoncesRetornaListaVacia() {
         when(motivoRepository.findByEspacioTrabajo_Id(1L)).thenReturn(Collections.emptyList());
 
-        List<MotivoListadoDTO> result = transaccionService.listarMotivos(1L);
+        List<MotivoDTOResponse> result = transaccionService.listarMotivos(1L);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
@@ -608,7 +766,7 @@ public class TransaccionServiceTest {
         motivos.add(motivoTransaccion);
         when(motivoRepository.findByEspacioTrabajo_Id(1L)).thenReturn(motivos);
 
-        List<MotivoListadoDTO> result = transaccionService.listarMotivos(1L);
+        List<MotivoDTOResponse> result = transaccionService.listarMotivos(1L);
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
@@ -633,7 +791,7 @@ public class TransaccionServiceTest {
     void buscarTransaccionesRecientes_cuandoNoExistenTransacciones_entoncesRetornaListaVacia() {
         when(transaccionRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
 
-        List<TransaccionListadoDTO> result = transaccionService.buscarTransaccionesRecientes(1L);
+        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccionesRecientes(1L);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
@@ -644,14 +802,24 @@ public class TransaccionServiceTest {
     void buscarTransaccionesRecientes_cuandoOpcionCorrecta_entoncesRetornaUltimas6Transacciones() {
         List<Transaccion> transacciones = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            transacciones.add(new Transaccion(TipoTransaccion.INGRESO, 100f, LocalDate.now(), "Desc " + i, "User", LocalDateTime.now().minusMinutes(i), espacioTrabajo, motivoTransaccion, null));
+            Transaccion t = Transaccion.builder()
+                .tipo(TipoTransaccion.INGRESO)
+                .monto(100f)
+                .fecha(LocalDate.now())
+                .descripcion("Desc " + i)
+                .nombreCompletoAuditoria("User")
+                .fechaCreacion(LocalDateTime.now().minusMinutes(i))
+                .espacioTrabajo(espacioTrabajo)
+                .motivo(motivoTransaccion)
+                .build();
+            transacciones.add(t);
         }
         // Asegurarse de que las transacciones estén ordenadas por fechaCreacion descendente para el mock
         transacciones.sort((t1, t2) -> t2.getFechaCreacion().compareTo(t1.getFechaCreacion()));
 
         when(transaccionRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(transacciones.subList(0, 6)));
 
-        List<TransaccionListadoDTO> result = transaccionService.buscarTransaccionesRecientes(1L);
+        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccionesRecientes(1L);
 
         assertNotNull(result);
         assertFalse(result.isEmpty());

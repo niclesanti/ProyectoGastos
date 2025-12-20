@@ -1,4 +1,10 @@
 {
     "java.compile.nullAnalysis.mode": "automatic",
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.project.sourcePaths": [
+        "backend/src/main/java",
+        "backend/target/generated-sources/annotations"
+    ],
+    "java.project.outputPath": "backend/target/classes",
+    "java.debug.settings.onBuildFailureProceed": true
 }

@@ -4,13 +4,12 @@ package com.campito.backend.model;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Table(name = "tarjetas")
-@Getter  // Genera getters para todos los campos
+@Data // Genera equals, hashCode, toString y getters/setters para todos los campos
 @NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)
 @AllArgsConstructor  // Genera constructor con todos los argumentos
 @Builder // Implementa el patrón Builder para construcción fluida de objetos
@@ -35,7 +34,6 @@ public class Tarjeta {
     @Column(name = "dia_vencimiento_pago", nullable = false)
     private Integer diaVencimientoPago;
 
-    @Setter
     @ManyToOne
     @JoinColumn(name = "espacio_trabajo_id", nullable = false)
     private EspacioTrabajo espacioTrabajo;

@@ -2,7 +2,8 @@ package com.campito.backend.service;
 
 import com.campito.backend.dao.EspacioTrabajoRepository;
 import com.campito.backend.dao.UsuarioRepository;
-import com.campito.backend.dto.EspacioTrabajoDTO;
+import com.campito.backend.dto.EspacioTrabajoDTORequest;
+import com.campito.backend.mapper.EspacioTrabajoMapper;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.ProveedorAutenticacion;
 import com.campito.backend.model.Usuario;
@@ -30,6 +31,9 @@ public class EspacioTrabajoServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
 
+    @Mock
+    private EspacioTrabajoMapper espacioTrabajoMapper;
+
     @InjectMocks
     private EspacioTrabajoServiceImpl espacioTrabajoService;
 
@@ -38,12 +42,31 @@ public class EspacioTrabajoServiceTest {
 
     @BeforeEach
     void setUp() {
-        usuarioAdmin = new Usuario("Admin", "admin@test.com", "foto.jpg", ProveedorAutenticacion.MANUAL, "123", "ADMIN", true, LocalDateTime.now(), LocalDateTime.now());
+        usuarioAdmin = new Usuario();
         usuarioAdmin.setId(1L);
+        usuarioAdmin.setNombre("Admin");
+        usuarioAdmin.setEmail("admin@test.com");
+        usuarioAdmin.setFotoPerfil("foto.jpg");
+        usuarioAdmin.setProveedor(ProveedorAutenticacion.MANUAL);
+        usuarioAdmin.setIdProveedor("123");
+        usuarioAdmin.setRol("ADMIN");
+        usuarioAdmin.setActivo(true);
+        usuarioAdmin.setFechaRegistro(LocalDateTime.now());
+        usuarioAdmin.setFechaUltimoAcceso(LocalDateTime.now());
 
-        espacioTrabajo = new EspacioTrabajo("Espacio de Prueba", 0f, usuarioAdmin);
+        espacioTrabajo = new EspacioTrabajo();
         espacioTrabajo.setId(1L);
-        espacioTrabajo.addUsuariosParticipante(usuarioAdmin);
+        espacioTrabajo.setNombre("Espacio de Prueba");
+        espacioTrabajo.setSaldo(0f);
+        espacioTrabajo.setUsuarioAdmin(usuarioAdmin);
+        espacioTrabajo.setUsuariosParticipantes(new java.util.ArrayList<>());
+        espacioTrabajo.getUsuariosParticipantes().add(usuarioAdmin);
+        
+        lenient().when(espacioTrabajoMapper.toEntity(any(EspacioTrabajoDTORequest.class))).thenAnswer(invocation -> {
+            EspacioTrabajo espacio = new EspacioTrabajo();
+            espacio.setId(null);
+            return espacio;
+        });
     }
 
     // Tests para registrarEspacioTrabajo
@@ -59,7 +82,7 @@ public class EspacioTrabajoServiceTest {
 
     @Test
     void registrarEspacioTrabajo_cuandoUsuarioAdminNoExiste_entoncesLanzaExcepcion() {
-        EspacioTrabajoDTO dto = new EspacioTrabajoDTO("Nuevo Espacio", 99L);
+        EspacioTrabajoDTORequest dto = new EspacioTrabajoDTORequest("Nuevo Espacio", 99L);
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
@@ -71,7 +94,7 @@ public class EspacioTrabajoServiceTest {
 
     @Test
     void registrarEspacioTrabajo_cuandoRegistroExitoso_entoncesGuardaEspacioYUsuarioAdmin() {
-        EspacioTrabajoDTO dto = new EspacioTrabajoDTO("Nuevo Espacio", 1L);
+        EspacioTrabajoDTORequest dto = new EspacioTrabajoDTORequest("Nuevo Espacio", 1L);
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAdmin));
         when(espacioTrabajoRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
 
@@ -105,10 +128,23 @@ public class EspacioTrabajoServiceTest {
 
     @Test
     void compartirEspacioTrabajo_cuandoUsuarioAdminNoEsAdminDelEspacio_entoncesLanzaExcepcion() {
-        Usuario otroUsuario = new Usuario("Otro", "otro@test.com", "foto.jpg", ProveedorAutenticacion.MANUAL, "456", "USER", true, LocalDateTime.now(), LocalDateTime.now());
+        Usuario otroUsuario = new Usuario();
         otroUsuario.setId(2L);
-        EspacioTrabajo otroEspacio = new EspacioTrabajo("Otro Espacio", 0f, otroUsuario);
+        otroUsuario.setNombre("Otro");
+        otroUsuario.setEmail("otro@test.com");
+        otroUsuario.setFotoPerfil("foto.jpg");
+        otroUsuario.setProveedor(ProveedorAutenticacion.MANUAL);
+        otroUsuario.setIdProveedor("456");
+        otroUsuario.setRol("USER");
+        otroUsuario.setActivo(true);
+        otroUsuario.setFechaRegistro(LocalDateTime.now());
+        otroUsuario.setFechaUltimoAcceso(LocalDateTime.now());
+        
+        EspacioTrabajo otroEspacio = new EspacioTrabajo();
         otroEspacio.setId(2L);
+        otroEspacio.setNombre("Otro Espacio");
+        otroEspacio.setSaldo(0f);
+        otroEspacio.setUsuarioAdmin(otroUsuario);
 
         when(espacioTrabajoRepository.findById(1L)).thenReturn(Optional.of(otroEspacio));
 
@@ -133,8 +169,17 @@ public class EspacioTrabajoServiceTest {
 
     @Test
     void compartirEspacioTrabajo_cuandoCompartidoExitosamente_entoncesGuardaEspacio() {
-        Usuario usuarioACompartir = new Usuario("Compartido", "compartido@test.com", "foto.jpg", ProveedorAutenticacion.MANUAL, "789", "USER", true, LocalDateTime.now(), LocalDateTime.now());
+        Usuario usuarioACompartir = new Usuario();
         usuarioACompartir.setId(3L);
+        usuarioACompartir.setNombre("Compartido");
+        usuarioACompartir.setEmail("compartido@test.com");
+        usuarioACompartir.setFotoPerfil("foto.jpg");
+        usuarioACompartir.setProveedor(ProveedorAutenticacion.MANUAL);
+        usuarioACompartir.setIdProveedor("789");
+        usuarioACompartir.setRol("USER");
+        usuarioACompartir.setActivo(true);
+        usuarioACompartir.setFechaRegistro(LocalDateTime.now());
+        usuarioACompartir.setFechaUltimoAcceso(LocalDateTime.now());
 
         when(espacioTrabajoRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
         when(usuarioRepository.findByEmail("compartido@test.com")).thenReturn(Optional.of(usuarioACompartir));

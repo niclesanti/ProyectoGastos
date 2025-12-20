@@ -8,9 +8,17 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "notificaciones")
+@Data // Genera equals, hashCode, toString y getters/setters para todos los campos
+@NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)
+@AllArgsConstructor  // Genera constructor con todos los argumentos
+@Builder // Implementa el patrón Builder para construcción fluida de objetos
 public class Notificacion {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,34 +31,4 @@ public class Notificacion {
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
-    public Notificacion(Long id, String mensaje, Usuario usuario) {
-        this.id = id;
-        this.mensaje = mensaje;
-        this.usuario = usuario;
-    }
-
-    // Getters y Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getMensaje() {
-        return mensaje;
-    }
-
-    public void setMensaje(String mensaje) {
-        this.mensaje = mensaje;
-    }
-
-    public Usuario getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
-    }
 }

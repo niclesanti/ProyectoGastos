@@ -24,7 +24,8 @@ import com.campito.backend.dto.CuotaCreditoDTORequest;
 import com.campito.backend.dto.CuotaCreditoDTOResponse;
 import com.campito.backend.dto.TarjetaDTORequest;
 import com.campito.backend.dto.TarjetaDTOResponse;
-import com.campito.backend.dto.TransaccionDTO;
+import com.campito.backend.dto.TransaccionDTORequest;
+import com.campito.backend.dto.TransaccionDTOResponse;
 import com.campito.backend.mapper.CompraCreditoMapper;
 import com.campito.backend.mapper.CuotaCreditoMapper;
 import com.campito.backend.mapper.TarjetaMapper;
@@ -477,7 +478,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      */
     @Override
     @Transactional
-    public void pagarResumenTarjeta(List<CuotaCreditoDTORequest> cuotas, TransaccionDTO transaccion) {
+    public void pagarResumenTarjeta(List<CuotaCreditoDTORequest> cuotas, TransaccionDTORequest transaccion) {
         if (cuotas == null || cuotas.isEmpty()) {
             logger.warn("Intento de pagar resumen con lista de cuotas nula o vacía.");
             throw new IllegalArgumentException("La lista de cuotas no puede ser nula o vacía");
@@ -490,7 +491,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
 
         try {
             // Registrar la transacción
-            TransaccionDTO transaccionRegistrada = transaccionService.registrarTransaccion(transaccion);
+            TransaccionDTOResponse transaccionRegistrada = transaccionService.registrarTransaccion(transaccion);
             logger.info("Transacción ID {} registrada para pago de resumen", transaccionRegistrada.id());
 
             // Procesar cada cuota

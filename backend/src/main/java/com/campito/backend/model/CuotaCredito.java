@@ -5,14 +5,12 @@ import java.time.LocalDate;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Table(name = "cuotas_credito")
-@Getter  // Genera getters para todos los campos
-@Setter  // Genera setters para todos los campos
+@Data // Genera equals, hashCode, toString y getters/setters para todos los campos
 @NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)
 @AllArgsConstructor  // Genera constructor con todos los argumentos
 @Builder // Implementa el patrón Builder para construcción fluida de objetos
