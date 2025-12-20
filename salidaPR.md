@@ -1,48 +1,48 @@
-Run tests:
-Te comparto las ultimas lineas de error:
-Error:  Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile (default-compile) on project backend: Fatal error compiling: error: release version 21 not supported -> [Help 1]
-Error:  
-Error:  To see the full stack trace of the errors, re-run Maven with the -e switch.
-Error:  Re-run Maven using the -X switch to enable full debug logging.
-Error:  
-Error:  For more information about the errors and possible solutions, please read the following articles:
-Error:  [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
-Error: Process completed with exit code 1.
+The job is failing because the test context tries to use an H2 JDBC driver but is configured with a PostgreSQL JDBC URL:
 
-Generate test report:
-Run dorny/test-reporter@v1
-  with:
-    name: Maven Tests
-    path: backend/target/surefire-reports/TEST-*.xml
-    reporter: java-junit
-    fail-on-error: false
-    path-replace-backslashes: false
-    list-suites: all
-    list-tests: all
-    max-annotations: 10
-    fail-on-empty: true
-    only-summary: false
-    token: ***
-  env:
-    JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.17-10/x64
-    JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.17-10/x64
-Action was triggered by pull_request: using SHA from head of source branch
-Check runs will be created with SHA=a530d23b5a918f07405c1ac2d6ecf9721c775563
-Listing all files tracked by git
-  /usr/bin/git ls-files -z
-  .github/ISSUE_TEMPLATE/bug_report.yml.github/ISSUE_TEMPLATE/config.yml.github/ISSUE_TEMPLATE/feature_request.yml.github/SETUP.md.github/pull_request_template.md.github/workflows/cd.yml.github/workflows/ci.yml.github/workflows/codeql.yml.gitignoreCONTRIBUTING.mdREADME.mdbackend/.gitattributesbackend/.gitignorebackend/.mvn/wrapper/maven-wrapper.propertiesbackend/Dockerfilebackend/mvnwbackend/mvnw.cmdbackend/pom.xmlbackend/src/main/java/com/campito/backend/BackendApplication.javabackend/src/main/java/com/campito/backend/config/SecurityConfig.javabackend/src/main/java/com/campito/backend/controller/ComprasCreditoController.javabackend/src/main/java/com/campito/backend/controller/CuentaBancariaController.javabackend/src/main/java/com/campito/backend/controller/EspacioTrabajoController.javabackend/src/main/java/com/campito/backend/controller/RootController.javabackend/src/main/java/com/campito/backend/controller/TransaccionController.javabackend/src/main/java/com/campito/backend/controller/UsuarioController.javabackend/src/main/java/com/campito/backend/dao/CompraCreditoRepository.javabackend/src/main/java/com/campito/backend/dao/ContactoTransferenciaRepository.javabackend/src/main/java/com/campito/backend/dao/CuentaBancariaRepository.javabackend/src/main/java/com/campito/backend/dao/CuotaCreditoRepository.javabackend/src/main/java/com/campito/backend/dao/DashboardRepository.javabackend/src/main/java/com/campito/backend/dao/EspacioTrabajoRepository.javabackend/src/main/java/com/campito/backend/dao/MotivoTransaccionRepository.javabackend/src/main/java/com/campito/backend/dao/TarjetaRepository.javabackend/src/main/java/com/campito/backend/dao/TransaccionRepository.javabackend/src/main/java/com/campito/backend/dao/UsuarioRepository.javabackend/src/main/java/com/campito/backend/dto/CompraCreditoDTORequest.javabackend/src/main/java/com/campito/backend/dto/CompraCreditoDTOResponse.javabackend/src/main/java/com/campito/backend/dto/ContactoDTORequest.javabackend/src/main/java/com/campito/backend/dto/ContactoDTOResponse.javabackend/src/main/java/com/campito/backend/dto/CuentaBancariaDTORequest.javabackend/src/main/java/com/campito/backend/dto/CuentaBancariaDTOResponse.javabackend/src/main/java/com/campito/backend/dto/CuotaCreditoDTORequest.javabackend/src/main/java/com/campito/backend/dto/CuotaCreditoDTOResponse.javabackend/src/main/java/com/campito/backend/dto/DashboardInfoDTO.javabackend/src/main/java/com/campito/backend/dto/DistribucionGastoDTO.javabackend/src/main/java/com/campito/backend/dto/EspacioTrabajoDTORequest.javabackend/src/main/java/com/campito/backend/dto/EspacioTrabajoDTOResponse.javabackend/src/main/java/com/campito/backend/dto/IngresosGastosMesDTO.javabackend/src/main/java/com/campito/backend/dto/IngresosGastosMesDTOImpl.javabackend/src/main/java/com/campito/backend/dto/MotivoDTORequest.javabackend/src/main/java/com/campito/backend/dto/MotivoDTOResponse.javabackend/src/main/java/com/campito/backend/dto/PagarResumenTarjetaRequest.javabackend/src/main/java/com/campito/backend/dto/SaldoAcumuladoMesDTO.javabackend/src/main/java/com/campito/backend/dto/SaldoAcumuladoMesDTOImpl.javabackend/src/main/java/com/campito/backend/dto/TarjetaDTORequest.javabackend/src/main/java/com/campito/backend/dto/TarjetaDTOResponse.javabackend/src/main/java/com/campito/backend/dto/TransaccionBusquedaDTO.javabackend/src/main/java/com/campito/backend/dto/TransaccionDTORequest.javabackend/src/main/java/com/campito/backend/dto/TransaccionDTOResponse.javabackend/src/main/java/com/campito/backend/dto/UsuarioDTO.javabackend/src/main/java/com/campito/backend/exception/ControllerAdvisor.javabackend/src/main/java/com/campito/backend/exception/ExceptionInfo.javabackend/src/main/java/com/campito/backend/mapper/CompraCreditoMapper.javabackend/src/main/java/com/campito/backend/mapper/ContactoTransferenciaMapper.javabackend/src/main/java/com/campito/backend/mapper/CuentaBancariaMapper.javabackend/src/main/java/com/campito/backend/mapper/CuotaCreditoMapper.javabackend/src/main/java/com/campito/backend/mapper/EspacioTrabajoMapper.javabackend/src/main/java/com/campito/backend/mapper/MotivoTransaccionMapper.javabackend/src/main/java/com/campito/backend/mapper/TarjetaMapper.javabackend/src/main/java/com/campito/backend/mapper/TransaccionMapper.javabackend/src/main/java/com/campito/backend/mapper/config/MapstructConfig.javabackend/src/main/java/com/campito/backend/model/CompraCredito.javabackend/src/main/java/com/campito/backend/model/ContactoTransferencia.javabackend/src/main/java/com/campito/backend/model/CuentaBancaria.javabackend/src/main/java/com/campito/backend/model/CuotaCredito.javabackend/src/main/java/com/campito/backend/model/CustomOAuth2User.javabackend/src/main/java/com/campito/backend/model/EspacioTrabajo.javabackend/src/main/java/com/campito/backend/model/MotivoTransaccion.javabackend/src/main/java/com/campito/backend/model/Notificacion.javabackend/src/main/java/com/campito/backend/model/Presupuesto.javabackend/src/main/java/com/campito/backend/model/ProveedorAutenticacion.javabackend/src/main/java/com/campito/backend/model/Tarjeta.javabackend/src/main/java/com/campito/backend/model/TipoTransaccion.javabackend/src/main/java/com/campito/backend/model/Transaccion.javabackend/src/main/java/com/campito/backend/model/Usuario.javabackend/src/main/java/com/campito/backend/service/CompraCreditoService.javabackend/src/main/java/com/campito/backend/service/CompraCreditoServiceImpl.javabackend/src/main/java/com/campito/backend/service/CuentaBancariaService.javabackend/src/main/java/com/campito/backend/service/CuentaBancariaServiceImpl.javabackend/src/main/java/com/campito/backend/service/CustomOidcUserService.javabackend/src/main/java/com/campito/backend/service/EspacioTrabajoService.javabackend/src/main/java/com/campito/backend/service/EspacioTrabajoServiceImpl.javabackend/src/main/java/com/campito/backend/service/TransaccionService.javabackend/src/main/java/com/campito/backend/service/TransaccionServiceImpl.javabackend/src/main/resources/application-dev.propertiesbackend/src/main/resources/application-prod.propertiesbackend/src/main/resources/application.propertiesbackend/src/main/resources/db/migration/V1__Creacion_inicial_del_esquema.sqlbackend/src/main/resources/db/migration/V2__create_cuentabancaria_and_update_transaccion.sqlbackend/src/main/resources/db/migration/V3__create_compracredito_and_cuotacredito_tarjeta.sqlbackend/src/main/resources/logback-spring.xmlbackend/src/main/resources/static/dashboard.htmlbackend/src/main/resources/static/login.htmlbackend/src/main/resources/static/logo.pngbackend/src/main/resources/static/logo_login.pngbackend/src/main/resources/static/manifest.jsonbackend/src/main/resources/static/script.jsbackend/src/main/resources/static/styles.cssbackend/src/test/java/com/campito/backend/BackendApplicationTests.javabackend/src/test/java/com/campito/backend/service/CuentaBancariaServiceTest.javabackend/src/test/java/com/campito/backend/service/EspacioTrabajoServiceTest.javabackend/src/test/java/com/campito/backend/service/TransaccionServiceTest.javabackend/src/test/resources/application.propertiesdocker-compose.override.ymldocker-compose.prod.ymldocker-compose.ymldocs/DiagramaDeClasesUML.pumldocs/GuiaDocker.mddocs/HistoriasDeUsuario.mddocs/ProblemasSoluciones.mdsalidaPR.md
-Found 122 files tracked by GitHub
-Using test report parser 'java-junit'
-Creating test report Maven Tests
-  Warning: No file matches path backend/target/surefire-reports/TEST-*.xml
-Error: No test report files were found
-0s
+```
+Driver org.h2.Driver claims to not accept jdbcUrl, jdbc:postgresql://localhost:5432/testdb
+```
 
-Analyse code (java):
-  Error: 2-20 18:48:06] [autobuild] [ERROR] 
-  Error: 2-20 18:48:06] [autobuild] [ERROR] Re-run Maven using the -X switch to enable full debug logging.
-  Error: 2-20 18:48:06] [autobuild] [ERROR] 
-  Error: 2-20 18:48:06] [autobuild] [ERROR] For more information about the errors and possible solutions, please read the following articles:
-  Error: 2-20 18:48:06] [autobuild] [ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
-  Error: 2-20 18:48:06] [ERROR] Spawned process exited abnormally (code 1; tried to run: [/home/runner/work/ProyectoGastos/ProyectoGastos/./backend/mvnw, clean, package, -f, pom.xml, -B, -V, -e, -Dfindbugs.skip, -Dcheckstyle.skip, -Dpmd.skip=true, -Dspotbugs.skip, -Denforcer.skip, -Dmaven.javadoc.skip, -DskipTests, -Dmaven.test.skip.exec, -Dlicense.skip=true, -Drat.skip=true, -Dspotless.check.skip=true, -s, /home/runner/.m2/settings.xml, -t, /home/runner/.m2/toolchains.xml])
-  Error: We were unable to automatically build your code. Please replace the call to the autobuild action with your custom build steps. Encountered a fatal error while running "/opt/hostedtoolcache/CodeQL/2.23.8/x64/codeql/java/tools/autobuild.sh". Exit code was 1 and last log line was: Picked up JAVA_TOOL_OPTIONS:  -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false. See the logs for more details.
+The GitHub Actions workflow correctly sets PostgreSQL database environment variables during tests:
+
+```yaml
+env:
+  SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+  SPRING_DATASOURCE_USERNAME: testuser
+  SPRING_DATASOURCE_PASSWORD: testpass
+```
+
+However, your Spring Boot configuration does not specify a datasource driver or overrides for tests. By default, Spring Boot may attempt to use H2 for tests if dependencies are present and spring.datasource.driver-class-name is not set explicitly.
+
+**Solution:**
+1. Explicitly set the JDBC driver in application.properties or in src/test/resources/application-test.properties:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/testdb
+spring.datasource.username=testuser
+spring.datasource.password=testpass
+spring.datasource.driver-class-name=org.postgresql.Driver
+```
+
+2. If you prefer to let the workflow override these, ensure you remove H2 as a dependency from your test classpath if not required.
+
+3. If using test profiles, ensure @ActiveProfiles("test") is set in your tests and configure src/test/resources/application-test.properties accordingly.
+
+**Summary of needed change:**
+Add this line to your properties (either global or test-specific):
+```
+spring.datasource.driver-class-name=org.postgresql.Driver
+```
+This ensures Spring Boot uses PostgreSQL for integration tests, eliminating the mismatch that causes EntityManagerFactory startup failure.
+
+If you want a complete example, place the following in backend/src/main/resources/application.properties or backend/src/test/resources/application-test.properties:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/testdb
+spring.datasource.username=testuser
+spring.datasource.password=testpass
+spring.datasource.driver-class-name=org.postgresql.Driver
+```
+
+This will resolve your CI test job failure.
