@@ -763,7 +763,7 @@
                 date: t.fecha,
                 fechaCreacion: t.fechaCreacion,
                 nombreCompletoAuditoria: t.nombreCompletoAuditoria,
-                cuentaBancaria: t.CuentaBancaria
+                cuentaBancaria: t.nombreCuentaBancaria
             }));
             applySearchOrder();
             showNotification(`Se encontraron ${transactions.length} transacciones.`, 'success');
@@ -1290,7 +1290,7 @@
                 date: t.fecha,
                 fechaCreacion: t.fechaCreacion,
                 nombreCompletoAuditoria: t.nombreCompletoAuditoria,
-                cuentaBancaria: t.CuentaBancaria
+                cuentaBancaria: t.nombreCuentaBancaria
             }));
             renderRecentTransactions();
         })
