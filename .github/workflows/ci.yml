@@ -61,6 +61,7 @@ jobs:
             -Dspring.datasource.username=testuser \
             -Dspring.datasource.password=testpass \
             -Dspring.datasource.driver-class-name=org.postgresql.Driver \
+            -Dspring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect \
             clean test
 
       - name: Generate test report
