@@ -1,6 +1,6 @@
 package com.campito.backend.dto;
 
-public record EspacioTrabajoListadoDTO(
+public record EspacioTrabajoDTOResponse(
     Long id,
     String nombre,
     Float saldo,

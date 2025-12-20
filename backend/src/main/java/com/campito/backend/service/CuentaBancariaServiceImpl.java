@@ -4,40 +4,48 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.campito.backend.dto.CuentaBancariaDTO;
-import com.campito.backend.dto.CuentaBancariaListadoDTO;
+import com.campito.backend.dao.CuentaBancariaRepository;
+import com.campito.backend.dao.EspacioTrabajoRepository;
+import com.campito.backend.dto.CuentaBancariaDTORequest;
+import com.campito.backend.dto.CuentaBancariaDTOResponse;
+import com.campito.backend.mapper.CuentaBancariaMapper;
 import com.campito.backend.model.CuentaBancaria;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.TipoTransaccion;
-import com.campito.backend.dao.CuentaBancariaRepository;
-import com.campito.backend.dao.EspacioTrabajoRepository;
 
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 
+/**
+ * Implementación del servicio para gestión de cuentas bancarias.
+ * 
+ * Proporciona métodos para crear cuentas bancarias, actualizar saldos,
+ * listar cuentas y realizar transacciones entre cuentas.
+ */
 @Service
+@RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
 public class CuentaBancariaServiceImpl implements CuentaBancariaService {
 
     private static final Logger logger = LoggerFactory.getLogger(CuentaBancariaServiceImpl.class);
 
     private final CuentaBancariaRepository cuentaBancariaRepository;
     private final EspacioTrabajoRepository espacioTrabajoRepository;
+    private final CuentaBancariaMapper cuentaBancariaMapper;
 
-    @Autowired
-    public CuentaBancariaServiceImpl(
-        CuentaBancariaRepository cuentaBancariaRepository,
-        EspacioTrabajoRepository espacioTrabajoRepository
-    ) {
-        this.cuentaBancariaRepository = cuentaBancariaRepository;
-        this.espacioTrabajoRepository = espacioTrabajoRepository;
-    }
-
+    /**
+     * Crea una nueva cuenta bancaria.
+     * 
+     * @param cuentaBancariaDTO Datos de la cuenta bancaria a crear.
+     * @throws IllegalArgumentException si la cuenta bancaria es nula o faltan datos requeridos.
+     * @throws EntityNotFoundException si el espacio de trabajo no se encuentra.
+     * @throws Exception para cualquier otro error inesperado.
+     */
     @Override
     @Transactional
-    public void crearCuentaBancaria(CuentaBancariaDTO cuentaBancariaDTO) {
+    public void crearCuentaBancaria(CuentaBancariaDTORequest cuentaBancariaDTO) {
         if (cuentaBancariaDTO == null) {
             logger.warn("Intento de crear una CuentaBancariaDTO nula.");
             throw new IllegalArgumentException("La cuenta bancaria no puede ser nula");
@@ -64,7 +72,8 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
                     return new EntityNotFoundException(mensaje);
                 });
 
-            CuentaBancaria cuentaBancaria = cuentaBancariaDTO.toCuentaBancaria();
+            CuentaBancaria cuentaBancaria = cuentaBancariaMapper.toEntity(cuentaBancariaDTO);
+            cuentaBancaria.setSaldoActual(0f);
             cuentaBancaria.setEspacioTrabajo(espacioTrabajo);
             cuentaBancariaRepository.save(cuentaBancaria);
             logger.info("Cuenta bancaria '{}' creada exitosamente.", cuentaBancaria.getNombre());
@@ -74,6 +83,17 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
         }
     }
 
+    /**
+     * Actualiza el saldo de una cuenta bancaria según el tipo de transacción.
+     * 
+     * @param id ID de la cuenta bancaria a actualizar.
+     * @param tipo Tipo de transacción (INGRESO o GASTO).
+     * @param monto Monto de la transacción.
+     * @return Entidad CuentaBancaria actualizada.
+     * @throws IllegalArgumentException si el ID o monto son nulos, o si el saldo es insuficiente.
+     * @throws EntityNotFoundException si la cuenta bancaria no se encuentra.
+     * @throws Exception para cualquier otro error inesperado.
+     */
     @Override
     @Transactional
     public CuentaBancaria actualizarCuentaBancaria(Long id, TipoTransaccion tipo, Float monto) {
@@ -109,21 +129,25 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
         }
     }
 
+    /**
+     * Lista todas las cuentas bancarias de un espacio de trabajo.
+     * 
+     * @param idEspacioTrabajo ID del espacio de trabajo.
+     * @return Lista de cuentas bancarias del espacio de trabajo.
+     * @throws IllegalArgumentException si el ID del espacio es nulo.
+     * @throws Exception para cualquier otro error inesperado.
+     */
     @Override
-    public List<CuentaBancariaListadoDTO> listarCuentasBancarias(Long idEspacioTrabajo) {
+    public List<CuentaBancariaDTOResponse> listarCuentasBancarias(Long idEspacioTrabajo) {
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de listar cuentas bancarias con idEspacioTrabajo nulo.");
             throw new IllegalArgumentException("El id del espacio de trabajo no puede ser nulo");
         }
         logger.info("Listando cuentas bancarias para el espacio de trabajo ID: {}", idEspacioTrabajo);
         try {
-            List<CuentaBancariaListadoDTO> cuentas = cuentaBancariaRepository.findByEspacioTrabajo_Id(idEspacioTrabajo).stream()
-                .map(cuenta -> new CuentaBancariaListadoDTO(
-                    cuenta.getId(),
-                    cuenta.getNombre(),
-                    cuenta.getEntidadFinanciera(),
-                    cuenta.getSaldoActual()
-                )).toList();
+            List<CuentaBancariaDTOResponse> cuentas = cuentaBancariaRepository.findByEspacioTrabajo_Id(idEspacioTrabajo).stream()
+                .map(cuentaBancariaMapper::toResponse)
+                .toList();
             logger.info("Encontradas {} cuentas bancarias para el espacio de trabajo ID: {}.", cuentas.size(), idEspacioTrabajo);
             return cuentas;
         } catch (Exception e) {
@@ -132,6 +156,16 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
         }
     }
 
+    /**
+     * Realiza una transacción de transferencia entre dos cuentas bancarias.
+     * 
+     * @param idCuentaOrigen ID de la cuenta bancaria origen.
+     * @param idCuentaDestino ID de la cuenta bancaria destino.
+     * @param monto Monto a transferir.
+     * @throws IllegalArgumentException si algún parámetro es nulo o si el saldo origen es insuficiente.
+     * @throws EntityNotFoundException si alguna de las cuentas no se encuentra.
+     * @throws Exception para cualquier otro error inesperado.
+     */
     @Override
     public void transaccionEntreCuentas(Long idCuentaOrigen, Long idCuentaDestino, Float monto) {
         if(idCuentaOrigen == null || idCuentaDestino == null || monto == null) {

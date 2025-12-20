@@ -6,13 +6,12 @@ import java.time.LocalDateTime;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Table(name = "compras_credito")
-@Getter  // Genera getters para todos los campos
+@Data // Genera equals, hashCode, toString y getters/setters para todos los campos
 @NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)
 @AllArgsConstructor  // Genera constructor con todos los argumentos
 @Builder // Implementa el patrón Builder para construcción fluida de objetos
@@ -40,26 +39,21 @@ public class CompraCredito {
     @Column(name = "nombre_completo_auditoria", nullable = false, length = 100)
     private String nombreCompletoAuditoria;
 
-    @Setter
     @Column(name = "fecha_creacion", nullable = false)
     private LocalDateTime fechaCreacion;
 
-    @Setter
     @ManyToOne
     @JoinColumn(name = "espacio_trabajo_id", nullable = false)
     private EspacioTrabajo espacioTrabajo;
 
-    @Setter
     @ManyToOne
     @JoinColumn(name = "motivo_transaccion_id", nullable = false)
     private MotivoTransaccion motivo;
 
-    @Setter
     @ManyToOne
     @JoinColumn(name = "comercio_id")
     private ContactoTransferencia comercio;
 
-    @Setter
     @ManyToOne
     @JoinColumn(name = "tarjeta_id", nullable = false)
     private Tarjeta tarjeta;

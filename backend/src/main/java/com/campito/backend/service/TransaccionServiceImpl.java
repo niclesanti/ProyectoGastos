@@ -8,7 +8,6 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,17 +18,20 @@ import com.campito.backend.dao.DashboardRepository;
 import com.campito.backend.dao.EspacioTrabajoRepository;
 import com.campito.backend.dao.MotivoTransaccionRepository;
 import com.campito.backend.dao.TransaccionRepository;
-import com.campito.backend.dto.ContactoDTO;
-import com.campito.backend.dto.ContactoListadoDTO;
+import com.campito.backend.dto.ContactoDTORequest;
+import com.campito.backend.dto.ContactoDTOResponse;
 import com.campito.backend.dto.DashboardInfoDTO;
 import com.campito.backend.dto.DistribucionGastoDTO;
 import com.campito.backend.dto.IngresosGastosMesDTO;
-import com.campito.backend.dto.MotivoDTO;
-import com.campito.backend.dto.MotivoListadoDTO;
+import com.campito.backend.dto.MotivoDTORequest;
+import com.campito.backend.dto.MotivoDTOResponse;
 import com.campito.backend.dto.SaldoAcumuladoMesDTO;
 import com.campito.backend.dto.TransaccionBusquedaDTO;
-import com.campito.backend.dto.TransaccionDTO;
-import com.campito.backend.dto.TransaccionListadoDTO;
+import com.campito.backend.dto.TransaccionDTORequest;
+import com.campito.backend.dto.TransaccionDTOResponse;
+import com.campito.backend.mapper.ContactoTransferenciaMapper;
+import com.campito.backend.mapper.MotivoTransaccionMapper;
+import com.campito.backend.mapper.TransaccionMapper;
 import com.campito.backend.model.ContactoTransferencia;
 import com.campito.backend.model.CuentaBancaria;
 import com.campito.backend.model.EspacioTrabajo;
@@ -38,8 +40,16 @@ import com.campito.backend.model.TipoTransaccion;
 import com.campito.backend.model.Transaccion;
 
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 
+/**
+ * Implementación del servicio para gestión de transacciones.
+ * 
+ * Proporciona métodos para registrar transacciones, removerlas, buscarlas,
+ * y gestionar contactos y motivos de transacciones.
+ */
 @Service
+@RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
 public class TransaccionServiceImpl implements TransaccionService {
 
     private static final Logger logger = LoggerFactory.getLogger(TransaccionServiceImpl.class);
@@ -51,28 +61,22 @@ public class TransaccionServiceImpl implements TransaccionService {
     private final DashboardRepository dashboardRepository;
     private final CuentaBancariaRepository cuentaBancariaRepository;
     private final CuentaBancariaService cuentaBancariaService;
+    private final TransaccionMapper transaccionMapper;
+    private final ContactoTransferenciaMapper contactoTransferenciaMapper;
+    private final MotivoTransaccionMapper motivoTransaccionMapper;
 
-    @Autowired
-    public TransaccionServiceImpl(
-        TransaccionRepository transaccionRepository,
-        EspacioTrabajoRepository espacioRepository,
-        MotivoTransaccionRepository motivoRepository,
-        ContactoTransferenciaRepository contactoRepository,
-        DashboardRepository dashboardRepository,
-        CuentaBancariaRepository cuentaBancariaRepository,
-        CuentaBancariaService cuentaBancariaService) {
-        this.transaccionRepository = transaccionRepository;
-        this.espacioRepository = espacioRepository;
-        this.motivoRepository = motivoRepository;
-        this.contactoRepository = contactoRepository;
-        this.dashboardRepository = dashboardRepository;
-        this.cuentaBancariaRepository = cuentaBancariaRepository;
-        this.cuentaBancariaService = cuentaBancariaService;
-    }
-
+    /**
+     * Registra una nueva transacción.
+     * 
+     * @param transaccionDTO Datos de la transacción a registrar.
+     * @return DTO de respuesta con los datos de la transacción registrada.
+     * @throws IllegalArgumentException si la transacción es nula o faltan datos requeridos.
+     * @throws EntityNotFoundException si el espacio de trabajo, motivo o contacto no se encuentran.
+     * @throws Exception para cualquier otro error inesperado.
+     */
     @Override
     @Transactional
-    public TransaccionDTO registrarTransaccion(TransaccionDTO transaccionDTO) {
+    public TransaccionDTOResponse registrarTransaccion(TransaccionDTORequest transaccionDTO) {
         if (transaccionDTO == null) {
             logger.warn("Intento de registrar una TransaccionDTO nula.");
             throw new IllegalArgumentException("La transaccion no puede ser nula");
@@ -99,7 +103,7 @@ public class TransaccionServiceImpl implements TransaccionService {
                 return new EntityNotFoundException(msg);
             });
 
-            Transaccion transaccion = transaccionDTO.toTransaccion();
+            Transaccion transaccion = transaccionMapper.toEntity(transaccionDTO);
 
             if (transaccionDTO.idContacto() != null) {
                 ContactoTransferencia contacto = contactoRepository.findById(transaccionDTO.idContacto()).orElseThrow(() -> {
@@ -132,24 +136,21 @@ public class TransaccionServiceImpl implements TransaccionService {
             Transaccion transaccionGuardada = transaccionRepository.save(transaccion);
             logger.info("Transaccion ID {} registrada exitosamente en espacio ID {}. Nuevo saldo: {}", transaccionGuardada.getId(), espacio.getId(), espacio.getSaldo());
             
-            return new TransaccionDTO(
-                transaccionGuardada.getId(),
-                transaccionGuardada.getFecha(),
-                transaccionGuardada.getMonto(),
-                transaccionGuardada.getTipo(),
-                transaccionGuardada.getDescripcion(),
-                transaccionGuardada.getNombreCompletoAuditoria(),
-                transaccionGuardada.getEspacioTrabajo().getId(),
-                transaccionGuardada.getMotivo().getId(),
-                transaccionGuardada.getContacto() != null ? transaccionGuardada.getContacto().getId() : null,
-                transaccionGuardada.getCuentaBancaria() != null ? transaccionGuardada.getCuentaBancaria().getId() : null
-            );
+            return transaccionMapper.toResponse(transaccionGuardada);
         } catch (Exception e) {
             logger.error("Error inesperado al registrar transaccion en espacio ID {}: {}", transaccionDTO.idEspacioTrabajo(), e.getMessage(), e);
             throw e;
         }
     }
 
+    /**
+     * Remueve una transacción existente y revierte el impacto en el saldo.
+     * 
+     * @param id ID de la transacción a remover.
+     * @throws IllegalArgumentException si el ID es nulo.
+     * @throws EntityNotFoundException si la transacción no se encuentra.
+     * @throws Exception para cualquier otro error inesperado.
+     */
     @Override
     @Transactional
     public void removerTransaccion(Long id) {
@@ -194,8 +195,16 @@ public class TransaccionServiceImpl implements TransaccionService {
         }
     }
 
+    /**
+     * Busca transacciones aplicando filtros opcionales.
+     * 
+     * @param datosBusqueda Criterios de búsqueda (espacio de trabajo, año, mes, motivo, contacto).
+     * @return Lista de transacciones que cumplen los criterios.
+     * @throws IllegalArgumentException si los datos de búsqueda son nulos o falta el ID del espacio.
+     * @throws Exception para cualquier otro error inesperado.
+     */
     @Override
-    public List<TransaccionListadoDTO> buscarTransaccion(TransaccionBusquedaDTO datosBusqueda) {
+    public List<TransaccionDTOResponse> buscarTransaccion(TransaccionBusquedaDTO datosBusqueda) {
         if (datosBusqueda == null) {
             logger.warn("Intento de buscar transacciones con DTO de busqueda nulo.");
             throw new IllegalArgumentException("Los datos de búsqueda no pueden ser nulos");
@@ -233,16 +242,27 @@ public class TransaccionServiceImpl implements TransaccionService {
 
             List<Transaccion> transacciones = transaccionRepository.findAll(spec);
             logger.info("Busqueda de transacciones para espacio ID {} finalizada. Se encontraron {} resultados.", datosBusqueda.idEspacioTrabajo(), transacciones.size());
-            return crearListadoTransacciones(transacciones);
+            return transacciones.stream()
+                .map(transaccionMapper::toResponse)
+                .toList();
         } catch (Exception e) {
             logger.error("Error inesperado durante la busqueda de transacciones para espacio ID {}: {}", datosBusqueda.idEspacioTrabajo(), e.getMessage(), e);
             throw e;
         }
     }
 
+    /**
+     * Registra un nuevo contacto de transferencia.
+     * 
+     * @param contactoDTO Datos del contacto a registrar.
+     * @return DTO de respuesta con los datos del contacto registrado.
+     * @throws IllegalArgumentException si el contacto es nulo o faltan datos requeridos.
+     * @throws EntityNotFoundException si el espacio de trabajo no se encuentra.
+     * @throws Exception para cualquier otro error inesperado.
+     */
     @Override
     @Transactional
-    public ContactoDTO registrarContactoTransferencia(ContactoDTO contactoDTO) {
+    public ContactoDTOResponse registrarContactoTransferencia(ContactoDTORequest contactoDTO) {
         if (contactoDTO == null) {
             logger.warn("Intento de registrar un ContactoDTO nulo.");
             throw new IllegalArgumentException("El contacto no puede ser nulo");
@@ -258,7 +278,7 @@ public class TransaccionServiceImpl implements TransaccionService {
                 throw new IllegalArgumentException("El espacio de trabajo del contacto no puede ser nulo");
             }
 
-            ContactoTransferencia contacto = contactoDTO.toContactoTransferencia();
+            ContactoTransferencia contacto = contactoTransferenciaMapper.toEntity(contactoDTO);
 
             EspacioTrabajo espacio = espacioRepository.findById(contactoDTO.idEspacioTrabajo()).orElseThrow(() -> {
                 String msg = "Espacio de trabajo con ID " + contactoDTO.idEspacioTrabajo() + " no encontrado";
@@ -269,16 +289,25 @@ public class TransaccionServiceImpl implements TransaccionService {
 
             ContactoTransferencia contactoGuardado = contactoRepository.save(contacto);
             logger.info("Contacto '{}' (ID: {}) registrado exitosamente en espacio ID {}.", contactoGuardado.getNombre(), contactoGuardado.getId(), espacio.getId());
-            return new ContactoDTO(contactoGuardado.getId(), contactoGuardado.getNombre(), contactoGuardado.getEspacioTrabajo().getId());
+            return contactoTransferenciaMapper.toResponse(contactoGuardado);
         } catch (Exception e) {
             logger.error("Error inesperado al registrar contacto '{}' en espacio ID {}: {}", contactoDTO.nombre(), contactoDTO.idEspacioTrabajo(), e.getMessage(), e);
             throw e;
         }
     }
 
+    /**
+     * Registra un nuevo motivo de transacción.
+     * 
+     * @param motivoDTO Datos del motivo a registrar.
+     * @return DTO de respuesta con los datos del motivo registrado.
+     * @throws IllegalArgumentException si el motivo es nulo o faltan datos requeridos.
+     * @throws EntityNotFoundException si el espacio de trabajo no se encuentra.
+     * @throws Exception para cualquier otro error inesperado.
+     */
     @Override
     @Transactional
-    public MotivoDTO nuevoMotivoTransaccion(MotivoDTO motivoDTO) {
+    public MotivoDTOResponse nuevoMotivoTransaccion(MotivoDTORequest motivoDTO) {
         if (motivoDTO == null) {
             logger.warn("Intento de registrar un MotivoDTO nulo.");
             throw new IllegalArgumentException("El motivo no puede ser nulo");
@@ -294,7 +323,7 @@ public class TransaccionServiceImpl implements TransaccionService {
                 throw new IllegalArgumentException("El espacio de trabajo del motivo no puede ser nulo");
             }
 
-            MotivoTransaccion motivo = motivoDTO.toMotivoTransaccion();
+            MotivoTransaccion motivo = motivoTransaccionMapper.toEntity(motivoDTO);
 
             EspacioTrabajo espacio = espacioRepository.findById(motivoDTO.idEspacioTrabajo()).orElseThrow(() -> {
                 String msg = "Espacio de trabajo con ID " + motivoDTO.idEspacioTrabajo() + " no encontrado";
@@ -305,23 +334,31 @@ public class TransaccionServiceImpl implements TransaccionService {
 
             MotivoTransaccion motivoGuardado = motivoRepository.save(motivo);
             logger.info("Motivo '{}' (ID: {}) registrado exitosamente en espacio ID {}.", motivoGuardado.getMotivo(), motivoGuardado.getId(), espacio.getId());
-            return new MotivoDTO(motivoGuardado.getId(), motivoGuardado.getMotivo(), motivoGuardado.getEspacioTrabajo().getId());
+            return motivoTransaccionMapper.toResponse(motivoGuardado);
         } catch (Exception e) {
             logger.error("Error inesperado al registrar motivo '{}' en espacio ID {}: {}", motivoDTO.motivo(), motivoDTO.idEspacioTrabajo(), e.getMessage(), e);
             throw e;
         }
     }
 
+    /**
+     * Lista todos los contactos de transferencia de un espacio de trabajo.
+     * 
+     * @param idEspacioTrabajo ID del espacio de trabajo.
+     * @return Lista de contactos del espacio de trabajo.
+     * @throws IllegalArgumentException si el ID del espacio es nulo.
+     * @throws Exception para cualquier otro error inesperado.
+     */
     @Override
-    public List<ContactoListadoDTO> listarContactos(Long idEspacioTrabajo) {
+    public List<ContactoDTOResponse> listarContactos(Long idEspacioTrabajo) {
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de listar contactos con ID de espacio de trabajo nulo.");
             throw new IllegalArgumentException("El id del espacio de trabajo no puede ser nulo");
         }
         logger.info("Listando contactos para el espacio de trabajo ID: {}", idEspacioTrabajo);
         try {
-            List<ContactoListadoDTO> contactos = contactoRepository.findByEspacioTrabajo_Id(idEspacioTrabajo).stream()
-                    .map(contacto -> new ContactoListadoDTO(contacto.getId(), contacto.getNombre()))
+            List<ContactoDTOResponse> contactos = contactoRepository.findByEspacioTrabajo_Id(idEspacioTrabajo).stream()
+                    .map(contactoTransferenciaMapper::toResponse)
                     .toList();
             logger.info("Se encontraron {} contactos para el espacio ID {}.", contactos.size(), idEspacioTrabajo);
             return contactos;
@@ -331,16 +368,24 @@ public class TransaccionServiceImpl implements TransaccionService {
         }
     }
 
+    /**
+     * Lista todos los motivos de transacción de un espacio de trabajo.
+     * 
+     * @param idEspacioTrabajo ID del espacio de trabajo.
+     * @return Lista de motivos del espacio de trabajo.
+     * @throws IllegalArgumentException si el ID del espacio es nulo.
+     * @throws Exception para cualquier otro error inesperado.
+     */
     @Override
-    public List<MotivoListadoDTO> listarMotivos(Long idEspacioTrabajo) {
+    public List<MotivoDTOResponse> listarMotivos(Long idEspacioTrabajo) {
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de listar motivos con ID de espacio de trabajo nulo.");
             throw new IllegalArgumentException("El id del espacio de trabajo no puede ser nulo");
         }
         logger.info("Listando motivos para el espacio de trabajo ID: {}", idEspacioTrabajo);
         try {
-            List<MotivoListadoDTO> motivos = motivoRepository.findByEspacioTrabajo_Id(idEspacioTrabajo).stream()
-                    .map(motivo -> new MotivoListadoDTO(motivo.getId(), motivo.getMotivo()))
+            List<MotivoDTOResponse> motivos = motivoRepository.findByEspacioTrabajo_Id(idEspacioTrabajo).stream()
+                    .map(motivoTransaccionMapper::toResponse)
                     .toList();
             logger.info("Se encontraron {} motivos para el espacio ID {}.", motivos.size(), idEspacioTrabajo);
             return motivos;
@@ -350,8 +395,16 @@ public class TransaccionServiceImpl implements TransaccionService {
         }
     }
 
+    /**
+     * Busca las últimas 6 transacciones recientes de un espacio de trabajo.
+     * 
+     * @param idEspacioTrabajo ID del espacio de trabajo.
+     * @return Lista de las últimas 6 transacciones ordenadas por fecha de creación.
+     * @throws IllegalArgumentException si el ID del espacio es nulo.
+     * @throws Exception para cualquier otro error inesperado.
+     */
     @Override
-    public List<TransaccionListadoDTO> buscarTransaccionesRecientes(Long idEspacioTrabajo) {
+    public List<TransaccionDTOResponse> buscarTransaccionesRecientes(Long idEspacioTrabajo) {
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de buscar transacciones recientes con ID de espacio de trabajo nulo.");
             throw new IllegalArgumentException("El id del espacio de trabajo no puede ser nulo");
@@ -370,13 +423,22 @@ public class TransaccionServiceImpl implements TransaccionService {
             org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 6, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "fechaCreacion"));
             List<Transaccion> transacciones = transaccionRepository.findAll(spec, pageable).getContent();
             logger.info("Se encontraron {} transacciones recientes para el espacio ID {}.", transacciones.size(), idEspacioTrabajo);
-            return crearListadoTransacciones(transacciones);
+            return transacciones.stream()
+                .map(transaccionMapper::toResponse)
+                .toList();
         } catch (Exception e) {
             logger.error("Error inesperado al buscar transacciones recientes para el espacio ID {}: {}", idEspacioTrabajo, e.getMessage(), e);
             throw e;
         }
     }
 
+    /**
+     * Obtiene información consolidada del dashboard para un espacio de trabajo.
+     * 
+     * @param idEspacio ID del espacio de trabajo.
+     * @return DTO con información de ingresos/gastos, distribución de gastos y saldos acumulados.
+     * @throws Exception para cualquier error inesperado.
+     */
     @Override
     public DashboardInfoDTO obtenerDashboardInfo(Long idEspacio) {
         logger.info("Obteniendo informacion del dashboard para el espacio ID: {}", idEspacio);
@@ -424,27 +486,4 @@ public class TransaccionServiceImpl implements TransaccionService {
         }
     }
 
-    // Metodos auxiliares
-
-    private List<TransaccionListadoDTO> crearListadoTransacciones(List<Transaccion> transacciones) {
-        return transacciones.stream()
-                .map(t -> new TransaccionListadoDTO(
-                    t.getId(),
-                    t.getFecha(),
-                    t.getMonto(),
-                    t.getTipo(),
-                    t.getDescripcion(),
-                    t.getNombreCompletoAuditoria(),
-                    t.getFechaCreacion(),
-                    t.getEspacioTrabajo() != null ? t.getEspacioTrabajo().getId() : null,
-                    t.getEspacioTrabajo() != null ? t.getEspacioTrabajo().getNombre() : null,
-                    t.getMotivo() != null ? t.getMotivo().getId() : null,
-                    t.getMotivo() != null ? t.getMotivo().getMotivo() : null,
-                    t.getContacto() != null ? t.getContacto().getId() : null,
-                    t.getContacto() != null ? t.getContacto().getNombre() : null,
-                    t.getCuentaBancaria() != null ? t.getCuentaBancaria().getEntidadFinanciera()+"/"+t.getCuentaBancaria().getNombre() : null
-                ))
-                .toList();
-    }
-    
 }

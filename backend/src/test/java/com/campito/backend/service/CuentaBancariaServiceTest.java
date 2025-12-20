@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,8 +24,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.campito.backend.dao.CuentaBancariaRepository;
 import com.campito.backend.dao.EspacioTrabajoRepository;
-import com.campito.backend.dto.CuentaBancariaDTO;
-import com.campito.backend.dto.CuentaBancariaListadoDTO;
+import com.campito.backend.dto.CuentaBancariaDTORequest;
+import com.campito.backend.dto.CuentaBancariaDTOResponse;
+import com.campito.backend.mapper.CuentaBancariaMapper;
 import com.campito.backend.model.CuentaBancaria;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.ProveedorAutenticacion;
@@ -42,10 +44,13 @@ public class CuentaBancariaServiceTest {
     @Mock
     private EspacioTrabajoRepository espacioTrabajoRepository;
 
+    @Mock
+    private CuentaBancariaMapper cuentaBancariaMapper;
+
     @InjectMocks
     private CuentaBancariaServiceImpl cuentaBancariaService;
 
-    private CuentaBancariaDTO cuentaBancariaDTO;
+    private CuentaBancariaDTORequest cuentaBancariaDTO;
     private EspacioTrabajo espacioTrabajo;
     private CuentaBancaria cuentaBancaria;
 
@@ -59,10 +64,14 @@ public class CuentaBancariaServiceTest {
         usuarioAdmin.setActivo(true);
         usuarioAdmin.setFechaRegistro(LocalDateTime.now());
 
-        espacioTrabajo = new EspacioTrabajo("Mi Espacio de Trabajo", 0f, usuarioAdmin);
+        espacioTrabajo = new EspacioTrabajo();
         espacioTrabajo.setId(1L);
+        espacioTrabajo.setNombre("Mi Espacio de Trabajo");
+        espacioTrabajo.setSaldo(0f);
+        espacioTrabajo.setUsuarioAdmin(usuarioAdmin);
+        espacioTrabajo.setUsuariosParticipantes(List.of(usuarioAdmin));
 
-        cuentaBancariaDTO = new CuentaBancariaDTO(1L, "Cuenta de Ahorros", "Banco A", 1L);
+        cuentaBancariaDTO = new CuentaBancariaDTORequest("Cuenta de Ahorros", "Banco A", 1L);
 
         cuentaBancaria = new CuentaBancaria();
         cuentaBancaria.setId(1L);
@@ -70,6 +79,12 @@ public class CuentaBancariaServiceTest {
         cuentaBancaria.setEntidadFinanciera("Banco A");
         cuentaBancaria.setSaldoActual(1000f);
         cuentaBancaria.setEspacioTrabajo(espacioTrabajo);
+        
+        lenient().when(cuentaBancariaMapper.toEntity(any(CuentaBancariaDTORequest.class))).thenReturn(cuentaBancaria);
+        lenient().when(cuentaBancariaMapper.toResponse(any(CuentaBancaria.class))).thenAnswer(invocation -> {
+            CuentaBancaria cuenta = invocation.getArgument(0);
+            return new CuentaBancariaDTOResponse(cuenta.getId(), cuenta.getNombre(), cuenta.getEntidadFinanciera(), cuenta.getSaldoActual());
+        });
     }
 
     // Tests para crearCuentaBancaria
@@ -84,7 +99,7 @@ public class CuentaBancariaServiceTest {
 
     @Test
     void testCrearCuentaBancaria_cuandoIdEspacioTrabajoEsNulo_lanzaExcepcion() {
-        CuentaBancariaDTO dtoSinEspacio = new CuentaBancariaDTO(1L, "Nombre", "Entidad", null);
+        CuentaBancariaDTORequest dtoSinEspacio = new CuentaBancariaDTORequest("Nombre", "Entidad", null);
         assertThrows(IllegalArgumentException.class, () -> {
             cuentaBancariaService.crearCuentaBancaria(dtoSinEspacio);
         });
@@ -94,12 +109,12 @@ public class CuentaBancariaServiceTest {
 
     @Test
     void testCrearCuentaBancaria_cuandoNombreEsNuloOVacio_lanzaExcepcion() {
-        CuentaBancariaDTO dtoSinNombre = new CuentaBancariaDTO(1L, null, "Entidad", 1L);
+        CuentaBancariaDTORequest dtoSinNombre = new CuentaBancariaDTORequest(null, "Entidad", 1L);
         assertThrows(IllegalArgumentException.class, () -> {
             cuentaBancariaService.crearCuentaBancaria(dtoSinNombre);
         });
 
-        CuentaBancariaDTO dtoNombreVacio = new CuentaBancariaDTO(1L, "", "Entidad", 1L);
+        CuentaBancariaDTORequest dtoNombreVacio = new CuentaBancariaDTORequest("", "Entidad", 1L);
         assertThrows(IllegalArgumentException.class, () -> {
             cuentaBancariaService.crearCuentaBancaria(dtoNombreVacio);
         });
@@ -109,12 +124,12 @@ public class CuentaBancariaServiceTest {
 
     @Test
     void testCrearCuentaBancaria_cuandoEntidadFinancieraEsNulaOVacia_lanzaExcepcion() {
-        CuentaBancariaDTO dtoSinEntidad = new CuentaBancariaDTO(1L, "Nombre", null, 1L);
+        CuentaBancariaDTORequest dtoSinEntidad = new CuentaBancariaDTORequest("Nombre", null, 1L);
         assertThrows(IllegalArgumentException.class, () -> {
             cuentaBancariaService.crearCuentaBancaria(dtoSinEntidad);
         });
 
-        CuentaBancariaDTO dtoEntidadVacia = new CuentaBancariaDTO(1L, "Nombre", "", 1L);
+        CuentaBancariaDTORequest dtoEntidadVacia = new CuentaBancariaDTORequest("Nombre", "", 1L);
         assertThrows(IllegalArgumentException.class, () -> {
             cuentaBancariaService.crearCuentaBancaria(dtoEntidadVacia);
         });
@@ -196,7 +211,7 @@ public class CuentaBancariaServiceTest {
     @Test
     void testListarCuentasBancarias_cuandoNoExistenCuentas_retornaListaVacia() {
         when(cuentaBancariaRepository.findByEspacioTrabajo_Id(1L)).thenReturn(Collections.emptyList());
-        List<CuentaBancariaListadoDTO> resultado = cuentaBancariaService.listarCuentasBancarias(1L);
+        List<CuentaBancariaDTOResponse> resultado = cuentaBancariaService.listarCuentasBancarias(1L);
         assertNotNull(resultado);
         assertEquals(0, resultado.size());
     }
@@ -204,7 +219,7 @@ public class CuentaBancariaServiceTest {
     @Test
     void testListarCuentasBancarias_cuandoExistenCuentas_retornaListaDTOs() {
         when(cuentaBancariaRepository.findByEspacioTrabajo_Id(1L)).thenReturn(List.of(cuentaBancaria));
-        List<CuentaBancariaListadoDTO> resultado = cuentaBancariaService.listarCuentasBancarias(1L);
+        List<CuentaBancariaDTOResponse> resultado = cuentaBancariaService.listarCuentasBancarias(1L);
         assertNotNull(resultado);
         assertEquals(1, resultado.size());
         assertEquals("Cuenta de Ahorros", resultado.get(0).nombre());

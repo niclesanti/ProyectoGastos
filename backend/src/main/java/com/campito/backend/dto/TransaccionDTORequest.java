@@ -2,7 +2,6 @@ package com.campito.backend.dto;
 
 import java.time.LocalDate;
 
-import com.campito.backend.model.Transaccion;
 import com.campito.backend.model.TipoTransaccion;
 
 import jakarta.validation.constraints.Max;
@@ -12,8 +11,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 
-public record TransaccionDTO(
-    Long id,
+public record TransaccionDTORequest(
     @NotNull(message = "La fecha no puede ser nula")
     @PastOrPresent(message = "La fecha debe ser en el pasado o presente")
     LocalDate fecha,
@@ -35,13 +33,5 @@ public record TransaccionDTO(
     Long idContacto,
     Long idCuentaBancaria
 ) {
-    public Transaccion toTransaccion() {
-        Transaccion transaccion = new Transaccion();
-        transaccion.setFecha(this.fecha);
-        transaccion.setMonto(this.monto);
-        transaccion.setTipo(this.tipo);
-        transaccion.setDescripcion(this.descripcion);
-        transaccion.setNombreCompletoAuditoria(this.nombreCompletoAuditoria);
-        return transaccion;
-    }
+
 }

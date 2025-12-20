@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 
 import com.campito.backend.model.TipoTransaccion;
 
-public record TransaccionListadoDTO(
+public record TransaccionDTOResponse(
     Long id,
     LocalDate fecha,
     Float monto,
@@ -19,7 +19,7 @@ public record TransaccionListadoDTO(
     String nombreMotivo,
     Long idContacto,
     String nombreContacto,
-    String CuentaBancaria
+    String nombreCuentaBancaria
 ) {
 
 }

@@ -1,8 +1,8 @@
 package com.campito.backend.dto;
 
-public record ContactoListadoDTO(
+public record MotivoDTOResponse(
     Long id,
-    String nombre
+    String motivo
 ) {
 
 }

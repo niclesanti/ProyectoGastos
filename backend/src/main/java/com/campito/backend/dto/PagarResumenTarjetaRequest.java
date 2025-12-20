@@ -18,6 +18,6 @@ public record PagarResumenTarjetaRequest(
     
     @NotNull(message = "La transacción no puede ser nula")
     @Valid
-    TransaccionDTO transaccion
+    TransaccionDTORequest transaccion
 ) {
 }

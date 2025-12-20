@@ -1,6 +1,6 @@
 package com.campito.backend.dto;
 
-public record CuentaBancariaListadoDTO(
+public record CuentaBancariaDTOResponse(
     Long id,
     String nombre,
     String entidadFinanciera,

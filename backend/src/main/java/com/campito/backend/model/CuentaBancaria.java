@@ -8,9 +8,17 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "cuentas_bancarias")
+@Data // Genera equals, hashCode, toString y getters/setters para todos los campos
+@NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)
+@AllArgsConstructor  // Genera constructor con todos los argumentos
+@Builder // Implementa el patrón Builder para construcción fluida de objetos
 public class CuentaBancaria {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,50 +31,10 @@ public class CuentaBancaria {
     private String entidadFinanciera;
 
     @Column(name = "saldo_actual", nullable = false)
-    private Float saldoActual;
+    private Float saldoActual;// Asignar saldo inicial a 0.0f
     
     @ManyToOne
     @JoinColumn(name = "id_espacio_trabajo", nullable = false)
     private EspacioTrabajo espacioTrabajo;
 
-    // Getters y Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public String getEntidadFinanciera() {
-        return entidadFinanciera;
-    }
-
-    public void setEntidadFinanciera(String entidadFinanciera) {
-        this.entidadFinanciera = entidadFinanciera;
-    }
-
-    public Float getSaldoActual() {
-        return saldoActual;
-    }
-
-    public void setSaldoActual(Float saldoActual) {
-        this.saldoActual = saldoActual;
-    }
-
-    public EspacioTrabajo getEspacioTrabajo() {
-        return espacioTrabajo;
-    }
-
-    public void setEspacioTrabajo(EspacioTrabajo espacioTrabajo) {
-        this.espacioTrabajo = espacioTrabajo;
-    }
 }

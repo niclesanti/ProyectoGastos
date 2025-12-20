@@ -2,7 +2,6 @@ package com.campito.backend.controller;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,26 +12,23 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.campito.backend.dto.CuentaBancariaDTO;
-import com.campito.backend.dto.CuentaBancariaListadoDTO;
+import com.campito.backend.dto.CuentaBancariaDTORequest;
+import com.campito.backend.dto.CuentaBancariaDTOResponse;
 import com.campito.backend.service.CuentaBancariaService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/cuentabancaria")
 @Tag(name = "CuentaBancaria", description = "Operaciones para la gestión de cuentas bancarias")
+@RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
 public class CuentaBancariaController {
 
     private final CuentaBancariaService cuentaBancariaService;
-
-    @Autowired
-    public CuentaBancariaController(CuentaBancariaService cuentaBancariaService) {
-        this.cuentaBancariaService = cuentaBancariaService;
-    }
 
     @Operation(
         summary = "Crear una nueva cuenta bancaria",
@@ -42,7 +38,7 @@ public class CuentaBancariaController {
     @ApiResponse(responseCode = "400", description = "Error al crear la cuenta bancaria")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @PostMapping("/crear")
-    public ResponseEntity<Void> crearCuentaBancaria(@Valid @RequestBody CuentaBancariaDTO cuentaBancariaDTO) {
+    public ResponseEntity<Void> crearCuentaBancaria(@Valid @RequestBody CuentaBancariaDTORequest cuentaBancariaDTO) {
         cuentaBancariaService.crearCuentaBancaria(cuentaBancariaDTO);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
@@ -55,8 +51,8 @@ public class CuentaBancariaController {
     @ApiResponse(responseCode = "400", description = "Error al listar las cuentas bancarias")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @GetMapping("/listar/{idEspacioTrabajo}")
-    public ResponseEntity<List<CuentaBancariaListadoDTO>> listarCuentasBancarias(@PathVariable Long idEspacioTrabajo) {
-        List<CuentaBancariaListadoDTO> cuentas = cuentaBancariaService.listarCuentasBancarias(idEspacioTrabajo);
+    public ResponseEntity<List<CuentaBancariaDTOResponse>> listarCuentasBancarias(@PathVariable Long idEspacioTrabajo) {
+        List<CuentaBancariaDTOResponse> cuentas = cuentaBancariaService.listarCuentasBancarias(idEspacioTrabajo);
         return new ResponseEntity<>(cuentas, HttpStatus.OK);
     }
 

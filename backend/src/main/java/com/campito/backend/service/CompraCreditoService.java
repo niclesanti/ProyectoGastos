@@ -8,7 +8,7 @@ import com.campito.backend.dto.CuotaCreditoDTORequest;
 import com.campito.backend.dto.CuotaCreditoDTOResponse;
 import com.campito.backend.dto.TarjetaDTORequest;
 import com.campito.backend.dto.TarjetaDTOResponse;
-import com.campito.backend.dto.TransaccionDTO;
+import com.campito.backend.dto.TransaccionDTORequest;
 
 public interface CompraCreditoService {
     public CompraCreditoDTOResponse registrarCompraCredito(CompraCreditoDTORequest compraCreditoDTO);
@@ -19,5 +19,5 @@ public interface CompraCreditoService {
     public void removerTarjeta(Long id);
     public List<TarjetaDTOResponse> listarTarjetas(Long idEspacioTrabajo);
     public List<CuotaCreditoDTOResponse> listarCuotasPorTarjeta(Long idTarjeta);
-    public void pagarResumenTarjeta(List<CuotaCreditoDTORequest> cuotas, TransaccionDTO transaccion);
+    public void pagarResumenTarjeta(List<CuotaCreditoDTORequest> cuotas, TransaccionDTORequest transaccion);
 }
