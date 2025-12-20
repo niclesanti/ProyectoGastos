@@ -48,6 +48,10 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Make mvnw executable
+        working-directory: ./backend
+        run: chmod +x mvnw
+
       - name: Run tests
         working-directory: ./backend
         run: ./mvnw clean test
@@ -61,9 +65,9 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           name: Maven Tests
-          path: backend/target/surefire-reports/*.xml
+          path: 'backend/target/surefire-reports/TEST-*.xml'
           reporter: java-junit
-          fail-on-error: true
+          fail-on-error: false
 
       - name: Upload coverage reports
         if: success()
@@ -89,6 +93,10 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
+
+      - name: Make mvnw executable
+        working-directory: ./backend
+        run: chmod +x mvnw
 
       - name: Build with Maven
         working-directory: ./backend
