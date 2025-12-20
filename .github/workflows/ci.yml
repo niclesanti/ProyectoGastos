@@ -55,11 +55,13 @@ jobs:
 
       - name: Run tests
         working-directory: ./backend
-        run: ./mvnw clean test
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
-          SPRING_DATASOURCE_USERNAME: testuser
-          SPRING_DATASOURCE_PASSWORD: testpass
+        run: |
+          ./mvnw \
+            -Dspring.datasource.url=jdbc:postgresql://localhost:5432/testdb \
+            -Dspring.datasource.username=testuser \
+            -Dspring.datasource.password=testpass \
+            -Dspring.datasource.driver-class-name=org.postgresql.Driver \
+            clean test
 
       - name: Generate test report
         if: >

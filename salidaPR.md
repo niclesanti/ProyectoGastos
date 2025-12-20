@@ -1,80 +1,58 @@
-Root cause
-- The job failed when the dorny/test-reporter action tried to create a check run and got: "HttpError: Resource not accessible by integration". This happens when the reporter (Checks API) is invoked from workflows that do not have permission to create checks for the target repository — commonly when the workflow runs for a pull request coming from a fork or otherwise lacks Checks API write permissions.
-- The failing lines are from the test-report step in .github/workflows/ci.yml (ref: 35c13b7cdd463634df0d177df965691e160166ec): https://github.com/niclesanti/ProyectoGastos/blob/35c13b7cdd463634df0d177df965691e160166ec/.github/workflows/ci.yml#L63-L71
+Root cause (from the logs)
+- Spring tests fail while building the EntityManagerFactory with a JDBCConnectionException: "Connection to localhost:5432 refused...".
+- Postgres service logs show the DB started, then repeated "FATAL: role \"root\" does not exist".
+- That shows the application attempted to connect to Postgres as the OS user root (Postgres JDBC will use the current OS username if no username is provided). In short: the test JVM did not supply the DB username/password to the JDBC driver, so the driver attempted to connect as "root" and was rejected.
 
-Immediate, low-risk fix (recommended)
-- Skip the test-reporter step for PRs originating from forks (or from external repositories). Add a conditional so the step only runs when the run has permissions to create check runs (i.e., when the PR head repo is the same as the base repo, or when the event is not a pull_request).
+What to change (quick, concrete fixes)
+1) Make sure Spring receives the datasource username & password as properties when Maven runs tests. The most reliable change for CI is to pass them as system properties to the mvn command so the test JVM definitely sees them:
 
-Replace the "Generate test report" step with this guarded version:
+Patch the Run tests step in .github/workflows/ci.yml to run Maven with -Dspring.datasource.* system properties. Example change:
 
-```yaml
-      - name: Generate test report
-        if: >
-          always() &&
-          (github.event_name != 'pull_request' ||
-           github.event.pull_request.head.repo.full_name == github.repository)
-        uses: dorny/test-reporter@v1
-        with:
-          name: Maven Tests
-          path: 'backend/target/surefire-reports/TEST-*.xml'
-          reporter: java-junit
-          fail-on-error: false
-```
+Current step (lines ~56-63 in your ref):
+  run: ./mvnw clean test
+  env:
+    SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+    SPRING_DATASOURCE_USERNAME: testuser
+    SPRING_DATASOURCE_PASSWORD: testpass
 
-What this does
-- always() keeps the step from being skipped on failures so the report runs for pushes and same-repo PRs.
-- The extra condition prevents attempts to create check runs for forked PRs, avoiding the "Resource not accessible by integration" error.
+Replace with (safe multi-line form):
 
-Optional/additional improvements
-1) Add job-level permissions to allow the action to write checks when appropriate
-- If your workflows run from branches within the same repo and you want explicit permission, add at the top of the job:
+- name: Run tests
+  working-directory: ./backend
+  run: |
+    ./mvnw \
+      -Dspring.datasource.url=jdbc:postgresql://localhost:5432/testdb \
+      -Dspring.datasource.username=testuser \
+      -Dspring.datasource.password=testpass \
+      clean test
 
-```yaml
-  test:
-    name: Run Tests
-    permissions:
-      contents: read
-      checks: write
-    runs-on: ubuntu-latest
-```
+(You can still keep the env: keys if you want, but passing -D ensures the JVM running tests receives the properties.)
 
-Note: this will not fix forked-PR cases because those runs are still restricted by GitHub for security reasons. The conditional above is still required for forked PRs.
+Link to the workflow file you will edit:
+https://github.com/niclesanti/ProyectoGastos/blob/461505e4afe69699e32d537954363e5663f014af/.github/workflows/ci.yml
 
-2) As an alternative to skipping the reporter for forks:
-- Use artifact upload (actions/upload-artifact) to store the XML test files and run the reporting step in a separate workflow triggered in the target repo (requires a workflow that has write permissions), or run a different reporter that doesn't call the Checks API.
+2) (Recommended longer-term) Make tests explicitly read env vars (and fail fast if not set)
+- Add test property resolution that defaults to environment variables so local dev and CI behave the same. In src/test/resources/application.properties (or application-test.properties) do:
 
-About the PostgreSQL "role 'root' does not exist" lines
-- The logs show several "FATAL: role 'root' does not exist" messages from the postgres service. Those are likely benign attempts to connect as the system user 'root' (not the test DB user) — the service is still configured in the workflow with POSTGRES_USER/POSTGRES_PASSWORD and your tests use SPRING_DATASOURCE_* env vars (see the Run tests step). If you want to eliminate those lines:
-  - Avoid mapping the service port to the host (remove ports: - 5432:5432) so there’s no accidental attempt to connect via host:5432 from other containers/host processes.
-  - Or ensure any scripts/commands run in the job do not try to connect as root to the DB.
+spring.datasource.url=${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/testdb}
+spring.datasource.username=${SPRING_DATASOURCE_USERNAME:testuser}
+spring.datasource.password=${SPRING_DATASOURCE_PASSWORD:testpass}
 
-Example change to the postgres service (optional):
+This ensures Spring uses env variables when present and falls back to sane defaults for local dev.
 
-```yaml
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: testdb
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpass
-        # remove host port mapping to avoid external attempts to connect as root
-        # ports:
-        #   - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-```
+3) Optional improvements
+- Add a simple wait step to ensure Postgres is healthy before running tests (usually not necessary because service health checks do work, but can help flaky starts):
 
-Summary of recommended patch
-1. Modify the "Generate test report" step to include the conditional for forked PRs (snippet above).
-2. Optionally add job-level permissions checks: checks: write for same-repo runs.
-3. Optionally remove the host port mapping in the postgres service to reduce noisy "role 'root' does not exist" messages.
+- name: Wait for Postgres
+  run: |
+    for i in {1..30}; do
+      pg_isready -h localhost -p 5432 && break
+      sleep 1
+    done
 
-Files to edit
-- .github/workflows/ci.yml at commit ref 35c13b7cdd463634df0d177df965691e160166ec:
-  https://github.com/niclesanti/ProyectoGastos/blob/35c13b7cdd463634df0d177df965691e160166ec/.github/workflows/ci.yml
+- Or increase the postgres service health-retries in the workflow.
 
-Apply those changes, push to the branch, and re-run the workflow — the "Resource not accessible by integration" error should be eliminated and the job should no longer fail for PRs from forks.
+Why this will fix it
+- The logs show the DB user was "root" during connection attempts, which only happens when the JDBC driver did not receive a username (it uses the OS username). Passing -Dspring.datasource.username (or making sure application-test.properties reads the env var) ensures the test JVM supplies the correct username (testuser) and password (testpass) and Postgres will accept the connection.
+
+If you want, I can produce a full patch diff for .github/workflows/ci.yml that applies the -D changes, or prepare the test properties file snippet to add to src/test/resources.
