@@ -32,12 +32,3 @@ jobs:
       run: |
         cd backend
         ./mvnw clean test
-      
-    - name: Publicar resultados de tests
-      uses: dorny/test-reporter@v1
-      if: always()
-      with:
-        name: Resultados de Tests
-        path: backend/target/surefire-reports/*.xml
-        reporter: java-junit
-        fail-on-error: true
