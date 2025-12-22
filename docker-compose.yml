@@ -43,6 +43,16 @@ services:
     networks:
       - campito-net
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: react-campito
+    depends_on:
+      - backend
+    networks:
+      - campito-net
+
 volumes:
   postgres_data:
   pgadmin_data:
