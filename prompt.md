@@ -1,79 +1,64 @@
-¡Excelente iniciativa! Como vienes del mundo Java/Spring, verás que una arquitectura profesional en React se parece mucho a la organización por **paquetes** y **capas** a la que estás acostumbrado.
+Diseñar una sección de **Tarjetas de Crédito** es una oportunidad excelente para combinar estética y utilidad. En el mundo de las finanzas personales, las tarjetas no son solo números; son herramientas de flujo de caja que dependen de fechas críticas.
 
-Para un proyecto que busca calidad "SaaS" (como el diseño de shadcn/ui que elegimos), la estructura más recomendada es la **Feature-Based Architecture**. En lugar de poner todos los componentes juntos, los agrupamos por "funcionalidad" (Dashboard, Transacciones, etc.).
-
----
-
-## 1. Estructura de Carpetas Profesional
-
-Dentro de tu carpeta `/frontend`, esta es la estructura que debes crear. He añadido comentarios para que identifiques su equivalente en el mundo Backend/Java.
-
-```text
-frontend/
-├── public/              # Archivos estáticos (favicon, robots.txt)
-├── src/
-│   ├── assets/          # Imágenes y fuentes
-│   ├── components/      # COMPONENTES COMPARTIDOS (UI Genérica)
-│   │   └── ui/          # Aquí vivirán los componentes de shadcn (Button, Card, Input)
-│   ├── config/          # Variables de entorno y constantes globales
-│   ├── features/        # LÓGICA DE NEGOCIO POR MÓDULO (Equivalente a paquetes de dominio)
-│   │   ├── dashboard/   # Componentes, hooks y servicios exclusivos del Dashboard
-│   │   ├── transactions/# Todo lo relacionado a Movimientos
-│   │   ├── credits/     # Gestión de tarjetas y cuotas
-│   │   └── auth/        # Login y Google OAuth
-│   ├── hooks/           # Custom Hooks (Lógica reutilizable, similar a Util classes pero con estado)
-│   ├── layouts/         # Estructuras de página (Ej: el Sidebar + Header que se repite)
-│   ├── lib/             # Utilidades de librerías (Configuración de Axios, Utils de shadcn)
-│   ├── pages/           # VISTAS (Componentes que representan una ruta/URL completa)
-│   ├── services/        # CLIENTES API (Equivalente a tus Feign Clients o RestTemplate)
-│   │   └── api.ts       # Configuración base de Fetch/Axios
-│   ├── store/           # ESTADO GLOBAL (Zustand - similar a una sesión de usuario o caché)
-│   ├── types/           # INTERFACES TYPESCRIPT (Tus DTOs de Java pero en TS)
-│   ├── App.tsx          # Enrutador principal
-│   └── main.tsx         # Punto de entrada (El "Main" de tu app)
-├── .env                 # Variables de entorno (URL del backend de Spring Boot)
-├── tailwind.config.js   # Configuración de estilos
-└── vite.config.ts       # Configuración de compilación
-
-```
+Como experto en UX/UI, mi recomendación es alejarnos de las tablas aburridas para esta sección y utilizar un **Grid de Tarjetas Visuales** que imiten la forma de una tarjeta física, seguido de una gestión detallada.
 
 ---
 
-## 2. Explicación para un Java Developer
+## 1. Estrategia de UX: El "Card-First" Design
 
-* **`types/` = DTOs:** Aquí definirás interfaces como `interface Transaction { id: number; monto: number; }`. Es vital para que TypeScript te avise si cometes errores, igual que hace el compilador de Java.
-* **`services/` = Repositories/Clients:** Aquí escribirás las funciones que hacen `fetch` a tus controladores de Spring Boot.
-* **`components/ui/` = Librería de UI:** Aquí no habrá lógica de negocio. Solo "Botones", "Inputs" y "Cards" puros. Es lo que copiarás de shadcn/ui.
-* **`features/` = Domain Modules:** Es el corazón de la app. Si quieres cambiar algo del Dashboard, sabes que todo está en esa carpeta y no afecta a Transacciones.
+El usuario debe identificar sus tarjetas de un vistazo. Para ello, utilizaremos una combinación de **componentes visuales** y **datos técnicos**.
 
----
+### Estructura de la Pantalla
 
-## 3. Prompt para GitHub Copilot (Scaffold del Proyecto)
-
-Para que Copilot te ayude a generar esto de un tirón, abre VS Code en la carpeta `/frontend` (vacía) y pega este prompt en el chat de Copilot:
-
-> **"I am a backend developer starting a professional React 19 project with TypeScript, Vite, Tailwind CSS, and shadcn/ui. I need to scaffold the project architecture inside the current '/frontend' folder.**
-> **Please generate the folder structure and the following configuration files:**
-> **1. A professional directory structure: src/(assets, components/ui, features, hooks, layouts, lib, pages, services, store, types).**
-> **2. `tailwind.config.js` using the Shadcn/ui HSL color variables for dark mode (Zinc palette).**
-> **3. A basic `src/lib/utils.ts` (needed for shadcn/ui 'cn' function).**
-> **4. A base `src/services/api.ts` using Fetch API configured to point to 'http://localhost:8080/api' (my Spring Boot backend).**
-> **5. A main layout component in `src/layouts/DashboardLayout.tsx` that includes a Sidebar on the left and a Header on top, using the design we discussed (Workspace switcher, Sidebar nav, and User Profile).**
-> **Ensure all files use TypeScript and React 19 best practices."**
+1. **Header:** Título "Tarjetas de Crédito" y un botón primario "+ Agregar Tarjeta" (que abrirá un `Dialog`).
+2. **Grid de Tarjetas:** Una cuadrícula donde cada elemento es una representación visual de la tarjeta.
+3. **Empty State:** Si no hay tarjetas, una ilustración minimalista con un mensaje: *"No tienes tarjetas registradas. Agrégalas para controlar tus cierres y vencimientos."*
 
 ---
 
-## 4. Primeros Pasos Técnicos
+## 2. Diseño del Componente "Tarjeta Visual"
 
-Como nunca usaste React, aquí tienes los comandos que debes ejecutar en tu terminal dentro de la carpeta `/frontend` para que lo anterior funcione:
+Cada tarjeta en el grid debe ser un componente `Card` de **shadcn/ui** con un estilo personalizado.
 
-1. **Crear el proyecto base:**
-`npm create vite@latest . -- --template react-ts`
-2. **Instalar dependencias básicas:**
-`npm install`
-`npm install -D tailwindcss postcss autoprefixer`
-`npx tailwindcss init -p`
-3. **Instalar librerías que usaremos:**
-`npm install lucide-react clsx tailwind-merge` (Estas las usa shadcn/ui para los iconos y clases).
+* **Esquina Superior Izquierda:** Logo de la `red_de_pago` (Visa, Mastercard, etc.). Puedes usar iconos simples de Lucide o SVGs pequeños.
+* **Centro / Derecha:** Nombre de la `entidad_financiera` (ej: "Banco Galicia" o "Santander").
+* **Abajo Izquierda:** Los últimos 4 dígitos: `**** **** **** 1234`.
+* **Footer de la Card:** Aquí pondremos la información de gestión (los días de cierre y vencimiento) usando `Badges` para resaltar.
 
-**¿Qué te parece si empezamos por crear el primer "DTO" (Interface) en TypeScript basado en tu clase `Transaccion` de Java para que Copilot sepa exactamente con qué datos vamos a trabajar?**
+> **Tip de UX:** Usa el color de fondo de la tarjeta para diferenciar la Red de Pago (ej: un azul muy oscuro para Visa, un gris carbón para Mastercard).
+
+---
+
+## 3. El Formulario de Registro (Modal)
+
+Siguiendo nuestra regla de **mantener al usuario en contexto**, el registro se hará en un `Dialog`. Aquí es donde aplicamos las mejores prácticas de usabilidad para los datos de tu entidad Java:
+
+| Campo | Componente UI | Nota de UX |
+| --- | --- | --- |
+| **Entidad Financiera** | `Input` | Placeholder: "Ej: Banco Nación". |
+| **Red de Pago** | `Select` | Opciones: Visa, Mastercard, Amex, etc. |
+| **Últimos 4 dígitos** | `Input` | Limitar a 4 caracteres numéricos. Esto da seguridad al usuario. |
+| **Día de Cierre** | `Input (Number)` | Usar un selector numérico del 1 al 31. |
+| **Día de Vencimiento** | `Input (Number)` | Usar un selector numérico del 1 al 31. |
+
+---
+
+## 4. Mejoras de Usabilidad "Pro"
+
+1. **Indicador de Próximo Cierre:** En la tarjeta visual, puedes agregar un pequeño texto que diga: *"Cierra en 5 días"*. Esto se calcula comparando el `dia_cierre` con la fecha actual en el frontend.
+2. **Validación de Fechas:** Asegúrate de que el frontend no permita poner un día de vencimiento que sea igual al de cierre, ya que financieramente no tendría sentido.
+3. **Seguridad Visual:** Al pedir solo los últimos 4 dígitos, el usuario se siente seguro de que no estás almacenando datos sensibles (PAN, CVV), lo cual es excelente para la confianza en tu App.
+
+---
+
+## 5. Implementación Técnica (Prompt para Copilot)
+
+Para que **GitHub Copilot** te ayude a codificar esto en tu nueva estructura de carpetas, usa este prompt detallado:
+
+> **"I need to create the 'Credit Cards' section in React 19 using shadcn/ui components. Specifically:**
+> **1. Create a `CreditCard` component that visually represents a bank card. It should display the 'entidad_financiera' name, 'red_de_pago' logo (use Lucide icons), 'numero_tarjeta' (as **** 1234), and badges for 'dia_cierre' and 'dia_vencimiento_pago'. Use the Zinc dark theme.**
+> **2. Create a 'CardRegistrationDialog' component using shadcn `Dialog`. It must include a form to collect all fields from my Java 'Tarjeta' entity. Use `zod` for form validation to ensure days are between 1 and 31 and the card number is exactly 4 digits.**
+> **3. Implement a responsive Grid layout for the main page `src/pages/CreditCards.tsx` that shows these cards and an '+ Add Card' button in the header.**
+> **Use TypeScript interfaces matching my Java entity."**
+
+---

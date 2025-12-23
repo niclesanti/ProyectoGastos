@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useState } from 'react'
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -36,6 +37,10 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store/app-store'
+import { TransactionModal } from '@/components/TransactionModal'
+import { AccountTransferModal } from '@/components/AccountTransferModal'
+import { CreditPurchaseModal } from '@/components/CreditPurchaseModal'
+import { CardPaymentModal } from '@/components/CardPaymentModal'
 
 const navigation = [
   { name: 'Panel de datos', href: '/', icon: LayoutDashboard },
@@ -47,9 +52,14 @@ const navigation = [
 export function AppSidebar() {
   const location = useLocation()
   const { currentWorkspace, workspaces, setCurrentWorkspace } = useAppStore()
+  const [transactionModalOpen, setTransactionModalOpen] = useState(false)
+  const [accountTransferModalOpen, setAccountTransferModalOpen] = useState(false)
+  const [creditPurchaseModalOpen, setCreditPurchaseModalOpen] = useState(false)
+  const [cardPaymentModalOpen, setCardPaymentModalOpen] = useState(false)
 
   return (
-    <Sidebar collapsible="icon">
+    <>
+      <Sidebar collapsible="icon">
       <SidebarHeader>
         {/* Workspace Switcher */}
         <SidebarMenu>
@@ -136,7 +146,10 @@ export function AppSidebar() {
                     <DropdownMenuLabel className="text-xs text-muted-foreground">
                       Tipo de registro
                     </DropdownMenuLabel>
-                    <DropdownMenuItem className="gap-2 p-2">
+                    <DropdownMenuItem
+                      className="gap-2 p-2"
+                      onClick={() => setTransactionModalOpen(true)}
+                    >
                       <TrendingDown className="size-4 text-red-500" />
                       <div className="flex flex-col">
                         <span className="font-medium">Gastos/Ingresos</span>
@@ -145,7 +158,10 @@ export function AppSidebar() {
                         </span>
                       </div>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-2 p-2">
+                    <DropdownMenuItem 
+                      className="gap-2 p-2"
+                      onClick={() => setAccountTransferModalOpen(true)}
+                    >
                       <ArrowRightLeft className="size-4" />
                       <div className="flex flex-col">
                         <span className="font-medium">Movimiento entre cuentas</span>
@@ -154,7 +170,10 @@ export function AppSidebar() {
                         </span>
                       </div>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-2 p-2">
+                    <DropdownMenuItem 
+                      className="gap-2 p-2"
+                      onClick={() => setCreditPurchaseModalOpen(true)}
+                    >
                       <CreditCard className="size-4" />
                       <div className="flex flex-col">
                         <span className="font-medium">Compra con crédito</span>
@@ -163,7 +182,10 @@ export function AppSidebar() {
                         </span>
                       </div>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-2 p-2">
+                    <DropdownMenuItem 
+                      className="gap-2 p-2"
+                      onClick={() => setCardPaymentModalOpen(true)}
+                    >
                       <Receipt className="size-4" />
                       <div className="flex flex-col">
                         <span className="font-medium">Pagar resumen tarjeta</span>
@@ -255,5 +277,23 @@ export function AppSidebar() {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
+
+    <TransactionModal
+      open={transactionModalOpen}
+      onOpenChange={setTransactionModalOpen}
+    />
+    <AccountTransferModal
+      open={accountTransferModalOpen}
+      onOpenChange={setAccountTransferModalOpen}
+    />
+    <CreditPurchaseModal
+      open={creditPurchaseModalOpen}
+      onOpenChange={setCreditPurchaseModalOpen}
+    />
+    <CardPaymentModal
+      open={cardPaymentModalOpen}
+      onOpenChange={setCardPaymentModalOpen}
+    />
+    </>
   )
 }
