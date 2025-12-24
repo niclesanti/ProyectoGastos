@@ -20,6 +20,26 @@ export interface EspacioTrabajo {
   usuariosParticipantes?: Usuario[]
 }
 
+export enum RolMiembro {
+  ADMIN = 'ADMIN',
+  EDITOR = 'EDITOR',
+  VIEWER = 'VIEWER',
+}
+
+export interface MiembroEspacio {
+  id: number
+  usuario: Usuario
+  rol: RolMiembro
+  espacioTrabajo: EspacioTrabajo
+  fechaIngreso: string
+}
+
+export interface InvitacionMiembroDTORequest {
+  email: string
+  rol: RolMiembro
+  espacioTrabajoId: number
+}
+
 export interface MotivoTransaccion {
   id: number
   motivo: string

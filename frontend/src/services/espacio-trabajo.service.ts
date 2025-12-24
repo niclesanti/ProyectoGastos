@@ -2,6 +2,8 @@ import { api } from './api'
 import type {
   EspacioTrabajo,
   EspacioTrabajoDTORequest,
+  MiembroEspacio,
+  InvitacionMiembroDTORequest,
 } from '@/types'
 
 export const espacioTrabajoService = {
@@ -23,5 +25,21 @@ export const espacioTrabajoService = {
 
   async delete(id: number): Promise<void> {
     return api.delete<void>(`/espacios-trabajo/${id}`)
+  },
+
+  // Gestión de miembros
+  async getMiembros(espacioTrabajoId: number): Promise<MiembroEspacio[]> {
+    return api.get<MiembroEspacio[]>(`/espacios-trabajo/${espacioTrabajoId}/miembros`)
+  },
+
+  async invitarMiembro(invitacion: InvitacionMiembroDTORequest): Promise<MiembroEspacio> {
+    return api.post<MiembroEspacio>(
+      `/espacios-trabajo/${invitacion.espacioTrabajoId}/miembros`,
+      { email: invitacion.email, rol: invitacion.rol }
+    )
+  },
+
+  async eliminarMiembro(espacioTrabajoId: number, miembroId: number): Promise<void> {
+    return api.delete<void>(`/espacios-trabajo/${espacioTrabajoId}/miembros/${miembroId}`)
   },
 }
