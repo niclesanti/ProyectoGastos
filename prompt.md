@@ -1,77 +1,103 @@
-Para diseñar una sección de **Configuración** profesional en una aplicación de finanzas, debemos verla no solo como un lugar para "cambiar botones", sino como el **Centro de Control** de la experiencia del usuario.
+Como experto en UX/UI y Frontend, mi objetivo para el rediseño de la sección **/Movimientos** es transformar una búsqueda tradicional basada en formularios en una **experiencia de exploración de datos fluida y reactiva**.
 
-Aunque la autenticación sea por Google, hay muchos parámetros de personalización y gestión de datos que elevan la aplicación al nivel de un producto comercial. Aquí tienes la propuesta de diseño profesional utilizando exclusivamente **shadcn/ui**.
+En las aplicaciones financieras modernas, el usuario quiere ver sus datos inmediatamente. El problema del diseño actual es que los campos de búsqueda ocupan demasiado espacio vertical, obligando a hacer scroll para ver los resultados.
 
----
-
-### 1. Estructura de Diseño: "Vertical Tabs Layout"
-
-Evitaremos la confusión visual separando la configuración en categorías claras. Utilizaremos el componente `Tabs` de shadcn con orientación vertical (en escritorio) o una lista lateral de navegación.
-
-#### Secciones Propuestas:
-
-1. **Espacio de Trabajo (Workspace):** Gestión de miembros y nombre del espacio.
-2. **Preferencias Financieras:** Moneda, categorías y límites.
-3. **Interfaz y Notificaciones:** Tema y alertas de vencimiento.
-4. **Cuenta y Datos:** Información de Google y exportación de movimientos.
+Aquí tienes la propuesta de **"Smart Ledger" (Libro Contable Inteligente)**.
 
 ---
 
-### 2. Detalle por Sección (Componentes shadcn/ui)
+### 1. Concepto UX: "Data-First Navigation"
 
-#### A. Gestión de Miembros (Tu prioridad)
+La idea central es integrar los filtros directamente en una **Barra de Herramientas (Toolbar)** unificada con la tabla. Esto permite que el contenido principal (tus transacciones) suba en la jerarquía visual y los totales actúen como un resumen dinámico que cambia mientras filtras.
 
-Utilizaremos una combinación de `Card`, `Table` y `Dialog`.
+#### Distribución Espacial:
 
-* **Componente Principal:** Una `Table` que muestre los miembros actuales con su `Avatar`, nombre y rol (Dueño/Editor).
-* **Acción:** Un botón "+ Invitar Miembro" que abra un `Dialog` (Modal).
-* **Componente Especial:** El cuadro de "No Team Members" que compartiste (basado en un `Empty State` con bordes punteados `border-dashed`) se mostrará solo si el usuario aún no ha invitado a nadie.
-
-#### B. Preferencias Financieras
-
-Como es una app de gastos, el usuario necesita sentir que la app se adapta a su país.
-
-* **Moneda Base:** Un `Select` para elegir entre ARS, USD, EUR, etc.
-* **Categorías Personalizadas:** Un listado de `Badges` donde el usuario pueda renombrar o elegir iconos para sus motivos de transacción.
-
-#### C. Cuenta y Datos (Transparencia)
-
-Dado que usas Google OAuth, mostraremos el estado de la conexión.
-
-* **Perfil:** Un `Avatar` grande con el nombre y correo (lectura).
-* **Exportación:** Un botón destacado para "Descargar todo en Excel/CSV". Esto es una funcionalidad **clave** en UX financiera para que el usuario sienta que es dueño de sus datos.
+* **Header Dinámico:** El título "Movimientos" se acompaña de un resumen visual de los totales filtrados.
+* **Filter Bar Compacta:** Una sola fila de selectores inteligentes que reemplaza el bloque de búsqueda actual.
+* **Interactive Table:** Una tabla con scroll independiente y estados visuales mejorados.
 
 ---
 
-### 3. Visualización del Dashboard de Configuración
+### 2. Elementos del Rediseño Profesional
+
+#### A. Resumen de Flujo (Header)
+
+En lugar de KPI Cards grandes como en el Dashboard, usaremos una **"Summary Bar"** minimalista justo debajo del título.
+
+* **Componentes:** `Badge` y `Separator`.
+* **Diseño:** Un texto sutil que diga: *"Mostrando [X] resultados: [Monto Verde] Ingresos | [Monto Rojo] Gastos"*. Esto da feedback inmediato sin distraer de la tabla.
+
+#### B. La "Smart Toolbar" (Filtros Facetados)
+
+Eliminamos el "Card" de búsqueda. Usaremos una barra horizontal con los siguientes componentes de **shadcn/ui**:
+
+1. **Month/Year Selector:** Un `Popover` con un calendario minimalista o un `Select` de dos columnas.
+2. **Faceted Filters (Motivo y Contacto):** Usaremos el componente `Command` dentro de un `Popover`. Esto permite al usuario escribir para buscar el motivo o contacto rápidamente en lugar de navegar una lista larga.
+3. **Botón "Limpiar":** Un botón `Ghost` que solo aparece cuando hay filtros activos para resetear la vista con un solo clic.
+
+#### C. Data Table de Alto Rendimiento
+
+Utilizaremos **TanStack Table** con componentes de shadcn/ui:
+
+* **Filas con Hover:** Efecto de resaltado sutil al pasar el ratón.
+* **Celdas de Monto:** El monto debe estar alineado a la derecha (estándar contable) y usar una fuente monoespaciada para que los números queden alineados verticalmente.
+* **Acciones:** Un botón de "Tres puntos" (`DropdownMenu`) al final de cada fila para editar o eliminar rápidamente.
 
 ---
 
-### 4. Prompt para GitHub Copilot
+### 3. Solución de Diseño Visual
 
-Copia este prompt para generar la estructura completa en tu proyecto:
+Así se vería la estructura jerárquica:
 
-> **"I need to build a professional Settings section for my Finance App using React 19, TypeScript, and shadcn/ui. Please implement a layout with vertical tabs (src/features/settings/SettingsPage.tsx) with the following sections:**
-> **1. Workspace Management:** > - A section to rename the current workspace using shadcn `Input` and `Button`.
-> * A member management section using the 'Invite Members' pattern: Use a `Table` to list members (Avatar, Name, Email, Role) and a `Dialog` for the invitation form. If no members exist, show a dashed border `Card` as an empty state.
-> 
-> 
-> **2. Financial Preferences:** > - A `Select` component to set the 'Base Currency'.
-> * A toggle list using `Switch` components for 'Daily Spending Reminders' and 'Credit Card Due Date Alerts'.
-> 
-> 
-> **3. Account & Data:**
-> * Display the user's Google profile info (Avatar, Email) in a read-only `Card`.
-> * Add a 'Data Management' section with a primary button to 'Export data to CSV' and a destructive button to 'Delete Workspace'.
-> 
-> 
-> **Use the Zinc dark theme aesthetic (bg-zinc-950, border-zinc-800) and Lucide-react icons for each tab (Users, Landmark, Bell, User)."**
+```text
+[Icono] App / Movimientos (Breadcrumb)                  [Notificaciones] [Avatar]
+---------------------------------------------------------------------------------
+MOVIMIENTOS                                             [Total Ingresos: +$60k]
+Explora y filtra tu historial financiero                [Total Gastos:   -$28k]
+---------------------------------------------------------------------------------
+[ Buscar por contacto... ] [ Mes/Año v ] [ Motivo v ] [ Contacto v ] [X Limpiar]
+---------------------------------------------------------------------------------
+TABLA DE TRANSACCIONES (Scrollable)
+TIPO      | MOTIVO     | CUENTA      | CONTACTO    | FECHA      | MONTO
+[Ingreso] | Salario    | Principal   | Empresa ABC | 14/01/2025 | $45.000,00
+...
+
+```
 
 ---
 
-### 5. Recomendación de Experto Frontend
+### 4. Componentes shadcn/ui para Copilot
 
-Para que la sección de configuración sea realmente moderna:
+Indícale a Copilot que utilice estos componentes específicos para asegurar la consistencia:
 
-* **Optimistic UI:** Cuando el usuario cambie la moneda o una preferencia, usa el estado de **Zustand** para que el cambio se vea reflejado en el Dashboard inmediatamente sin que el usuario tenga que esperar a que la API responda.
-* **Roles:** Aunque es una app personal, si implementas la invitación de miembros, asegúrate de que el frontend oculte el botón de "Eliminar Espacio" si el usuario no tiene el rol de `ADMIN` en ese espacio específico.
+* **`DataTable`**: El núcleo de la sección.
+* **`Command` + `Popover**`: Para los filtros de búsqueda "facetada" (Motive/Contact).
+* **`Select`**: Para la selección simple de mes y año.
+* **`Badge`**: Para las etiquetas de "Ingreso" y "Gasto" que ya tienes, pero con un estilo más minimalista.
+* **`Separator`**: Para dividir sutilmente el header de los filtros.
+* **`Skeleton`**: Para mostrar un estado de carga profesional mientras la API de Spring Boot devuelve los datos.
+
+---
+
+### 5. Prompt para GitHub Copilot (Desarrollo Frontend)
+
+Para que Copilot implemente esto de forma profesional, usa este prompt:
+
+> "I need to build a high-fidelity 'Movements' section in React 19 using TypeScript and shadcn/ui.
+> 1. **Layout**: Use a 'Data-first' approach. The page should have a header with a `Breadcrumb` (App / Movements) and a dynamic summary bar showing 'Total Income' and 'Total Expenses' based on filtered results.
+> 2. **Filter Toolbar**: Create a single-row horizontal toolbar above the table.
+> * Add a global search input for 'Description' or 'Contact'.
+> * Implement faceted filters using shadcn `Command` and `Popover` for 'Motive' and 'Contact'.
+> * Use a `Select` component for 'Month' and 'Year'.
+> * Add a 'Clear Filters' ghost button that only shows when filters are active.
+> 
+> 
+> 3. **Data Table**: Use TanStack Table with the design from `image_c3fddf.png`.
+> * Align 'Monto' values to the right with a monospace font.
+> * Rows should have a subtle hover effect and an action menu (`DropdownMenu`) at the end.
+> * Implement pagination at the bottom.
+> 
+> 
+> 4. **Logic**: The totals must update in real-time as filters are applied. Ensure the Zinc dark theme is applied consistently (bg-zinc-950, border-zinc-800)."
+> 
+> 
