@@ -1,103 +1,119 @@
-Como experto en UX/UI y Frontend, mi objetivo para el rediseño de la sección **/Movimientos** es transformar una búsqueda tradicional basada en formularios en una **experiencia de exploración de datos fluida y reactiva**.
+Lo que te sucedió es un error clásico al intentar aplicar estilos globales en un proyecto que usa **Tailwind CSS**. Es muy probable que Copilot, al intentar "incluir la tipografía", haya añadido reglas de CSS puro que afectan a todas las etiquetas `<ul>` y `<li>` de tu aplicación, o que haya importado el plugin de `@tailwindcss/typography` sin configurarlo correctamente.
 
-En las aplicaciones financieras modernas, el usuario quiere ver sus datos inmediatamente. El problema del diseño actual es que los campos de búsqueda ocupan demasiado espacio vertical, obligando a hacer scroll para ver los resultados.
+Esos "puntos" que aparecieron en tu sidebar son los **list-style** predeterminados del navegador que Tailwind normalmente elimina (reset), pero que una configuración global mal aplicada volvió a activar.
 
-Aquí tienes la propuesta de **"Smart Ledger" (Libro Contable Inteligente)**.
-
----
-
-### 1. Concepto UX: "Data-First Navigation"
-
-La idea central es integrar los filtros directamente en una **Barra de Herramientas (Toolbar)** unificada con la tabla. Esto permite que el contenido principal (tus transacciones) suba en la jerarquía visual y los totales actúen como un resumen dinámico que cambia mientras filtras.
-
-#### Distribución Espacial:
-
-* **Header Dinámico:** El título "Movimientos" se acompaña de un resumen visual de los totales filtrados.
-* **Filter Bar Compacta:** Una sola fila de selectores inteligentes que reemplaza el bloque de búsqueda actual.
-* **Interactive Table:** Una tabla con scroll independiente y estados visuales mejorados.
+Aquí te explico cómo aplicar la tipografía de **shadcn/ui** (que generalmente usa la fuente **Geist** o **Inter**) de forma profesional y segura.
 
 ---
 
-### 2. Elementos del Rediseño Profesional
+## 1. ¿Por qué aparecieron los puntos?
 
-#### A. Resumen de Flujo (Header)
+Tailwind utiliza un "CSS Reset" llamado **Preflight**. Este reset quita los márgenes, rellenos y puntos de las listas por defecto. Si aparecieron los puntos, es porque Copilot probablemente añadió algo como esto en tu archivo `globals.css`:
 
-En lugar de KPI Cards grandes como en el Dashboard, usaremos una **"Summary Bar"** minimalista justo debajo del título.
+```css
+/* ¡EVITA ESTO! Esto rompe los componentes de shadcn */
+li {
+  list-style: disc; /* Esto es lo que pone los puntos */
+  margin-left: 1rem;
+}
 
-* **Componentes:** `Badge` y `Separator`.
-* **Diseño:** Un texto sutil que diga: *"Mostrando [X] resultados: [Monto Verde] Ingresos | [Monto Rojo] Gastos"*. Esto da feedback inmediato sin distraer de la tabla.
+```
 
-#### B. La "Smart Toolbar" (Filtros Facetados)
-
-Eliminamos el "Card" de búsqueda. Usaremos una barra horizontal con los siguientes componentes de **shadcn/ui**:
-
-1. **Month/Year Selector:** Un `Popover` con un calendario minimalista o un `Select` de dos columnas.
-2. **Faceted Filters (Motivo y Contacto):** Usaremos el componente `Command` dentro de un `Popover`. Esto permite al usuario escribir para buscar el motivo o contacto rápidamente en lugar de navegar una lista larga.
-3. **Botón "Limpiar":** Un botón `Ghost` que solo aparece cuando hay filtros activos para resetear la vista con un solo clic.
-
-#### C. Data Table de Alto Rendimiento
-
-Utilizaremos **TanStack Table** con componentes de shadcn/ui:
-
-* **Filas con Hover:** Efecto de resaltado sutil al pasar el ratón.
-* **Celdas de Monto:** El monto debe estar alineado a la derecha (estándar contable) y usar una fuente monoespaciada para que los números queden alineados verticalmente.
-* **Acciones:** Un botón de "Tres puntos" (`DropdownMenu`) al final de cada fila para editar o eliminar rápidamente.
+En shadcn, los menús de navegación (como el Sidebar) suelen construirse con listas (`<ul>` y `<li>`). Al aplicar estilos globales a la etiqueta, sobreescribes el diseño limpio de los componentes.
 
 ---
 
-### 3. Solución de Diseño Visual
+## 2. La forma correcta de aplicar la Tipografía
 
-Así se vería la estructura jerárquica:
+shadcn/ui recomienda usar la fuente **Geist** (de Vercel) para ese look moderno y "tech". Para aplicarla sin romper nada, sigue estos pasos:
 
-```text
-[Icono] App / Movimientos (Breadcrumb)                  [Notificaciones] [Avatar]
----------------------------------------------------------------------------------
-MOVIMIENTOS                                             [Total Ingresos: +$60k]
-Explora y filtra tu historial financiero                [Total Gastos:   -$28k]
----------------------------------------------------------------------------------
-[ Buscar por contacto... ] [ Mes/Año v ] [ Motivo v ] [ Contacto v ] [X Limpiar]
----------------------------------------------------------------------------------
-TABLA DE TRANSACCIONES (Scrollable)
-TIPO      | MOTIVO     | CUENTA      | CONTACTO    | FECHA      | MONTO
-[Ingreso] | Salario    | Principal   | Empresa ABC | 14/01/2025 | $45.000,00
-...
+### Paso A: Instalar la fuente (Geist)
+
+En tu carpeta `frontend`, instala la tipografía oficial:
+
+```bash
+npm install geist
+
+```
+
+### Paso B: Configurar variables en `globals.css`
+
+No apliques estilos a las etiquetas `h1` o `p` globalmente. En su lugar, define la fuente en el cuerpo principal (`body`):
+
+```css
+/* src/index.css o globals.css */
+@import "geist/sans";
+@import "geist/mono";
+
+:root {
+  --font-sans: "Geist Sans", sans-serif;
+  --font-mono: "Geist Mono", monospace;
+}
+
+body {
+  font-family: var(--font-sans); /* Esto aplica la letra a todo de forma segura */
+  font-feature-settings: "rlig" 1, "calt" 1; /* Mejora la legibilidad */
+}
+
+```
+
+### Paso C: Actualizar `tailwind.config.js`
+
+Debes decirle a Tailwind que use estas variables. Así, cuando uses componentes de shadcn, ellos sabrán qué fuente tomar:
+
+```javascript
+// tailwind.config.js
+const { fontFamily } = require("tailwindcss/defaultTheme")
+
+module.exports = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ["var(--font-sans)", ...fontFamily.sans],
+        mono: ["var(--font-mono)", ...fontFamily.mono],
+      },
+    },
+  },
+}
 
 ```
 
 ---
 
-### 4. Componentes shadcn/ui para Copilot
+## 3. Cómo usar la "Tipografía de shadcn" (Componentes)
 
-Indícale a Copilot que utilice estos componentes específicos para asegurar la consistencia:
+La página que compartiste de la documentación de shadcn **no son estilos globales**, sino clases de utilidad que debes aplicar elemento por elemento.
 
-* **`DataTable`**: El núcleo de la sección.
-* **`Command` + `Popover**`: Para los filtros de búsqueda "facetada" (Motive/Contact).
-* **`Select`**: Para la selección simple de mes y año.
-* **`Badge`**: Para las etiquetas de "Ingreso" y "Gasto" que ya tienes, pero con un estilo más minimalista.
-* **`Separator`**: Para dividir sutilmente el header de los filtros.
-* **`Skeleton`**: Para mostrar un estado de carga profesional mientras la API de Spring Boot devuelve los datos.
+**Ejemplo correcto:**
+Si quieres que un título se vea como el de la documentación, no esperes que ocurra solo. Aplica las clases de Tailwind:
+
+```tsx
+// En lugar de usar <h1> directamente...
+export function TypographyH1() {
+  return (
+    <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
+      Panel de datos
+    </h1>
+  )
+}
+
+```
 
 ---
 
-### 5. Prompt para GitHub Copilot (Desarrollo Frontend)
+## 4. Solución rápida para tu Sidebar (Quitar los puntos)
 
-Para que Copilot implemente esto de forma profesional, usa este prompt:
+Si quieres arreglar el desorden ahora mismo sin borrar todo, busca en tu código donde están las listas del Sidebar y asegúrate de que tengan la clase `list-none`.
 
-> "I need to build a high-fidelity 'Movements' section in React 19 using TypeScript and shadcn/ui.
-> 1. **Layout**: Use a 'Data-first' approach. The page should have a header with a `Breadcrumb` (App / Movements) and a dynamic summary bar showing 'Total Income' and 'Total Expenses' based on filtered results.
-> 2. **Filter Toolbar**: Create a single-row horizontal toolbar above the table.
-> * Add a global search input for 'Description' or 'Contact'.
-> * Implement faceted filters using shadcn `Command` and `Popover` for 'Motive' and 'Contact'.
-> * Use a `Select` component for 'Month' and 'Year'.
-> * Add a 'Clear Filters' ghost button that only shows when filters are active.
-> 
-> 
-> 3. **Data Table**: Use TanStack Table with the design from `image_c3fddf.png`.
-> * Align 'Monto' values to the right with a monospace font.
-> * Rows should have a subtle hover effect and an action menu (`DropdownMenu`) at the end.
-> * Implement pagination at the bottom.
-> 
-> 
-> 4. **Logic**: The totals must update in real-time as filters are applied. Ensure the Zinc dark theme is applied consistently (bg-zinc-950, border-zinc-800)."
-> 
-> 
+**Prompt para Copilot para arreglar el desorden:**
+
+> "Review my `Sidebar` component and `globals.css`. Remove any global CSS rules targeting `ul` or `li` tags. Ensure the Sidebar list items use Tailwind's `list-none` and `p-0` classes to prevent unwanted bullets and padding. Apply the font Geist Sans to the entire body instead of individual tags."
+
+---
+
+## Resumen: La "Regla de Oro" en Frontend
+
+Como desarrollador backend, recuerda esto: **En Tailwind/React, casi nunca se tocan las etiquetas HTML globales (`h1`, `li`, `div`) en el CSS.** Todo se maneja a través de:
+
+1. **Clases de utilidad** en el componente (`className="..."`).
+2. **Variables CSS** en el `:root` para colores y fuentes.
