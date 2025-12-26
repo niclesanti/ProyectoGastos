@@ -135,7 +135,7 @@ export function ConfiguracionPage() {
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="workspace" className="gap-2">
             <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Espacio de Trabajo</span>
+            <span className="hidden sm:inline">Espacio de trabajo</span>
           </TabsTrigger>
           <TabsTrigger value="financial" className="gap-2" disabled>
             <Landmark className="h-4 w-4" />
@@ -163,7 +163,7 @@ export function ConfiguracionPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="workspace-name">Nombre del Espacio</Label>
+                <Label htmlFor="workspace-name">Nombre del espacio</Label>
                 <div className="flex gap-2">
                   <Input
                     id="workspace-name"
@@ -193,7 +193,7 @@ export function ConfiguracionPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Miembros del Equipo</CardTitle>
+                  <CardTitle>Miembros del equipo</CardTitle>
                   <CardDescription>
                     Invita personas para colaborar en este espacio
                   </CardDescription>
@@ -202,7 +202,7 @@ export function ConfiguracionPage() {
                   <DialogTrigger asChild>
                     <Button disabled={!isAdmin}>
                       <UserPlus className="mr-2 h-4 w-4" />
-                      Invitar Miembros
+                      Invitar miembros
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -224,7 +224,7 @@ export function ConfiguracionPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="workspace">Espacio de Trabajo</Label>
+                        <Label htmlFor="workspace">Espacio de trabajo</Label>
                         <Select
                           value={selectedEspacioId}
                           onValueChange={setSelectedEspacioId}
@@ -271,7 +271,7 @@ export function ConfiguracionPage() {
                     <div className="text-4xl">💼</div>
                     <div className="text-4xl">🐇</div>
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">Sin Miembros del Equipo</h3>
+                  <h3 className="text-xl font-semibold mb-2">Sin miembros del equipo</h3>
                   <p className="text-muted-foreground mb-4 max-w-sm">
                     Invita a tu equipo para colaborar en este proyecto.
                   </p>
@@ -280,7 +280,7 @@ export function ConfiguracionPage() {
                     disabled={!isAdmin}
                   >
                     <UserPlus className="mr-2 h-4 w-4" />
-                    Invitar Miembros
+                    Invitar miembros
                   </Button>
                 </div>
               ) : (
@@ -290,7 +290,7 @@ export function ConfiguracionPage() {
                       <TableHead>Miembro</TableHead>
                       <TableHead>Correo</TableHead>
                       <TableHead>Rol</TableHead>
-                      <TableHead>Fecha de Ingreso</TableHead>
+                      <TableHead>Fecha de ingreso</TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -345,14 +345,14 @@ export function ConfiguracionPage() {
         <TabsContent value="financial" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Preferencias Financieras</CardTitle>
+              <CardTitle>Preferencias financieras</CardTitle>
               <CardDescription>
                 Configura tu moneda base y categorías (próximamente)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="currency">Moneda Base</Label>
+                <Label htmlFor="currency">Moneda base</Label>
                 <Select disabled>
                   <SelectTrigger id="currency">
                     <SelectValue placeholder="ARS - Peso Argentino" />
@@ -361,7 +361,7 @@ export function ConfiguracionPage() {
               </div>
               <Separator />
               <div className="space-y-4">
-                <h4 className="text-sm font-medium">Categorías Personalizadas</h4>
+                <h4 className="text-sm font-medium">Categorías personalizadas</h4>
                 <p className="text-sm text-muted-foreground">
                   Funcionalidad próximamente disponible
                 </p>
@@ -374,7 +374,7 @@ export function ConfiguracionPage() {
         <TabsContent value="notifications" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Notificaciones y Alertas</CardTitle>
+              <CardTitle>Notificaciones y alertas</CardTitle>
               <CardDescription>
                 Configura recordatorios y alertas (próximamente)
               </CardDescription>
@@ -407,7 +407,7 @@ export function ConfiguracionPage() {
         <TabsContent value="account" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Información de Cuenta</CardTitle>
+              <CardTitle>Información de cuenta</CardTitle>
               <CardDescription>
                 Tu perfil y configuración de datos
               </CardDescription>
@@ -430,13 +430,13 @@ export function ConfiguracionPage() {
               </div>
               <Separator />
               <div className="space-y-4">
-                <h4 className="text-sm font-medium">Gestión de Datos</h4>
+                <h4 className="text-sm font-medium">Gestión de datos</h4>
                 <div className="flex gap-2">
                   <Button variant="outline" disabled>
                     Exportar datos a CSV
                   </Button>
                   <Button variant="destructive" disabled>
-                    Eliminar Espacio de Trabajo
+                    Eliminar espacio de trabajo
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">

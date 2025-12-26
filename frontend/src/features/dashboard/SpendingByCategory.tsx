@@ -42,7 +42,7 @@ export function SpendingByCategory() {
   return (
     <Card className="flex flex-col">
       <CardHeader>
-        <h2 className="text-xl font-semibold">Gastos por Categoría</h2>
+        <h2 className="text-xl font-semibold">Gastos por categoría</h2>
         <p className="text-sm text-muted-foreground">Total $3,200 este mes</p>
       </CardHeader>
       <CardContent className="flex-1 pb-6">

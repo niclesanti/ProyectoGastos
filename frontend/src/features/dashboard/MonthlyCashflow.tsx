@@ -38,8 +38,8 @@ export function MonthlyCashflow() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold">Flujo de Caja Mensual</h2>
-            <p className="text-sm text-muted-foreground">Ingresos vs Gastos</p>
+            <h2 className="text-xl font-semibold">Flujo de caja mensual</h2>
+            <p className="text-sm text-muted-foreground">Ingresos vs gastos</p>
           </div>
           <Tabs defaultValue="6months" className="w-auto">
             <TabsList>
@@ -69,11 +69,13 @@ export function MonthlyCashflow() {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
             />
             <YAxis
               tickLine={false}
               axisLine={false}
               tickMargin={8}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
             />
             <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
             <ChartLegend content={<ChartLegendContent />} />
@@ -83,6 +85,7 @@ export function MonthlyCashflow() {
               fill="url(#fillIngresos)"
               fillOpacity={0.4}
               stroke="var(--color-ingresos)"
+              strokeWidth={2.5}
               stackId="a"
             />
             <Area
@@ -91,6 +94,7 @@ export function MonthlyCashflow() {
               fill="url(#fillGastos)"
               fillOpacity={0.4}
               stroke="var(--color-gastos)"
+              strokeWidth={2.5}
               stackId="a"
             />
           </AreaChart>

@@ -64,7 +64,7 @@ export function UpcomingPayments() {
     <DataTable 
       columns={columns} 
       data={payments}
-      title="Próximas Cuotas"
+      title="Próximas cuotas"
       pageSize={6}
     />
   )

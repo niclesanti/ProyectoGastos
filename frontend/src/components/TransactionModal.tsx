@@ -82,13 +82,13 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
         </DialogHeader>
 
         <ScrollArea className="max-h-[60vh] pr-6">
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Tipo */}
             <div className="space-y-1.5">
               <Label htmlFor="tipo" className="text-sm">Tipo</Label>
               <Select value={tipo} onValueChange={setTipo}>
                 <SelectTrigger id="tipo" className="h-9">
-                  <SelectValue placeholder="Seleccionar tipo" />
+                  <SelectValue placeholder="Seleccionar tipo de transacción..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="gasto">Gasto</SelectItem>
@@ -110,7 +110,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, 'PPP', { locale: es }) : 'Seleccionar fecha'}
+                    {date ? format(date, 'PPP', { locale: es }) : 'Elegir fecha de transacción...'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -144,7 +144,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
               <div className="flex gap-2">
                 <Select value={motivo} onValueChange={setMotivo}>
                   <SelectTrigger id="motivo" className="flex-1 h-9">
-                    <SelectValue placeholder="Seleccionar motivo" />
+                    <SelectValue placeholder="Filtrar por motivo..." />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="alimentacion">Alimentación</SelectItem>
@@ -159,13 +159,12 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                 </Select>
                 <Button 
                   type="button" 
-                  variant="outline" 
+                  variant="ghost" 
                   size="sm" 
-                  className="h-9 px-2"
+                  className="h-9 w-9 p-0"
                   onClick={() => setShowNewMotivo(!showNewMotivo)}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Nuevo
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
               
@@ -213,10 +212,10 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
               <div className="flex gap-2">
                 <Select value={cuenta} onValueChange={setCuenta}>
                   <SelectTrigger id="cuenta" className="flex-1 h-9">
-                    <SelectValue placeholder="Seleccionar cuenta" />
+                    <SelectValue placeholder="Seleccionar cuenta bancaria..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="principal">Cuenta Principal</SelectItem>
+                    <SelectItem value="principal">Cuenta principal</SelectItem>
                     <SelectItem value="ahorros">Ahorros</SelectItem>
                     <SelectItem value="gastos">Gastos</SelectItem>
                     <SelectItem value="inversiones">Inversiones</SelectItem>
@@ -224,13 +223,12 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                 </Select>
                 <Button 
                   type="button" 
-                  variant="outline" 
+                  variant="ghost" 
                   size="sm" 
-                  className="h-9 px-2"
+                  className="h-9 w-9 p-0"
                   onClick={() => setShowNewCuenta(!showNewCuenta)}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Nuevo
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
               
@@ -294,7 +292,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
               <div className="flex gap-2">
                 <Select value={contacto} onValueChange={setContacto}>
                   <SelectTrigger id="contacto" className="flex-1 h-9">
-                    <SelectValue placeholder="Seleccionar contacto" />
+                    <SelectValue placeholder="Seleccionar contacto..." />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="empresa1">Empresa ABC</SelectItem>
@@ -305,13 +303,12 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                 </Select>
                 <Button 
                   type="button" 
-                  variant="outline" 
+                  variant="ghost" 
                   size="sm" 
-                  className="h-9 px-2"
+                  className="h-9 w-9 p-0"
                   onClick={() => setShowNewContacto(!showNewContacto)}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Nuevo
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
               

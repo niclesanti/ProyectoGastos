@@ -77,7 +77,7 @@ export function AppSidebar() {
                     <span className="truncate font-semibold">
                       {currentWorkspace?.nombre || 'Personal'}
                     </span>
-                    <span className="truncate text-xs">Espacio de Trabajo</span>
+                    <span className="truncate text-xs">Espacio de trabajo</span>
                   </div>
                   <ChevronsUpDown className="ml-auto" />
                 </SidebarMenuButton>
@@ -89,7 +89,7 @@ export function AppSidebar() {
                 sideOffset={4}
               >
                 <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  Espacios de Trabajo
+                  Espacios de trabajo
                 </DropdownMenuLabel>
                 {workspaces.map((workspace) => (
                   <DropdownMenuItem
@@ -109,7 +109,7 @@ export function AppSidebar() {
                     <Plus className="size-4" />
                   </div>
                   <div className="font-medium text-muted-foreground">
-                    Nuevo Espacio
+                    Nuevo espacio
                   </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>

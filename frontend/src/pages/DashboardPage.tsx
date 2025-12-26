@@ -7,7 +7,7 @@ import { RecentTransactions } from '@/features/dashboard/RecentTransactions'
 
 export function DashboardPage() {
   return (
-    <div className="space-y-6 pt-6">
+    <div className="grid gap-6 pt-6">
       <DashboardStats />
       
       <div className="grid gap-6 lg:grid-cols-3">

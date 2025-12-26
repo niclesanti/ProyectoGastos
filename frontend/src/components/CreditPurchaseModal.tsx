@@ -78,7 +78,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
         </DialogHeader>
 
         <ScrollArea className="max-h-[60vh] pr-6">
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Fecha */}
             <div className="space-y-1.5">
               <Label className="text-sm">Fecha</Label>
@@ -92,7 +92,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, 'PPP', { locale: es }) : 'Seleccionar fecha'}
+                    {date ? format(date, 'PPP', { locale: es }) : 'Elegir fecha de compra...'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -111,7 +111,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
               <Label htmlFor="tarjeta" className="text-sm">Tarjeta</Label>
               <Select value={tarjeta} onValueChange={setTarjeta}>
                 <SelectTrigger id="tarjeta" className="h-9">
-                  <SelectValue placeholder="Seleccionar tarjeta" />
+                  <SelectValue placeholder="Seleccionar tarjeta de crédito..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="visa-gold">Visa Gold</SelectItem>
@@ -127,7 +127,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
               <Label htmlFor="cuotas" className="text-sm">Cantidad de cuotas</Label>
               <Select value={cuotas} onValueChange={setCuotas}>
                 <SelectTrigger id="cuotas" className="h-9">
-                  <SelectValue placeholder="Seleccionar cuotas" />
+                  <SelectValue placeholder="Elegir cantidad de cuotas..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1">1 cuota</SelectItem>
@@ -159,7 +159,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
               <div className="flex gap-2">
                 <Select value={motivo} onValueChange={setMotivo}>
                   <SelectTrigger id="motivo" className="flex-1 h-9">
-                    <SelectValue placeholder="Seleccionar motivo" />
+                    <SelectValue placeholder="Filtrar por motivo..." />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="alimentacion">Alimentación</SelectItem>
@@ -174,13 +174,12 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
                 </Select>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="h-9 px-2"
+                  className="h-9 w-9 p-0"
                   onClick={() => setShowNewMotivo(!showNewMotivo)}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Nuevo
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
 
@@ -228,7 +227,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
               <div className="flex gap-2">
                 <Select value={comercio} onValueChange={setComercio}>
                   <SelectTrigger id="comercio" className="flex-1 h-9">
-                    <SelectValue placeholder="Seleccionar comercio" />
+                    <SelectValue placeholder="Seleccionar comercio..." />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="supermercado1">Supermercado XYZ</SelectItem>
@@ -239,13 +238,12 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
                 </Select>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="h-9 px-2"
+                  className="h-9 w-9 p-0"
                   onClick={() => setShowNewComercio(!showNewComercio)}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Nuevo
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
 

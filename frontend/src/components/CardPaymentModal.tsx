@@ -106,7 +106,12 @@ function SortableRow({ row, children }: any) {
   }
 
   return (
-    <TableRow ref={setNodeRef} style={style} data-state={row.getIsSelected() && 'selected'}>
+    <TableRow 
+      ref={setNodeRef} 
+      style={style} 
+      data-state={row.getIsSelected() && 'selected'}
+      className={cn(row.getIsSelected() && 'bg-zinc-900/50')}
+    >
       {row.getVisibleCells().map((cell: any, index: number) => (
         <TableCell
           key={cell.id}
@@ -195,8 +200,8 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
         const formatted = new Intl.NumberFormat('es-AR', {
           style: 'currency',
           currency: 'ARS',
-        }).format(amount)
-        return <div className="text-right font-medium">{formatted}</div>
+        }).format(amount).replace('$ ', '$')
+        return <div className="text-right font-mono font-medium tabular-nums">{formatted}</div>
       },
     },
     {
@@ -319,10 +324,10 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
             <div className="flex gap-2">
               <Select value={cuenta} onValueChange={setCuenta}>
                 <SelectTrigger id="cuenta" className="flex-1 h-9">
-                  <SelectValue placeholder="Seleccionar cuenta" />
+                  <SelectValue placeholder="Seleccionar cuenta bancaria..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="principal">Cuenta Principal</SelectItem>
+                  <SelectItem value="principal">Cuenta principal</SelectItem>
                   <SelectItem value="ahorros">Ahorros</SelectItem>
                   <SelectItem value="gastos">Gastos</SelectItem>
                   <SelectItem value="inversiones">Inversiones</SelectItem>
@@ -330,13 +335,12 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
               </Select>
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-9 px-2"
+                className="h-9 w-9 p-0"
                 onClick={() => setShowNewCuenta(!showNewCuenta)}
               >
-                <Plus className="h-4 w-4 mr-1" />
-                Nuevo
+                <Plus className="h-4 w-4" />
               </Button>
             </div>
 

@@ -82,6 +82,13 @@ const calculateDaysUntilClosure = (diaCierre: number): number => {
 function CreditCardComponent({ card }: { card: CreditCard }) {
   const daysUntilClosure = calculateDaysUntilClosure(card.diaCierre)
   
+  // Color dinámico según días hasta cierre
+  const getClosureBadgeColor = (days: number) => {
+    if (days === 0) return 'bg-red-500/20 text-red-400 border-red-500/30'
+    if (days <= 5) return 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+    return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+  }
+  
   // Colores según red de pago
   const getCardColor = (red: string) => {
     switch (red.toLowerCase()) {
@@ -103,8 +110,8 @@ function CreditCardComponent({ card }: { card: CreditCard }) {
           <div className="text-white/80 text-sm font-medium">
             {card.redDePago}
           </div>
-          <div className="bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full">
-            <p className="text-white text-xs font-medium">
+          <div className={cn('backdrop-blur-sm px-3 py-1 rounded-full border', getClosureBadgeColor(daysUntilClosure))}>
+            <p className="text-xs font-medium">
               {daysUntilClosure === 0 ? 'Cierra hoy' : 
                daysUntilClosure === 1 ? 'Cierra mañana' :
                `Cierra en ${daysUntilClosure} días`}
@@ -345,7 +352,7 @@ export function CreditosPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Tarjetas de Crédito</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Tarjetas de crédito</h2>
           <p className="text-muted-foreground">
             Gestiona tus tarjetas y controla cierres y vencimientos
           </p>

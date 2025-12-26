@@ -125,7 +125,7 @@ const mockTransactions: Transaction[] = [
     fecha: '2025-01-15',
     motivo: 'Salario',
     contacto: 'Empresa ABC',
-    cuenta: 'Cuenta Principal',
+    cuenta: 'Cuenta principal',
     monto: 45000,
     descripcion: 'Salario mensual'
   },
@@ -135,7 +135,7 @@ const mockTransactions: Transaction[] = [
     fecha: '2025-01-10',
     motivo: 'Supermercado',
     contacto: 'Carrefour',
-    cuenta: 'Cuenta Principal',
+    cuenta: 'Cuenta principal',
     monto: 8500,
     descripcion: 'Compras del mes'
   },
@@ -165,7 +165,7 @@ const mockTransactions: Transaction[] = [
     fecha: '2025-01-03',
     motivo: 'Entretenimiento',
     contacto: 'Netflix',
-    cuenta: 'Cuenta Principal',
+    cuenta: 'Cuenta principal',
     monto: 1200,
     descripcion: 'Suscripción mensual'
   },
@@ -175,7 +175,7 @@ const mockTransactions: Transaction[] = [
     fecha: '2024-12-28',
     motivo: 'Servicios',
     contacto: 'EDESUR',
-    cuenta: 'Cuenta Principal',
+    cuenta: 'Cuenta principal',
     monto: 3200,
     descripcion: 'Factura de luz'
   },
@@ -185,7 +185,7 @@ const mockTransactions: Transaction[] = [
     fecha: '2024-12-20',
     motivo: 'Venta',
     contacto: 'MercadoLibre',
-    cuenta: 'Cuenta Principal',
+    cuenta: 'Cuenta principal',
     monto: 12000,
     descripcion: 'Venta de artículo'
   },
@@ -195,7 +195,7 @@ const mockTransactions: Transaction[] = [
     fecha: '2024-12-15',
     motivo: 'Alimentos',
     contacto: 'Alvear',
-    cuenta: 'Cuenta Principal',
+    cuenta: 'Cuenta principal',
     monto: 10000,
     descripcion: 'Compras semanales'
   },
@@ -411,8 +411,8 @@ export function MovimientosPage() {
         const tipo = row.original.tipo
         return (
           <div className={cn(
-            'text-right font-mono font-semibold',
-            tipo === 'Ingreso' ? 'text-green-600' : 'text-red-600'
+            'text-right font-mono font-semibold tabular-nums',
+            tipo === 'Ingreso' ? 'text-emerald-400' : 'text-rose-400'
           )}>
             {tipo === 'Ingreso' ? '+' : '-'}{formatCurrency(monto)}
           </div>
@@ -461,7 +461,7 @@ export function MovimientosPage() {
   return (
     <div className="space-y-6 pt-6">
       {/* Header con resumen dinámico */}
-      <div className="space-y-2">
+      <div className="space-y-2 mb-8">
         <h2 className="text-3xl font-bold tracking-tight">Movimientos</h2>
         <p className="text-muted-foreground">
           Explora y filtra tu historial financiero
@@ -475,14 +475,14 @@ export function MovimientosPage() {
           <Separator orientation="vertical" className="h-4" />
           <div className="flex items-center gap-1">
             <span className="text-sm text-muted-foreground">Ingresos:</span>
-            <span className="text-sm font-semibold text-green-600">
+            <span className="text-sm font-semibold text-emerald-400/90">
               +{formatCurrency(totalIngresos)}
             </span>
           </div>
           <Separator orientation="vertical" className="h-4" />
           <div className="flex items-center gap-1">
             <span className="text-sm text-muted-foreground">Gastos:</span>
-            <span className="text-sm font-semibold text-red-600">
+            <span className="text-sm font-semibold text-rose-400/90">
               -{formatCurrency(totalGastos)}
             </span>
           </div>
@@ -494,7 +494,7 @@ export function MovimientosPage() {
         {/* Selector de Mes */}
         <Select value={mesSeleccionado} onValueChange={setMesSeleccionado}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Seleccionar mes" />
+            <SelectValue placeholder="Filtrar por mes..." />
           </SelectTrigger>
           <SelectContent>
             {meses.map((mes) => (
@@ -508,7 +508,7 @@ export function MovimientosPage() {
         {/* Selector de Año */}
         <Select value={anoSeleccionado} onValueChange={setAnoSeleccionado}>
           <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Año" />
+            <SelectValue placeholder="Filtrar por año..." />
           </SelectTrigger>
           <SelectContent>
             {anos.map((ano) => (
@@ -523,7 +523,7 @@ export function MovimientosPage() {
         <Popover open={openMotivo} onOpenChange={setOpenMotivo}>
           <PopoverTrigger asChild>
             <Button variant="outline" className="w-[180px] justify-between">
-              {motivoSeleccionado === 'todos' ? 'Motivo' : motivoSeleccionado}
+              {motivoSeleccionado === 'todos' ? 'Filtrar por motivo...' : motivoSeleccionado}
               <Check className={cn(
                 'ml-2 h-4 w-4',
                 motivoSeleccionado !== 'todos' ? 'opacity-100' : 'opacity-0'
@@ -577,7 +577,7 @@ export function MovimientosPage() {
         <Popover open={openContacto} onOpenChange={setOpenContacto}>
           <PopoverTrigger asChild>
             <Button variant="outline" className="w-[180px] justify-between">
-              {contactoSeleccionado === 'todos' ? 'Contacto' : contactoSeleccionado}
+              {contactoSeleccionado === 'todos' ? 'Filtrar por contacto...' : contactoSeleccionado}
               <Check className={cn(
                 'ml-2 h-4 w-4',
                 contactoSeleccionado !== 'todos' ? 'opacity-100' : 'opacity-0'

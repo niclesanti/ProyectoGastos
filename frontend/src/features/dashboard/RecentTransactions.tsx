@@ -28,7 +28,7 @@ const initialTransactions: Transaction[] = [
     id: 1,
     tipo: 'INGRESO',
     motivo: 'Salario Upwork',
-    cuenta: 'Cuenta Principal',
+    cuenta: 'Cuenta principal',
     contacto: 'Upwork Inc.',
     fecha: 'Hoy, 10:23',
     monto: 4200.00,
@@ -55,7 +55,7 @@ const initialTransactions: Transaction[] = [
     id: 4,
     tipo: 'GASTO',
     motivo: 'Apple Store',
-    cuenta: 'Cuenta Principal',
+    cuenta: 'Cuenta principal',
     contacto: 'Apple',
     fecha: '10 Oct',
     monto: -124.99,
@@ -155,8 +155,8 @@ export const columns: ColumnDef<Transaction>[] = [
       
       return (
         <div
-          className={`text-right font-semibold ${
-            tipo === 'INGRESO' ? 'text-green-500' : 'text-red-500'
+          className={`text-right font-mono font-semibold tabular-nums ${
+            tipo === 'INGRESO' ? 'text-emerald-400' : 'text-rose-400'
           }`}
         >
           {tipo === 'INGRESO' ? '+' : ''}
@@ -217,7 +217,7 @@ export function RecentTransactions() {
       columns={columns} 
       data={transactions}
       onReorder={handleReorder}
-      title="Actividad Reciente"
+      title="Actividad reciente"
     />
   )
 }

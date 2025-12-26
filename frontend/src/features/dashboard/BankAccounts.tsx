@@ -10,7 +10,7 @@ type Account = {
 }
 
 const accounts: Account[] = [
-  { id: 1, nombre: 'Cuenta Principal', entidad: 'Banco Santander', saldo: 15420.50 },
+  { id: 1, nombre: 'Cuenta principal', entidad: 'Banco Santander', saldo: 15420.50 },
   { id: 2, nombre: 'Ahorros', entidad: 'BBVA', saldo: 8200.00 },
   { id: 3, nombre: 'Nómina', entidad: 'CaixaBank', saldo: 3450.75 },
   { id: 4, nombre: 'Inversiones', entidad: 'ING', saldo: 25600.00 },
@@ -54,7 +54,7 @@ export function BankAccounts() {
     <DataTable 
       columns={columns} 
       data={accounts}
-      title="Cuentas Bancarias"
+      title="Cuentas bancarias"
       pageSize={6}
     />
   )

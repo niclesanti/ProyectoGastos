@@ -59,7 +59,7 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
                 <SelectValue placeholder="Seleccionar cuenta de origen" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="principal">Cuenta Principal</SelectItem>
+                <SelectItem value="principal">Cuenta principal</SelectItem>
                 <SelectItem value="ahorros">Ahorros</SelectItem>
                 <SelectItem value="gastos">Gastos</SelectItem>
                 <SelectItem value="inversiones">Inversiones</SelectItem>
@@ -67,15 +67,15 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
             </Select>
           </div>
 
-          {/* Cuenta de destino */}
+          {/* Cuenta Destino */}
           <div className="space-y-1.5">
             <Label htmlFor="cuentaDestino" className="text-sm">Cuenta de destino</Label>
             <Select value={cuentaDestino} onValueChange={setCuentaDestino}>
               <SelectTrigger id="cuentaDestino" className="h-9">
-                <SelectValue placeholder="Seleccionar cuenta de destino" />
+                <SelectValue placeholder="Seleccionar cuenta destino" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="principal">Cuenta Principal</SelectItem>
+                <SelectItem value="principal">Cuenta principal</SelectItem>
                 <SelectItem value="ahorros">Ahorros</SelectItem>
                 <SelectItem value="gastos">Gastos</SelectItem>
                 <SelectItem value="inversiones">Inversiones</SelectItem>
