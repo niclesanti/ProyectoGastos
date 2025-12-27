@@ -4,11 +4,13 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { MovimientosPage } from '@/pages/MovimientosPage'
 import { CreditosPage } from '@/pages/CreditosPage'
 import { ConfiguracionPage } from '@/pages/ConfiguracionPage'
+import { LoginPage } from '@/pages/LoginPage'
 
 function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="movimientos" element={<MovimientosPage />} />
