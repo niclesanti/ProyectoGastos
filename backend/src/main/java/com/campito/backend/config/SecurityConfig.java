@@ -2,6 +2,7 @@ package com.campito.backend.config;
 
 import com.campito.backend.service.CustomOidcUserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -17,6 +18,9 @@ public class SecurityConfig {
     @Autowired
     private CustomOidcUserService customOidcUserService;
 
+    @Value("${frontend.url:http://localhost:3000}")
+    private String frontendUrl;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -27,19 +31,31 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/login.html", "/script.js", "/styles.css", "/logo.png", "/logo_login.png", "/manifest.json", "/v3/api-docs/**").permitAll()
+                .requestMatchers(
+                    "/",
+                    "/login.html",
+                    "/script.js",
+                    "/styles.css",
+                    "/logo.png",
+                    "/logo_login.png",
+                    "/manifest.json",
+                    "/v3/api-docs/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/api/auth/**"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
-                .loginPage("/login.html")
                 .userInfoEndpoint(userInfo -> userInfo
                     .oidcUserService(customOidcUserService)
                 )
-                .defaultSuccessUrl("/dashboard.html")
+                .defaultSuccessUrl(frontendUrl + "/", true)
+                .failureUrl(frontendUrl + "/login?error=true")
             )
             .logout(logout -> logout
                 .logoutUrl("/logout")
-                .logoutSuccessUrl("/login.html?logout")
+                .logoutSuccessUrl(frontendUrl + "/login?logout=true")
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")
                 .permitAll()

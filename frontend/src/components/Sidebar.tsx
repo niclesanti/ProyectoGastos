@@ -14,6 +14,8 @@ import {
   ArrowRightLeft,
   Receipt,
 } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Sidebar,
   SidebarContent,
@@ -52,11 +54,22 @@ const navigation = [
 export function AppSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const { currentWorkspace, workspaces, setCurrentWorkspace } = useAppStore()
   const [transactionModalOpen, setTransactionModalOpen] = useState(false)
   const [accountTransferModalOpen, setAccountTransferModalOpen] = useState(false)
   const [creditPurchaseModalOpen, setCreditPurchaseModalOpen] = useState(false)
   const [cardPaymentModalOpen, setCardPaymentModalOpen] = useState(false)
+
+  const getUserInitials = () => {
+    if (!user?.nombre) return 'U'
+    return user.nombre
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
 
   return (
     <>
@@ -230,12 +243,13 @@ export function AppSidebar() {
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground">
-                    JD
-                  </div>
+                  <Avatar className="h-8 w-8 rounded-lg">
+                    <AvatarImage src={user?.fotoPerfil} alt={user?.nombre} />
+                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                  </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">John Doe</span>
-                    <span className="truncate text-xs">john@example.com</span>
+                    <span className="truncate font-semibold">{user?.nombre || 'Usuario'}</span>
+                    <span className="truncate text-xs">{user?.email || 'cargando...'}</span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" />
                 </SidebarMenuButton>
@@ -248,17 +262,18 @@ export function AppSidebar() {
               >
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground">
-                      JD
-                    </div>
+                    <Avatar className="h-8 w-8 rounded-lg">
+                      <AvatarImage src={user?.fotoPerfil} alt={user?.nombre} />
+                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                    </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">John Doe</span>
-                      <span className="truncate text-xs">john@example.com</span>
+                      <span className="truncate font-semibold">{user?.nombre || 'Usuario'}</span>
+                      <span className="truncate text-xs">{user?.email || 'cargando...'}</span>
                     </div>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/configuracion')}>
                   <User className="mr-2 h-4 w-4" />
                   Perfil
                 </DropdownMenuItem>
@@ -267,9 +282,9 @@ export function AppSidebar() {
                   Configuración
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
-                  Cerrar Sesión
+                  Cerrar sesión
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
