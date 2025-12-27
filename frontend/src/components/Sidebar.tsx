@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import {
   LayoutDashboard,
@@ -51,6 +51,7 @@ const navigation = [
 
 export function AppSidebar() {
   const location = useLocation()
+  const navigate = useNavigate()
   const { currentWorkspace, workspaces, setCurrentWorkspace } = useAppStore()
   const [transactionModalOpen, setTransactionModalOpen] = useState(false)
   const [accountTransferModalOpen, setAccountTransferModalOpen] = useState(false)
@@ -104,7 +105,7 @@ export function AppSidebar() {
                   </DropdownMenuItem>
                 ))}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="gap-2 p-2">
+                <DropdownMenuItem className="gap-2 p-2" onClick={() => navigate('/configuracion')}>
                   <div className="flex size-6 items-center justify-center rounded-md border bg-background">
                     <Plus className="size-4" />
                   </div>
@@ -261,7 +262,7 @@ export function AppSidebar() {
                   <User className="mr-2 h-4 w-4" />
                   Perfil
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/configuracion')}>
                   <Settings className="mr-2 h-4 w-4" />
                   Configuración
                 </DropdownMenuItem>

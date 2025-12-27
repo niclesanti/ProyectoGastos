@@ -8,37 +8,61 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart'
+import { useMemo } from 'react'
+
+// Función para generar colores con alta saturación similares al chart de flujo de caja
+const generateCategoryColor = (index: number, total: number): string => {
+  // Distribuir los tonos uniformemente en el espectro de colores (0-360)
+  const hue = (index * 360) / total
+  // Saturación alta entre 72% y 84% para mantener consistencia con el diseño
+  const saturation = 72 + (index % 4) * 4 // Alterna entre 72%, 76%, 80%, 84%
+  // Luminosidad entre 48% y 62% para buena visibilidad
+  const lightness = 48 + (index % 4) * 4 // Alterna entre 48%, 52%, 56%, 60%
+  
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`
+}
 
 const chartData = [
-  { category: 'vivienda', value: 35, fill: 'hsl(var(--chart-1))' },
-  { category: 'transporte', value: 25, fill: 'hsl(var(--chart-4))' },
-  { category: 'alimentacion', value: 20, fill: 'hsl(var(--chart-2))' },
-  { category: 'ocio', value: 20, fill: 'hsl(var(--chart-5))' },
+  { category: 'vivienda', value: 35 },
+  { category: 'transporte', value: 25 },
+  { category: 'alimentacion', value: 20 },
+  { category: 'ocio', value: 20 },
 ]
 
-const chartConfig = {
-  value: {
-    label: 'Porcentaje',
-  },
-  vivienda: {
-    label: 'Vivienda',
-    color: 'hsl(var(--chart-1))',
-  },
-  transporte: {
-    label: 'Transporte',
-    color: 'hsl(var(--chart-4))',
-  },
-  alimentacion: {
-    label: 'Alimentación',
-    color: 'hsl(var(--chart-2))',
-  },
-  ocio: {
-    label: 'Ocio',
-    color: 'hsl(var(--chart-5))',
-  },
-} satisfies ChartConfig
+const categoryLabels: Record<string, string> = {
+  vivienda: 'Vivienda',
+  transporte: 'Transporte',
+  alimentacion: 'Alimentación',
+  ocio: 'Ocio',
+}
 
 export function SpendingByCategory() {
+  // Generar colores dinámicamente para cada categoría
+  const chartDataWithColors = useMemo(() => {
+    return chartData.map((item, index) => ({
+      ...item,
+      fill: generateCategoryColor(index, chartData.length),
+    }))
+  }, [])
+
+  // Generar configuración dinámica para el chart
+  const chartConfig = useMemo(() => {
+    const config: ChartConfig = {
+      value: {
+        label: 'Porcentaje',
+      },
+    }
+    
+    chartDataWithColors.forEach((item) => {
+      config[item.category] = {
+        label: categoryLabels[item.category] || item.category,
+        color: item.fill,
+      }
+    })
+    
+    return config
+  }, [chartDataWithColors])
+
   return (
     <Card className="flex flex-col">
       <CardHeader>
@@ -53,13 +77,13 @@ export function SpendingByCategory() {
           <PieChart>
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
             <Pie
-              data={chartData}
+              data={chartDataWithColors}
               dataKey="value"
               nameKey="category"
               innerRadius={60}
               strokeWidth={5}
             >
-              {chartData.map((entry, index) => (
+              {chartDataWithColors.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.fill} />
               ))}
               <Label
@@ -77,7 +101,7 @@ export function SpendingByCategory() {
                           y={viewBox.cy}
                           className="fill-foreground text-3xl font-bold"
                         >
-                          4
+                          {chartData.length}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
@@ -95,7 +119,7 @@ export function SpendingByCategory() {
           </PieChart>
         </ChartContainer>
         <div className="mt-6 grid grid-cols-2 gap-4 px-2">
-          {chartData.map((item) => (
+          {chartDataWithColors.map((item) => (
             <div key={item.category} className="flex items-center gap-2">
               <div
                 className="h-3 w-3 rounded-full shrink-0"
