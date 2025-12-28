@@ -23,7 +23,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/cuentabancaria")
+@RequestMapping("/api/cuentabancaria")
 @Tag(name = "CuentaBancaria", description = "Operaciones para la gestión de cuentas bancarias")
 @RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
 public class CuentaBancariaController {

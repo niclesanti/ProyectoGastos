@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.campito.backend.dto.EspacioTrabajoDTORequest;
 import com.campito.backend.dto.EspacioTrabajoDTOResponse;
+import com.campito.backend.dto.UsuarioDTOResponse;
 import com.campito.backend.service.EspacioTrabajoService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,7 +24,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/espaciotrabajo")
+@RequestMapping("/api/espaciotrabajo")
 @Tag(name = "EspacioTrabajo", description = "Operaciones para la gestión de espacios de trabajo")
 @RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
 public class EspacioTrabajoController {
@@ -70,6 +71,19 @@ public class EspacioTrabajoController {
     public ResponseEntity<List<EspacioTrabajoDTOResponse>> listarEspaciosTrabajoPorUsuario(@PathVariable Long idUsuario) {
         List<EspacioTrabajoDTOResponse> espacios = espacioTrabajoService.listarEspaciosTrabajoPorUsuario(idUsuario);
         return new ResponseEntity<>(espacios, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Obtener una lista de miembros de un espacio de trabajo",
+        description = "Permite obtener una lista de todos los usuarios que son miembros de un espacio de trabajo específico."
+    )
+    @ApiResponse(responseCode = "200", description = "Miembros del espacio de trabajo obtenidos correctamente")
+    @ApiResponse(responseCode = "400", description = "Error al obtener los miembros del espacio de trabajo")
+    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    @GetMapping("/miembros/{idEspacioTrabajo}")
+    public ResponseEntity<List<UsuarioDTOResponse>> obtenerMiembrosEspacioTrabajo(@PathVariable Long idEspacioTrabajo) {
+        List<UsuarioDTOResponse> miembros = espacioTrabajoService.obtenerMiembrosEspacioTrabajo(idEspacioTrabajo);
+        return new ResponseEntity<>(miembros, HttpStatus.OK);
     }
 
 }

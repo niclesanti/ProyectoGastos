@@ -1,4 +1,4 @@
-import { api } from './api'
+import { apiClient } from '@/lib/api-client'
 import type {
   EspacioTrabajo,
   EspacioTrabajoDTORequest,
@@ -8,38 +8,44 @@ import type {
 
 export const espacioTrabajoService = {
   async getAll(): Promise<EspacioTrabajo[]> {
-    return api.get<EspacioTrabajo[]>('/espacios-trabajo')
+    const { data } = await apiClient.get<EspacioTrabajo[]>('/espacios-trabajo')
+    return data
   },
 
   async getById(id: number): Promise<EspacioTrabajo> {
-    return api.get<EspacioTrabajo>(`/espacios-trabajo/${id}`)
+    const { data } = await apiClient.get<EspacioTrabajo>(`/espacios-trabajo/${id}`)
+    return data
   },
 
   async create(espacioTrabajo: EspacioTrabajoDTORequest): Promise<EspacioTrabajo> {
-    return api.post<EspacioTrabajo>('/espacios-trabajo', espacioTrabajo)
+    const { data } = await apiClient.post<EspacioTrabajo>('/espacios-trabajo', espacioTrabajo)
+    return data
   },
 
   async update(id: number, espacioTrabajo: EspacioTrabajoDTORequest): Promise<EspacioTrabajo> {
-    return api.put<EspacioTrabajo>(`/espacios-trabajo/${id}`, espacioTrabajo)
+    const { data } = await apiClient.put<EspacioTrabajo>(`/espacios-trabajo/${id}`, espacioTrabajo)
+    return data
   },
 
   async delete(id: number): Promise<void> {
-    return api.delete<void>(`/espacios-trabajo/${id}`)
+    await apiClient.delete<void>(`/espacios-trabajo/${id}`)
   },
 
   // Gestión de miembros
   async getMiembros(espacioTrabajoId: number): Promise<MiembroEspacio[]> {
-    return api.get<MiembroEspacio[]>(`/espacios-trabajo/${espacioTrabajoId}/miembros`)
+    const { data } = await apiClient.get<MiembroEspacio[]>(`/espaciotrabajo/miembros/${espacioTrabajoId}`)
+    return data
   },
 
   async invitarMiembro(invitacion: InvitacionMiembroDTORequest): Promise<MiembroEspacio> {
-    return api.post<MiembroEspacio>(
+    const { data } = await apiClient.post<MiembroEspacio>(
       `/espacios-trabajo/${invitacion.espacioTrabajoId}/miembros`,
       { email: invitacion.email, rol: invitacion.rol }
     )
+    return data
   },
 
   async eliminarMiembro(espacioTrabajoId: number, miembroId: number): Promise<void> {
-    return api.delete<void>(`/espacios-trabajo/${espacioTrabajoId}/miembros/${miembroId}`)
+    await apiClient.delete<void>(`/espacios-trabajo/${espacioTrabajoId}/miembros/${miembroId}`)
   },
 }

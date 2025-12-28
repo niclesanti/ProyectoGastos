@@ -1,84 +1,173 @@
-Esta es una de las transiciones más críticas al pasar de un monolito a una arquitectura desacoplada. Como desarrollador fullstack, te guiaré para implementar el **patrón de autenticación más seguro y profesional** actualmente: **OAuth2 con Session-based Auth (Cookies)** o **JWT**, manteniendo tu lógica de Spring Security pero adaptándola para una API.
+Para manejar el consumo de APIs de forma profesional en un stack moderno de **React 19**, la mejor práctica no es usar `useEffect` directamente, sino implementar **TanStack Query (React Query)** junto con **Axios**.
+
+Esta combinación resuelve tu duda sobre "no solicitar a la base de datos continuamente": **TanStack Query** actúa como una capa de caché inteligente que mantiene los datos en memoria y solo los refresca cuando es necesario.
+
+Aquí tienes la arquitectura profesional para implementar esto.
 
 ---
 
-## 1. El Flujo de Autenticación Profesional
+### 1. Stack de Comunicación y Estado
 
-En la industria, para una SPA (Single Page Application) como la tuya, el flujo óptimo es el siguiente:
+Para este flujo, utilizaremos:
 
-1. **Frontend:** El usuario entra a `/login` y hace clic en "Continuar con Google".
-2. **Redirección:** El frontend redirige al usuario al endpoint del backend: `http://localhost:8080/oauth2/authorization/google`.
-3. **Google:** El usuario se autentica en Google.
-4. **Backend (Callback):** Google devuelve el control a Spring Boot. Tu `CustomOidcUserService` procesa el usuario.
-5. **Success Handler:** El backend, en lugar de cargar un HTML, **redirige al frontend** (ej: `http://localhost:3000/dashboard`) incluyendo una **Cookie de Sesión (HttpOnly, Secure)**.
-6. **Persistencia:** A partir de ahí, el frontend envía esa Cookie en cada petición de forma automática.
+* **Axios:** Para las peticiones HTTP (mejor manejo de interceptores y errores que `fetch`).
+* **TanStack Query (v5):** Para el "Server State" (caché de la lista de espacios).
+* **Zustand:** Para el "Client State" (saber qué espacio está seleccionado actualmente y los datos del usuario).
 
 ---
 
-## 2. Cambios Críticos en el Backend (Spring Boot)
+### 2. Definición de Interfaces (TypeScript)
 
-Para que el backend deje de servir páginas y empiece a servir a React, debemos configurar tres cosas:
+Primero, creamos los "DTOs" en el frontend para que coincidan con tus Records de Java.
 
-### A. Configuración de CORS
+```typescript
+// src/types/workspace.ts
+export interface EspacioTrabajoResponse {
+  id: number;
+  nombre: string;
+  saldo: number;
+  usuarioAdminId: number;
+}
 
-Debes permitir que el dominio de React (`localhost:3000`) se comunique con el de Spring Boot (`localhost:8080`).
+export interface EspacioTrabajoRequest {
+  nombre: string;
+  idUsuarioAdmin: number;
+}
 
-> **Importante:** `allowCredentials(true)` es vital para que las Cookies de autenticación viajen entre el front y el back.
-
-### B. Success Handler Personalizado
-
-Necesitas una clase que, tras el login exitoso en Google, le diga al navegador: "Vuelve al puerto 3000 de React".
-
-### C. Security Filter Chain
-
-Debes deshabilitar CSRF (o configurarlo para SPAs) y asegurar que el `LogoutSuccessHandler` también redirija al frontend.
-
----
-
-## 3. Diseño del Nuevo Login (shadcn/ui)
-
-Siguiendo el ejemplo de `shadcn/ui`, el login debe ser minimalista y centrado en la acción de Google.
-
-### Estructura sugerida:
-
-* **Card:** Un contenedor con borde sutil.
-* **Logo/Icono:** El icono de tu app en la parte superior.
-* **Título:** "Bienvenido de nuevo".
-* **Subtítulo:** "Usa tu cuenta de Google para gestionar tus finanzas".
-* **Botón Principal:** Un botón de ancho completo con el logo de Google.
+```
 
 ---
 
-## 4. Guía Maestra para GitHub Copilot
+### 3. Configuración del Cliente API y el Store
 
-Copia y pega este prompt estructurado en Copilot para que realice la integración completa por ti:
+Configuramos Axios para que siempre envíe las credenciales (cookies de sesión) y Zustand para guardar el contexto del usuario.
 
-> **"Role: Senior Fullstack Developer (Spring Boot 3.4 + React 19).**
-> **Objective: Integrate a decoupled React frontend with an existing Spring Boot OAuth2/OIDC backend.**
-> **Task 1: Backend Configuration (Java)**
-> 1. Create a `WebConfig` class implementing `WebMvcConfigurer` to enable CORS for 'http://localhost:3000' allowing credentials and all methods.
-> 2. Update the `SecurityFilterChain`:
-> * Configure `.oauth2Login()` with a custom `AuthenticationSuccessHandler` that redirects to 'http://localhost:3000/dashboard'.
-> * Ensure `.logout()` redirects back to 'http://localhost:3000/login'.
-> * Set `.csrf().disable()` (for development) or configure a `CookieCsrfTokenRepository`.
-> * Ensure the session management is set to `.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)`.
-> 
-> 
-> 
-> 
-> **Task 2: Frontend Logic (React + TypeScript)**
-> 1. In `src/features/auth`, create a `LoginPage.tsx` using shadcn/ui `Card` and `Button` components.
-> 2. The Google button should be a simple anchor tag `<a>` pointing to 'http://localhost:8080/oauth2/authorization/google'.
-> 3. Create an `useAuth` hook that calls the existing `getUsuarioAutenticado` endpoint on mount to check if the session is still valid.
-> 4. Use `credentials: 'include'` in all `fetch` or `axios` calls to ensure the Session Cookie is sent.
-> 
-> 
-> **Context:** I already have `CustomOidcUserService` and `CustomOAuth2User` working. Use the 'Zinc' dark theme for the login design."
+```typescript
+// src/lib/api-client.ts
+import axios from 'axios';
+
+export const apiClient = axios.create({
+  baseURL: 'http://localhost:8080/api',
+  withCredentials: true, // Vital para OAuth2/Session
+});
+
+// src/store/use-auth-store.ts
+import { create } from 'zustand';
+
+interface AuthState {
+  user: { id: number; nombre: string; email: string } | null;
+  currentWorkspaceId: number | null;
+  setAuth: (user: any) => void;
+  setCurrentWorkspaceId: (id: number) => void;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null, // Se carga al autenticar
+  currentWorkspaceId: null,
+  setAuth: (user) => set({ user }),
+  setCurrentWorkspaceId: (id) => set({ currentWorkspaceId: id }),
+}));
+
+```
 
 ---
 
-## 5. Próximos Pasos Técnicos
+### 4. Implementación de Hooks de TanStack Query
 
-1. **Backend:** Ejecuta el prompt anterior y verifica que, tras loguearte en Google, el navegador termine en tu puerto `3000`.
-2. **Frontend:** Instala `react-router-dom` si aún no lo tienes para manejar las rutas `/login` y `/dashboard`.
-3. **Prueba de Fuego:** En el Dashboard de React, haz un `console.log` del resultado de llamar a `/getUsuarioAutenticado`. Si recibes tu JSON de usuario, ¡la integración es un éxito!
+Aquí es donde ocurre la "magia" del caché. Si tres componentes necesitan la lista de espacios, solo se hará **una petición** a la base de datos.
+
+```typescript
+// src/features/workspaces/api/workspace-queries.ts
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api-client';
+import { EspacioTrabajoResponse, EspacioTrabajoRequest } from '@/types/workspace';
+
+// Hook para LISTAR (GET)
+export const useWorkspaces = (userId: number | undefined) => {
+  return useQuery({
+    queryKey: ['workspaces', userId], // El caché se identifica por este ID
+    queryFn: async () => {
+      const { data } = await apiClient.get<EspacioTrabajoResponse[]>(`/espaciotrabajo/listar/${userId}`);
+      return data;
+    },
+    enabled: !!userId, // Solo se ejecuta si hay un usuario autenticado
+    staleTime: 1000 * 60 * 5, // Los datos se consideran "frescos" por 5 minutos
+  });
+};
+
+// Hook para REGISTRAR (POST)
+export const useCreateWorkspace = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (newWorkspace: EspacioTrabajoRequest) => {
+      return await apiClient.post('/espaciotrabajo/registrar', newWorkspace);
+    },
+    onSuccess: () => {
+      // Invalida el caché para que la sidebar se actualice automáticamente
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+    },
+  });
+};
+
+```
+
+---
+
+### 5. Aplicación en los Componentes
+
+#### En la Sidebar (Selector de Espacios)
+
+```tsx
+const { user } = useAuthStore();
+const { data: workspaces, isLoading } = useWorkspaces(user?.id);
+
+// En el selector de shadcn/ui:
+{workspaces?.map((ws) => (
+  <SelectItem key={ws.id} value={ws.id.toString()}>
+    {ws.nombre} - ${ws.saldo}
+  </SelectItem>
+))}
+
+```
+
+#### En Configuración (Guardar nuevo espacio)
+
+```tsx
+const createWorkspace = useCreateWorkspace();
+const { user } = useAuthStore();
+
+const onSubmit = (data: { nombre: string }) => {
+  createWorkspace.mutate({
+    nombre: data.nombre,
+    idUsuarioAdmin: user!.id
+  });
+};
+
+```
+
+---
+
+### 6. Guía para GitHub Copilot
+
+Para que Copilot implemente esta lógica de forma masiva, usa este prompt:
+
+> **"Role: Senior Fullstack Developer. Implement the API consumption layer using TanStack Query v5 and Axios.**
+> **1. API Client:** Setup an Axios instance in `src/lib/api-client.ts` with `baseURL` and `withCredentials: true`.
+> **2. TypeScript Interfaces:** Create types for `EspacioTrabajoResponse` and `EspacioTrabajoRequest` based on the Java records provided.
+> **3. Query Hooks:** >    - Create a `useWorkspaces(userId)` hook using `useQuery`. Set a `staleTime` of 5 minutes to manage cache professionally and avoid redundant database hits.
+> * Create a `useCreateWorkspace()` hook using `useMutation`. On `onSuccess`, use `queryClient.invalidateQueries` to refresh the workspace list automatically.
+> **4. State Management:** Use Zustand to store the `user` object and the `currentWorkspaceId`.
+> **5. Integration:** >    - Update the Sidebar `WorkspaceSwitcher` to consume `useWorkspaces`.
+> * Update the Settings 'Nuevo espacio de trabajo' form to use `useCreateWorkspace` when the 'Guardar' button is pressed.
+> 
+> 
+> **Follow the architecture we've built using the Zinc dark theme and shadcn/ui components."**
+
+---
+
+### Por qué esta es la forma más profesional:
+
+1. **Caché Automático:** No necesitas guardar la lista en un estado global manualmente. TanStack Query lo hace por ti y decide cuándo está "vieja" (stale) la información.
+2. **Sincronización:** Al usar `invalidateQueries`, cuando creas un espacio en Configuración, el selector de la Sidebar se actualiza solo, sin recargar la página.
+3. **Manejo de Estados:** Tienes acceso fácil a `isLoading`, `isError` y `isSuccess` para mostrar esqueletos o notificaciones (Toasts) al usuario.

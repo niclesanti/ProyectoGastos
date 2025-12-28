@@ -27,7 +27,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/comprascredito")
+@RequestMapping("/api/comprascredito")
 @Tag(name = "ComprasCredito", description = "Operaciones para la gestión de compras con crédito")
 @RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
 public class ComprasCreditoController {

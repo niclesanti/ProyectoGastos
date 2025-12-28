@@ -31,7 +31,7 @@ import org.springframework.http.ResponseEntity;
 
 
 @RestController
-@RequestMapping("/transaccion")
+@RequestMapping("/api/transaccion")
 @Tag(name = "Transaccion", description = "Operaciones para la gestión de transacciones")
 @RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
 public class TransaccionController {

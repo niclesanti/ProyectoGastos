@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAppStore } from '@/store/app-store'
+import { useAuth } from '@/contexts/AuthContext'
 import { espacioTrabajoService } from '@/services/espacio-trabajo.service'
+import { useCreateWorkspace, useShareWorkspace } from '@/features/workspaces/api/workspace-queries'
 import type { MiembroEspacio, RolMiembro } from '@/types'
 import {
   Users,
@@ -28,76 +30,110 @@ import { Separator } from '@/components/ui/separator'
 
 export function ConfiguracionPage() {
   const espacioActual = useAppStore((state) => state.currentWorkspace)
-  const usuario = useAppStore((state) => state.user)
-  const espaciosDeTrabajo = useAppStore((state) => state.workspaces)
+  const { user: usuario } = useAuth()
+  
+  // Hooks de TanStack Query para espacios de trabajo
+  const createWorkspaceMutation = useCreateWorkspace()
+  const shareWorkspaceMutation = useShareWorkspace()
+  
   const [miembros, setMiembros] = useState<MiembroEspacio[]>([])
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
-  const [selectedEspacioId, setSelectedEspacioId] = useState<string>(espacioActual?.id.toString() || '')
-  const [isLoading, setIsLoading] = useState(false)
-  const [nombreEspacio, setNombreEspacio] = useState(espacioActual?.nombre || '')
+  const [nombreEspacio, setNombreEspacio] = useState('')
+  const [isLoadingMiembros, setIsLoadingMiembros] = useState(false)
+  const [errorMiembros, setErrorMiembros] = useState<string | null>(null)
 
   useEffect(() => {
     if (espacioActual) {
-      setNombreEspacio(espacioActual.nombre)
-      setSelectedEspacioId(espacioActual.id.toString())
       loadMiembros()
     }
   }, [espacioActual])
 
   const loadMiembros = async () => {
     if (!espacioActual) return
+    
+    setIsLoadingMiembros(true)
+    setErrorMiembros(null)
+    
     try {
       const data = await espacioTrabajoService.getMiembros(espacioActual.id)
       setMiembros(data)
-    } catch (error) {
+      console.log('Miembros cargados:', data)
+    } catch (error: any) {
       console.error('Error al cargar miembros:', error)
+      setErrorMiembros(error?.message || 'No se pudieron cargar los miembros')
+      // Por ahora, si falla, dejamos la lista vacía
+      setMiembros([])
+    } finally {
+      setIsLoadingMiembros(false)
     }
   }
 
-  const handleInviteMember = async () => {
-    if (!selectedEspacioId || !inviteEmail) return
-    
-    setIsLoading(true)
-    try {
-      await espacioTrabajoService.invitarMiembro({
-        email: inviteEmail,
-        rol: 'EDITOR' as RolMiembro,
-        espacioTrabajoId: parseInt(selectedEspacioId),
-      })
-      await loadMiembros()
-      setIsInviteDialogOpen(false)
-      setInviteEmail('')
-      setSelectedEspacioId(espacioActual?.id.toString() || '')
-    } catch (error) {
-      console.error('Error al invitar miembro:', error)
-    } finally {
-      setIsLoading(false)
+  const handleShareWorkspace = async () => {
+    if (!inviteEmail || !usuario?.id || !espacioActual?.id) {
+      console.log('Validación falló:', { inviteEmail, usuarioId: usuario?.id, espacioActualId: espacioActual?.id })
+      return
     }
+    
+    shareWorkspaceMutation.mutate(
+      {
+        email: inviteEmail,
+        idEspacioTrabajo: espacioActual.id,
+        idUsuarioAdmin: usuario.id,
+      },
+      {
+        onSuccess: () => {
+          console.log('Espacio compartido exitosamente')
+          setIsInviteDialogOpen(false)
+          setInviteEmail('')
+          // Recargar miembros después de compartir
+          loadMiembros()
+        },
+        onError: (error) => {
+          console.error('Error al compartir espacio:', error)
+        },
+      }
+    )
   }
 
   const handleRemoveMember = async (miembroId: number) => {
     if (!espacioActual) return
     
     try {
-      await espacioTrabajoService.eliminarMiembro(espacioActual.id, miembroId)
-      await loadMiembros()
+      // TODO: Implementar endpoint de eliminación de miembro
+      console.log('Eliminar miembro:', miembroId)
+      // await espacioTrabajoService.eliminarMiembro(espacioActual.id, miembroId)
+      // await loadMiembros()
     } catch (error) {
       console.error('Error al eliminar miembro:', error)
     }
   }
 
-  const handleUpdateWorkspaceName = async () => {
-    if (!espacioActual || nombreEspacio === espacioActual.nombre) return
+  const handleCreateWorkspace = async () => {
+    console.log('handleCreateWorkspace llamado', { nombreEspacio, usuario })
     
-    try {
-      await espacioTrabajoService.update(espacioActual.id, {
-        nombre: nombreEspacio,
-        saldo: espacioActual.saldo,
-      })
-    } catch (error) {
-      console.error('Error al actualizar nombre:', error)
+    if (!nombreEspacio.trim() || !usuario?.id) {
+      console.log('Validación falló:', { nombreEspacio: nombreEspacio.trim(), usuarioId: usuario?.id })
+      return
     }
+    
+    console.log('Ejecutando mutation con:', { nombre: nombreEspacio.trim(), idUsuarioAdmin: usuario.id })
+    
+    createWorkspaceMutation.mutate(
+      {
+        nombre: nombreEspacio.trim(),
+        idUsuarioAdmin: usuario.id,
+      },
+      {
+        onSuccess: () => {
+          console.log('Espacio de trabajo creado exitosamente')
+          setNombreEspacio('') // Limpiar el input
+        },
+        onError: (error) => {
+          console.error('Error al crear espacio de trabajo:', error)
+        },
+      }
+    )
   }
 
   const isAdmin = espacioActual?.usuarioAdmin.id === usuario?.id
@@ -170,18 +206,23 @@ export function ConfiguracionPage() {
                     value={nombreEspacio}
                     onChange={(e) => setNombreEspacio(e.target.value)}
                     placeholder="Mi Espacio de Trabajo"
-                    disabled={!isAdmin}
+                    disabled={createWorkspaceMutation.isPending}
                   />
                   <Button
-                    onClick={handleUpdateWorkspaceName}
-                    disabled={!isAdmin || nombreEspacio === espacioActual?.nombre}
+                    onClick={handleCreateWorkspace}
+                    disabled={!nombreEspacio.trim() || createWorkspaceMutation.isPending}
                   >
-                    Guardar
+                    {createWorkspaceMutation.isPending ? 'Guardando...' : 'Guardar'}
                   </Button>
                 </div>
-                {!isAdmin && (
-                  <p className="text-sm text-muted-foreground">
-                    Solo el administrador puede cambiar el nombre del espacio
+                {createWorkspaceMutation.isError && (
+                  <p className="text-sm text-destructive">
+                    Error al crear el espacio de trabajo. Intenta nuevamente.
+                  </p>
+                )}
+                {createWorkspaceMutation.isSuccess && (
+                  <p className="text-sm text-green-500">
+                    ¡Espacio de trabajo creado exitosamente!
                   </p>
                 )}
               </div>
@@ -207,9 +248,9 @@ export function ConfiguracionPage() {
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Invitar nuevo miembro</DialogTitle>
+                      <DialogTitle>Compartir espacio de trabajo</DialogTitle>
                       <DialogDescription>
-                        Añade un miembro a tu espacio de trabajo. Recibirá una invitación por correo.
+                        Comparte "{espacioActual?.nombre}" con otra persona por correo electrónico.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -221,42 +262,31 @@ export function ConfiguracionPage() {
                           placeholder="usuario@ejemplo.com"
                           value={inviteEmail}
                           onChange={(e) => setInviteEmail(e.target.value)}
+                          disabled={shareWorkspaceMutation.isPending}
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="workspace">Espacio de trabajo</Label>
-                        <Select
-                          value={selectedEspacioId}
-                          onValueChange={setSelectedEspacioId}
-                        >
-                          <SelectTrigger id="workspace">
-                            <SelectValue placeholder="Seleccionar espacio" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {espaciosDeTrabajo.map((espacio) => (
-                              <SelectItem key={espacio.id} value={espacio.id.toString()}>
-                                {espacio.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                         <p className="text-sm text-muted-foreground">
-                          Selecciona el espacio de trabajo al que quieres invitar a este miembro.
+                          La persona recibirá acceso al espacio "{espacioActual?.nombre}".
                         </p>
+                        {shareWorkspaceMutation.isError && (
+                          <p className="text-sm text-destructive">
+                            Error al compartir el espacio. Intenta nuevamente.
+                          </p>
+                        )}
                       </div>
                     </div>
                     <DialogFooter>
                       <Button
                         variant="outline"
                         onClick={() => setIsInviteDialogOpen(false)}
+                        disabled={shareWorkspaceMutation.isPending}
                       >
                         Cancelar
                       </Button>
                       <Button
-                        onClick={handleInviteMember}
-                        disabled={isLoading || !inviteEmail || !selectedEspacioId}
+                        onClick={handleShareWorkspace}
+                        disabled={shareWorkspaceMutation.isPending || !inviteEmail.trim()}
                       >
-                        {isLoading ? 'Enviando...' : 'Enviar Invitación'}
+                        {shareWorkspaceMutation.isPending ? 'Compartiendo...' : 'Compartir Espacio'}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -264,16 +294,35 @@ export function ConfiguracionPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {miembros.length === 0 ? (
+              {isLoadingMiembros ? (
+                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-zinc-800 bg-zinc-950/50 p-12 text-center">
+                  <div className="text-4xl mb-4">⏳</div>
+                  <h3 className="text-xl font-semibold mb-2">Cargando miembros...</h3>
+                  <p className="text-muted-foreground max-w-sm">
+                    Obteniendo la información del equipo.
+                  </p>
+                </div>
+              ) : errorMiembros ? (
+                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-zinc-800 bg-zinc-950/50 p-12 text-center">
+                  <div className="text-4xl mb-4">⚠️</div>
+                  <h3 className="text-xl font-semibold mb-2">Error al cargar miembros</h3>
+                  <p className="text-muted-foreground mb-4 max-w-sm">
+                    No se pudieron cargar los miembros del equipo. Intenta recargar la página.
+                  </p>
+                  <Button onClick={loadMiembros} variant="outline">
+                    Reintentar
+                  </Button>
+                </div>
+              ) : miembros.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-zinc-800 bg-zinc-950/50 p-12 text-center">
                   <div className="flex items-center gap-2 mb-4">
                     <div className="text-4xl">🧠</div>
                     <div className="text-4xl">💼</div>
                     <div className="text-4xl">🐇</div>
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">Sin miembros del equipo</h3>
+                  <h3 className="text-xl font-semibold mb-2">Aún no hay colaboradores</h3>
                   <p className="text-muted-foreground mb-4 max-w-sm">
-                    Invita a tu equipo para colaborar en este proyecto.
+                    Este espacio solo tiene al administrador. Invita a tu equipo para comenzar a colaborar.
                   </p>
                   <Button
                     onClick={() => setIsInviteDialogOpen(true)}
@@ -284,58 +333,80 @@ export function ConfiguracionPage() {
                   </Button>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Miembro</TableHead>
-                      <TableHead>Correo</TableHead>
-                      <TableHead>Rol</TableHead>
-                      <TableHead>Fecha de ingreso</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {miembros.map((miembro) => (
-                      <TableRow key={miembro.id}>
-                        <TableCell className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={miembro.usuario.picture} />
-                            <AvatarFallback>
-                              {getInitials(miembro.usuario.nombre)}
+                <div className="space-y-6">
+                  {/* Resumen visual de miembros */}
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-zinc-800 bg-zinc-950/30">
+                    <div className="flex items-center gap-4">
+                      <div className="flex -space-x-2">
+                        {miembros.slice(0, 5).map((miembro, index) => (
+                          <Avatar 
+                            key={miembro.id} 
+                            className="h-10 w-10 border-2 border-zinc-900"
+                            style={{ zIndex: 5 - index }}
+                          >
+                            <AvatarImage src={miembro.fotoPerfil} alt={miembro.nombre} />
+                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                              {miembro.nombre?.substring(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="font-medium">{miembro.usuario.nombre}</span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-muted-foreground" />
-                            {miembro.usuario.email}
+                        ))}
+                        {miembros.length > 5 && (
+                          <div className="h-10 w-10 rounded-full border-2 border-zinc-900 bg-zinc-800 flex items-center justify-center text-sm font-semibold">
+                            +{miembros.length - 5}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getRolBadgeVariant(miembro.rol)}>
-                            {miembro.rol === 'ADMIN' && <Shield className="mr-1 h-3 w-3" />}
-                            {miembro.rol}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(miembro.fechaIngreso).toLocaleDateString('es-ES')}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {isAdmin && miembro.usuario.id !== usuario?.id && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveMember(miembro.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">
+                          {miembros.length} {miembros.length === 1 ? 'miembro' : 'miembros'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          en este espacio de trabajo
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => setIsInviteDialogOpen(true)}
+                      disabled={!isAdmin}
+                      size="sm"
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Invitar más
+                    </Button>
+                  </div>
+
+                  {/* Lista de miembros */}
+                  <div className="space-y-2">
+                    {miembros.map((miembro) => (
+                      <div
+                        key={miembro.id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-zinc-800 hover:bg-zinc-950/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarImage src={miembro.fotoPerfil} alt={miembro.nombre} />
+                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
+                              {miembro.nombre?.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium text-sm">{miembro.nombre}</p>
+                            <p className="text-xs text-muted-foreground">{miembro.email}</p>
+                          </div>
+                        </div>
+                        {isAdmin && miembro.id !== usuario?.id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -415,7 +486,7 @@ export function ConfiguracionPage() {
             <CardContent className="space-y-6">
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={usuario?.picture} />
+                  <AvatarImage src={usuario?.fotoPerfil} />
                   <AvatarFallback>
                     {usuario ? getInitials(usuario.nombre) : 'U'}
                   </AvatarFallback>

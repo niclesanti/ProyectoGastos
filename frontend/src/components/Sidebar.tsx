@@ -15,6 +15,7 @@ import {
   Receipt,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useWorkspaces } from '@/features/workspaces/api/workspace-queries'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Sidebar,
@@ -55,7 +56,11 @@ export function AppSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const { currentWorkspace, workspaces, setCurrentWorkspace } = useAppStore()
+  const { currentWorkspace, setCurrentWorkspace } = useAppStore()
+  
+  // Cargar espacios de trabajo desde el backend con TanStack Query
+  const { data: workspaces = [], isLoading: isLoadingWorkspaces } = useWorkspaces(user?.id)
+  
   const [transactionModalOpen, setTransactionModalOpen] = useState(false)
   const [accountTransferModalOpen, setAccountTransferModalOpen] = useState(false)
   const [creditPurchaseModalOpen, setCreditPurchaseModalOpen] = useState(false)
@@ -105,18 +110,40 @@ export function AppSidebar() {
                 <DropdownMenuLabel className="text-xs text-muted-foreground">
                   Espacios de trabajo
                 </DropdownMenuLabel>
-                {workspaces.map((workspace) => (
-                  <DropdownMenuItem
-                    key={workspace.id}
-                    onClick={() => setCurrentWorkspace(workspace)}
-                    className="gap-2 p-2"
-                  >
-                    <div className="flex size-6 items-center justify-center rounded-sm border">
-                      {workspace.nombre.charAt(0).toUpperCase()}
-                    </div>
-                    {workspace.nombre}
+                {isLoadingWorkspaces ? (
+                  <DropdownMenuItem disabled className="gap-2 p-2">
+                    Cargando espacios...
                   </DropdownMenuItem>
-                ))}
+                ) : workspaces.length === 0 ? (
+                  <DropdownMenuItem disabled className="gap-2 p-2">
+                    No hay espacios disponibles
+                  </DropdownMenuItem>
+                ) : (
+                  workspaces.map((workspace) => (
+                    <DropdownMenuItem
+                      key={workspace.id}
+                      onClick={() => setCurrentWorkspace({
+                        id: workspace.id,
+                        nombre: workspace.nombre,
+                        saldo: workspace.saldo,
+                        usuarioAdmin: { 
+                          id: workspace.usuarioAdminId,
+                          nombre: '',
+                          email: ''
+                        }
+                      })}
+                      className="gap-2 p-2"
+                    >
+                      <div className="flex size-6 items-center justify-center rounded-sm border">
+                        {workspace.nombre.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex flex-col">
+                        <span>{workspace.nombre}</span>
+                        <span className="text-xs text-muted-foreground">${workspace.saldo.toFixed(2)}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="gap-2 p-2" onClick={() => navigate('/configuracion')}>
                   <div className="flex size-6 items-center justify-center rounded-md border bg-background">

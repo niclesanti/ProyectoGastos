@@ -28,10 +28,9 @@ export enum RolMiembro {
 
 export interface MiembroEspacio {
   id: number
-  usuario: Usuario
-  rol: RolMiembro
-  espacioTrabajo: EspacioTrabajo
-  fechaIngreso: string
+  nombre: string
+  email: string
+  fotoPerfil?: string
 }
 
 export interface InvitacionMiembroDTORequest {
