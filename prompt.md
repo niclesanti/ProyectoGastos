@@ -1,173 +1,155 @@
-Para manejar el consumo de APIs de forma profesional en un stack moderno de **React 19**, la mejor práctica no es usar `useEffect` directamente, sino implementar **TanStack Query (React Query)** junto con **Axios**.
+# Modal Pagar resumen tarjeta: CardPaymentModal
 
-Esta combinación resuelve tu duda sobre "no solicitar a la base de datos continuamente": **TanStack Query** actúa como una capa de caché inteligente que mantiene los datos en memoria y solo los refresca cuando es necesario.
+Los siguientes cambios que se proponen en este modal es para que el mismo sea mas profesional y se valide las entradas de los usuarios.
 
-Aquí tienes la arquitectura profesional para implementar esto.
+## Campos de entrada:
+
+### Tarjeta
+- Campo obligatorio:
+  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
+
+### Fecha
+
+- Campo obligatorio:
+  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
+- La fecha solo puede ser del pasado o del presente:
+  - Validar esto en el frontend.
+- Por defecto el valor debe ser la fecha actual cuando se carga el modal.
+
+### Separador
+- Separador sutil (<Separator /> de shadcn). Para distinguir los campos obligatorios de los no obligatorios.
+
+### Cuenta bancaria
+
+- Campo opcional: Agrega el texto (opcional) al lado del label, pero con un estilo mucho más sutil (usando text-zinc-500 y un tamaño de fuente un punto más pequeño).
+
+#### Nueva Cuenta Bancaria
+
+##### Nombre de la cuenta
+Para poder guardar/registrar una nueva cuenta (presionar el botón guardar de la sección Cuenta Bancaria), se requiere:
+- Campo obligatorio:
+  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
+  - Restricción en el backend en la validación de datos del DTO que el campo no puede ser null ni estar vacío ni ser una cadena "".
+- Restricción de cantidad maxima de 50 caracteres:
+  - Validar esto en el frontend -> restringir el ingreso
+  - Validar esto en el backend en el DTO.
+- Agregar restricción que solo se puede ingresar los caracteres (letras minusculas y mayusculas, digitos del 0 al 9, coma(,), parentesis, guion medio y bajo y barra(/))
+  - Validar esto en el frontend -> restringir el ingreso de cualquier otro caracter
+  - Validar esto en el backend en el DTO -> validar esto con una expresion regular.
+
+##### Entidad financiera
+- Campo obligatorio:
+  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos (debe elegir una opción distinta a "Seleccionar entidad).
+  - Restricción en el backend en la validación de datos del DTO que el campo no puede ser null ni estar vacío ni ser una cadena "".
+- Eliminar los datos fijos actuales del selector y poblarlo (de la forma que creas mas eficiente) con los siguientes datos:
+  - Banco Credicoop
+  - Banco de Santa Fe
+  - Banco Macro
+  - Banco Patagonia
+  - Banco Santander
+  - BBVA
+  - BNA
+  - Brubank
+  - Galicia
+  - HSBC
+  - ICBC
+  - Lemon Cash
+  - Mercado Pago
+  - Naranja X
+  - Personal Pay
+  - Ualá
+
+##### Botón "Guardar" de la subfunción
+Consumir la API de forma profesional y moderna como se ha hecho en otras ocasiones en esta aplicación, usar los mismos métodos.
+Al presionar este botón se debe registrar un nuevo motivo:
+POST "/api/cuentabancaria/crear"
+public ResponseEntity<Void> crearCuentaBancaria(@Valid @RequestBody CuentaBancariaDTORequest cuentaBancariaDTO)
+
+### Data table "Cuotas pendientes"
+- Cargar esta lista donde cada fila es una cuota pendiente de ser pagada. Consumir la API de forma profesional y moderna como se ha hecho en otras ocasiones en esta aplicación, usar los mismos métodos. Al elegir una tarjeta del selector se debe buscar las cuotas pendientes para esa tarjeta. Mantener en memoria luego para no acceder muchas veces a la BD:
+  - GET "/api/comprascredito/cuotas/{idTarjeta}"
+  - public ResponseEntity<List<CuotaCreditoDTOResponse>> listarCuotasPorTarjeta(@PathVariable Long idTarjeta)
+
+### Botón "Pagar resumen"
+- De momento no hacer nada. Solo mostrar un mensaje de "Función no implementada aún.
+
+## Para cada campo obligatorio:
+Implementar de manera genérica para los campos obligatorios la siguiente solución moderna para que los usuarios entiendan que les faltó completar uno o mas campos:
+
+La validación de formularios en aplicaciones modernas ha evolucionado de simples alertas a una **retroalimentación contextual y elegante**. Como diseñador y desarrollador, la mejor práctica actual no es solo "avisar del error", sino guiar al usuario para que lo corrija sin frustración.
+
+En el ecosistema de **shadcn/ui**, la solución estándar y más profesional es utilizar la integración de **React Hook Form** con **Zod** para la validación de esquemas.
 
 ---
 
-### 1. Stack de Comunicación y Estado
+### 1. El Concepto UX: Validación "Justo a Tiempo"
 
-Para este flujo, utilizaremos:
+Para que tu aplicación se sienta profesional, la validación debe seguir estas reglas:
 
-* **Axios:** Para las peticiones HTTP (mejor manejo de interceptores y errores que `fetch`).
-* **TanStack Query (v5):** Para el "Server State" (caché de la lista de espacios).
-* **Zustand:** Para el "Client State" (saber qué espacio está seleccionado actualmente y los datos del usuario).
+* **No ser punitiva:** No uses colores rojos chillones o alertas intrusivas.
+* **Contextual:** El mensaje de error debe aparecer justo debajo del campo afectado.
+* **Visualmente sutil:** El borde del componente cambia a un tono "Destructive" (rojo suave) para llamar la atención sin gritar.
 
 ---
 
-### 2. Definición de Interfaces (TypeScript)
+### 2. Anatomía de un Campo con Error (Componentes shadcn/ui)
 
-Primero, creamos los "DTOs" en el frontend para que coincidan con tus Records de Java.
+Para implementar esto, utilizaremos el componente `<Form />` de shadcn, que ya incluye toda la lógica de accesibilidad.
+
+* **`FormControl`**: Cambia automáticamente el borde del input a `border-destructive` cuando el esquema de Zod detecta un error.
+* **`FormMessage`**: Un componente animado que aparece debajo del input con el texto del error. Utiliza un tono rojo mate (`text-destructive`) que combina con tu tema Zinc.
+
+---
+
+### 3. Definición del Esquema de Validación (Zod)
+
+Para que el usuario entienda qué le faltó, los mensajes deben ser específicos. En lugar de un genérico "Campo obligatorio", usa **mensajes de acción**:
 
 ```typescript
-// src/types/workspace.ts
-export interface EspacioTrabajoResponse {
-  id: number;
-  nombre: string;
-  saldo: number;
-  usuarioAdminId: number;
-}
-
-export interface EspacioTrabajoRequest {
-  nombre: string;
-  idUsuarioAdmin: number;
-}
-
-```
-
----
-
-### 3. Configuración del Cliente API y el Store
-
-Configuramos Axios para que siempre envíe las credenciales (cookies de sesión) y Zustand para guardar el contexto del usuario.
-
-```typescript
-// src/lib/api-client.ts
-import axios from 'axios';
-
-export const apiClient = axios.create({
-  baseURL: 'http://localhost:8080/api',
-  withCredentials: true, // Vital para OAuth2/Session
+const formSchema = z.object({
+  tipo: z.string().min(1, { message: "Por favor, selecciona un tipo de transacción." }),
+  fecha: z.date({ required_error: "La fecha es necesaria para el registro." }),
+  monto: z.coerce.number().gt(0, { message: "El monto debe ser mayor a 0." }),
+  motivo: z.string().min(1, { message: "Debes asignar un motivo al gasto." }),
 });
 
-// src/store/use-auth-store.ts
-import { create } from 'zustand';
-
-interface AuthState {
-  user: { id: number; nombre: string; email: string } | null;
-  currentWorkspaceId: number | null;
-  setAuth: (user: any) => void;
-  setCurrentWorkspaceId: (id: number) => void;
-}
-
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null, // Se carga al autenticar
-  currentWorkspaceId: null,
-  setAuth: (user) => set({ user }),
-  setCurrentWorkspaceId: (id) => set({ currentWorkspaceId: id }),
-}));
-
 ```
 
 ---
 
-### 4. Implementación de Hooks de TanStack Query
+### 4. Retroalimentación Global: El uso de "Toasts"
 
-Aquí es donde ocurre la "magia" del caché. Si tres componentes necesitan la lista de espacios, solo se hará **una petición** a la base de datos.
+Si el usuario intenta presionar "Guardar" y hay múltiples errores, la mejor práctica moderna es disparar un **Sonner (Toast)**.
 
-```typescript
-// src/features/workspaces/api/workspace-queries.ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
-import { EspacioTrabajoResponse, EspacioTrabajoRequest } from '@/types/workspace';
-
-// Hook para LISTAR (GET)
-export const useWorkspaces = (userId: number | undefined) => {
-  return useQuery({
-    queryKey: ['workspaces', userId], // El caché se identifica por este ID
-    queryFn: async () => {
-      const { data } = await apiClient.get<EspacioTrabajoResponse[]>(`/espaciotrabajo/listar/${userId}`);
-      return data;
-    },
-    enabled: !!userId, // Solo se ejecuta si hay un usuario autenticado
-    staleTime: 1000 * 60 * 5, // Los datos se consideran "frescos" por 5 minutos
-  });
-};
-
-// Hook para REGISTRAR (POST)
-export const useCreateWorkspace = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (newWorkspace: EspacioTrabajoRequest) => {
-      return await apiClient.post('/espaciotrabajo/registrar', newWorkspace);
-    },
-    onSuccess: () => {
-      // Invalida el caché para que la sidebar se actualice automáticamente
-      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-    },
-  });
-};
-
-```
+* **Mensaje:** *"Error al guardar: Por favor, revisa los campos obligatorios."*
+* Esto le da al usuario una señal auditiva y visual de que algo falló, incluso si los campos con error están fuera de su vista inmediata.
 
 ---
 
-### 5. Aplicación en los Componentes
+### 5. Prompt para GitHub Copilot (Implementación de Validación Pro)
 
-#### En la Sidebar (Selector de Espacios)
+Usa este prompt para que Copilot transforme tus modales en formularios con validación profesional:
 
-```tsx
-const { user } = useAuthStore();
-const { data: workspaces, isLoading } = useWorkspaces(user?.id);
-
-// En el selector de shadcn/ui:
-{workspaces?.map((ws) => (
-  <SelectItem key={ws.id} value={ws.id.toString()}>
-    {ws.nombre} - ${ws.saldo}
-  </SelectItem>
-))}
-
-```
-
-#### En Configuración (Guardar nuevo espacio)
-
-```tsx
-const createWorkspace = useCreateWorkspace();
-const { user } = useAuthStore();
-
-const onSubmit = (data: { nombre: string }) => {
-  createWorkspace.mutate({
-    nombre: data.nombre,
-    idUsuarioAdmin: user!.id
-  });
-};
-
-```
-
----
-
-### 6. Guía para GitHub Copilot
-
-Para que Copilot implemente esta lógica de forma masiva, usa este prompt:
-
-> **"Role: Senior Fullstack Developer. Implement the API consumption layer using TanStack Query v5 and Axios.**
-> **1. API Client:** Setup an Axios instance in `src/lib/api-client.ts` with `baseURL` and `withCredentials: true`.
-> **2. TypeScript Interfaces:** Create types for `EspacioTrabajoResponse` and `EspacioTrabajoRequest` based on the Java records provided.
-> **3. Query Hooks:** >    - Create a `useWorkspaces(userId)` hook using `useQuery`. Set a `staleTime` of 5 minutes to manage cache professionally and avoid redundant database hits.
-> * Create a `useCreateWorkspace()` hook using `useMutation`. On `onSuccess`, use `queryClient.invalidateQueries` to refresh the workspace list automatically.
-> **4. State Management:** Use Zustand to store the `user` object and the `currentWorkspaceId`.
-> **5. Integration:** >    - Update the Sidebar `WorkspaceSwitcher` to consume `useWorkspaces`.
-> * Update the Settings 'Nuevo espacio de trabajo' form to use `useCreateWorkspace` when the 'Guardar' button is pressed.
+> **"Implement professional form validation for the 'New Transaction' modal using `react-hook-form`, `zod`, and shadcn/ui `<Form />` components.**
+> **1. Validation Schema:** Create a Zod schema where 'Tipo', 'Fecha', 'Monto', and 'Motivo' are required.
+> * 'Monto' must be a positive number.
+> * Use custom user-friendly messages like: 'Por favor, indica el monto de la operación'.
 > 
 > 
-> **Follow the architecture we've built using the Zinc dark theme and shadcn/ui components."**
+> **2. Visual Feedback:** >    - Use the `<FormMessage />` component to display errors in `text-destructive` (muted red).
+> * Ensure the `Input` and `Select` components automatically get a `border-destructive` style when invalid.
+> 
+> 
+> **3. Submission Logic:** >    - If the form is invalid on submit, trigger a shadcn `toast` (Sonner) notifying the user to check required fields.
+> * Disable the 'Guardar' button while the form is submitting (`isSubmitting`).
+> 
+> 
+> **4. Accessibility:** Ensure all error messages have the correct ARIA attributes provided by shadcn's Form wrapper. Keep the Zinc dark theme aesthetic."
 
 ---
 
-### Por qué esta es la forma más profesional:
+### Por qué esta es la mejor solución:
 
-1. **Caché Automático:** No necesitas guardar la lista en un estado global manualmente. TanStack Query lo hace por ti y decide cuándo está "vieja" (stale) la información.
-2. **Sincronización:** Al usar `invalidateQueries`, cuando creas un espacio en Configuración, el selector de la Sidebar se actualiza solo, sin recargar la página.
-3. **Manejo de Estados:** Tienes acceso fácil a `isLoading`, `isError` y `isSuccess` para mostrar esqueletos o notificaciones (Toasts) al usuario.
+1. **Consistencia:** Utiliza los mismos tokens de color que el resto de tu app.
+2. **Accesibilidad:** Los lectores de pantalla identificarán automáticamente qué campo tiene el error.
+3. **Mantenibilidad:** Toda la lógica de validación vive en el esquema de Zod, no mezclada con tu código HTML/JSX.

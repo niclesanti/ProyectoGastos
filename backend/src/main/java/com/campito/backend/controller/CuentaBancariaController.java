@@ -15,17 +15,22 @@ import org.springframework.web.bind.annotation.RestController;
 import com.campito.backend.dto.CuentaBancariaDTORequest;
 import com.campito.backend.dto.CuentaBancariaDTOResponse;
 import com.campito.backend.service.CuentaBancariaService;
+import com.campito.backend.validation.ValidMonto;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 
 @RestController
 @RequestMapping("/api/cuentabancaria")
 @Tag(name = "CuentaBancaria", description = "Operaciones para la gestión de cuentas bancarias")
 @RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
+@Validated  // Habilita validación en @PathVariable
 public class CuentaBancariaController {
 
     private final CuentaBancariaService cuentaBancariaService;
@@ -64,7 +69,12 @@ public class CuentaBancariaController {
     @ApiResponse(responseCode = "400", description = "Error al realizar la transacción")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @PutMapping("/transaccion/{idCuentaOrigen}/{idCuentaDestino}/{monto}")
-    public ResponseEntity<Void> realizarTransaccion(@PathVariable Long idCuentaOrigen, @PathVariable Long idCuentaDestino, @PathVariable Float monto) {
+    public ResponseEntity<Void> realizarTransaccion(
+            @PathVariable @NotNull(message = "La cuenta de origen es obligatoria") Long idCuentaOrigen, 
+            @PathVariable @NotNull(message = "La cuenta de destino es obligatoria") Long idCuentaDestino, 
+            @PathVariable @NotNull(message = "El monto es obligatorio") 
+            @DecimalMin(value = "0.01", message = "El monto debe ser mayor a 0")
+            @ValidMonto Float monto) {
         cuentaBancariaService.transaccionEntreCuentas(idCuentaOrigen, idCuentaDestino, monto);
         return new ResponseEntity<>(HttpStatus.OK);
     }

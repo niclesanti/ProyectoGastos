@@ -1,6 +1,16 @@
-"use client"
+﻿"use client"
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import { useAppStore } from '@/store/app-store'
+import { 
+  useTarjetas, 
+  useCuentasBancarias, 
+  useCuotasTarjeta,
+  useCreateCuentaBancaria 
+} from '@/features/selectors/api/selector-queries'
 import {
   Dialog,
   DialogContent,
@@ -9,6 +19,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import {
   Select,
   SelectContent,
@@ -24,20 +42,13 @@ import {
 } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { CalendarIcon, Plus, MoreHorizontal, GripVertical } from 'lucide-react'
+import { CalendarIcon, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  useReactTable,
-  VisibilityState,
-} from '@tanstack/react-table'
+import { toast } from 'sonner'
 import {
   Table,
   TableBody,
@@ -46,237 +57,189 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
-} from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination'
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core'
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { ChevronDown } from 'lucide-react'
+
+const ENTIDADES_FINANCIERAS = [
+  'Banco Credicoop',
+  'Banco de Santa Fe',
+  'Banco Macro',
+  'Banco Patagonia',
+  'Banco Santander',
+  'BBVA',
+  'BNA',
+  'Brubank',
+  'Galicia',
+  'HSBC',
+  'ICBC',
+  'Lemon Cash',
+  'Mercado Pago',
+  'Naranja X',
+  'Personal Pay',
+  'UalÃ¡',
+]
+
+// Esquema de validación para nueva cuenta
+const newCuentaSchema = z.object({
+  nombre: z.string()
+    .min(1, { message: "El nombre de la cuenta es obligatorio." })
+    .max(50, { message: "El nombre no puede exceder los 50 caracteres." })
+    .regex(/^[a-zA-Z0-9,()_\-/\s]*$/, { 
+      message: "Solo se permiten letras, números, comas, paréntesis, guiones y barras." 
+    }),
+  entidadFinanciera: z.string().min(1, { message: "Debes seleccionar una entidad financiera." }),
+})
+
+// Esquema de validación principal
+const cardPaymentFormSchema = z.object({
+  tarjeta: z.string().min(1, { message: "Por favor, selecciona una tarjeta de crédito." }),
+  fecha: z.date().refine((date) => date <= new Date(), {
+    message: "La fecha no puede ser futura.",
+  }),
+  cuenta: z.string().optional(),
+})
+
+type CardPaymentFormValues = z.infer<typeof cardPaymentFormSchema>
 
 interface CardPaymentModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-interface Installment {
-  id: string
-  numero: number
-  vencimiento: string
-  motivo: string
-  monto: number
-}
+export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) {
+  const currentWorkspace = useAppStore((state) => state.currentWorkspace)
+  
+  // Cargar datos con TanStack Query
+  const { data: tarjetas = [], isLoading: loadingTarjetas } = useTarjetas(currentWorkspace?.id)
+  const { data: cuentas = [], isLoading: loadingCuentas } = useCuentasBancarias(currentWorkspace?.id)
+  
+  // Estados para cuotas y tarjeta seleccionada
+  const [selectedTarjetaId, setSelectedTarjetaId] = useState<number | undefined>()
+  const { data: cuotas = [], isLoading: loadingCuotas } = useCuotasTarjeta(selectedTarjetaId)
+  
+  // Mutation para crear cuenta
+  const createCuentaMutation = useCreateCuentaBancaria()
 
-function SortableRow({ row, children }: any) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: row.original.id,
+  // Estados para mostrar/ocultar formularios de creación
+  const [showNewCuenta, setShowNewCuenta] = useState(false)
+  const [selectedCuotas, setSelectedCuotas] = useState<Set<number>>(new Set())
+
+  // Formulario para nueva cuenta
+  const newCuentaForm = useForm<z.infer<typeof newCuentaSchema>>({
+    resolver: zodResolver(newCuentaSchema),
+    defaultValues: { nombre: '', entidadFinanciera: '' },
   })
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
+  // Formulario principal
+  const form = useForm<CardPaymentFormValues>({
+    resolver: zodResolver(cardPaymentFormSchema),
+    defaultValues: {
+      tarjeta: '',
+      fecha: new Date(),
+      cuenta: 'none',
+    },
+  })
+
+  // Reiniciar formularios cuando se abre el modal
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        tarjeta: '',
+        fecha: new Date(),
+        cuenta: 'none',
+      })
+      setShowNewCuenta(false)
+      setSelectedCuotas(new Set())
+      setSelectedTarjetaId(undefined)
+      newCuentaForm.reset()
+    }
+  }, [open, form, newCuentaForm])
+
+  // Manejar cambio de tarjeta
+  const handleTarjetaChange = (value: string) => {
+    form.setValue('tarjeta', value)
+    setSelectedTarjetaId(parseInt(value))
+    setSelectedCuotas(new Set())
   }
 
-  return (
-    <TableRow 
-      ref={setNodeRef} 
-      style={style} 
-      data-state={row.getIsSelected() && 'selected'}
-      className={cn(row.getIsSelected() && 'bg-zinc-900/50')}
-    >
-      {row.getVisibleCells().map((cell: any, index: number) => (
-        <TableCell
-          key={cell.id}
-          {...(index === 0 ? { ...attributes, ...listeners } : {})}
-        >
-          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-        </TableCell>
-      ))}
-    </TableRow>
-  )
-}
+  // Manejar guardado de nueva cuenta
+  const handleSaveNewCuenta = async () => {
+    const isValid = await newCuentaForm.trigger()
+    if (!isValid) {
+      toast.error('Por favor, corrige los errores en el formulario de cuenta.')
+      return
+    }
 
-export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) {
-  const [date, setDate] = useState<Date>()
-  const [cuenta, setCuenta] = useState<string>('')
-  const [rowSelection, setRowSelection] = useState({})
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
-
-  // Estados para mostrar/ocultar formulario de creación
-  const [showNewCuenta, setShowNewCuenta] = useState(false)
-
-  // Estados para los nuevos valores
-  const [newCuentaNombre, setNewCuentaNombre] = useState('')
-  const [newCuentaEntidad, setNewCuentaEntidad] = useState('')
-
-  // Datos de ejemplo para las cuotas
-  const [installments, setInstallments] = useState<Installment[]>([
-    { id: '1', numero: 1, vencimiento: '15/01/2025', motivo: 'Supermercado', monto: 5000 },
-    { id: '2', numero: 2, vencimiento: '15/02/2025', motivo: 'Farmacia', monto: 3200 },
-    { id: '3', numero: 3, vencimiento: '15/03/2025', motivo: 'Supermercado', monto: 5000 },
-    { id: '4', numero: 4, vencimiento: '15/04/2025', motivo: 'Electrónica', monto: 12000 },
-    { id: '5', numero: 5, vencimiento: '15/05/2025', motivo: 'Supermercado', monto: 5000 },
-    { id: '6', numero: 6, vencimiento: '15/06/2025', motivo: 'Ropa', monto: 8500 },
-  ])
-
-  const columns: ColumnDef<Installment>[] = [
-    {
-      id: 'drag',
-      header: '',
-      cell: () => (
-        <div className="cursor-grab active:cursor-grabbing">
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </div>
-      ),
-      enableHiding: false,
-      size: 40,
-    },
-    {
-      id: 'select',
-      header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Seleccionar todas"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Seleccionar fila"
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-      size: 40,
-    },
-    {
-      accessorKey: 'numero',
-      header: 'Número',
-      cell: ({ row }) => <div>Cuota {row.getValue('numero')}</div>,
-    },
-    {
-      accessorKey: 'vencimiento',
-      header: 'Vencimiento',
-    },
-    {
-      accessorKey: 'motivo',
-      header: 'Motivo',
-    },
-    {
-      accessorKey: 'monto',
-      header: () => <div className="text-right">Monto</div>,
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue('monto'))
-        const formatted = new Intl.NumberFormat('es-AR', {
-          style: 'currency',
-          currency: 'ARS',
-        }).format(amount).replace('$ ', '$')
-        return <div className="text-right font-mono font-medium tabular-nums">{formatted}</div>
-      },
-    },
-    {
-      id: 'actions',
-      cell: ({ row }) => {
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Abrir menú</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => console.log('Ver detalles:', row.original)}>
-                Ver detalles compra
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )
-      },
-      enableHiding: false,
-      size: 40,
-    },
-  ]
-
-  const table = useReactTable({
-    data: installments,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onRowSelectionChange: setRowSelection,
-    onColumnVisibilityChange: setColumnVisibility,
-    state: {
-      rowSelection,
-      columnVisibility,
-    },
-    initialState: {
-      pagination: {
-        pageSize: 5,
-      },
-    },
-  })
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-
-    if (over && active.id !== over.id) {
-      setInstallments((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id)
-        const newIndex = items.findIndex((item) => item.id === over.id)
-        return arrayMove(items, oldIndex, newIndex)
+    const data = newCuentaForm.getValues()
+    try {
+      await createCuentaMutation.mutateAsync({
+        nombre: data.nombre,
+        entidadFinanciera: data.entidadFinanciera,
+        idEspacioTrabajo: currentWorkspace!.id,
       })
+      
+      toast.success('Cuenta bancaria creada exitosamente')
+      
+      // Esperar un momento para que se actualice el cache
+      setTimeout(() => {
+        // Seleccionar la última cuenta (la recién creada)
+        if (cuentas.length > 0) {
+          const ultimaCuenta = cuentas[cuentas.length - 1]
+          form.setValue('cuenta', ultimaCuenta.id.toString())
+        }
+      }, 100)
+      
+      setShowNewCuenta(false)
+      newCuentaForm.reset()
+    } catch (error) {
+      console.error('Error al crear cuenta:', error)
+      toast.error('Error al crear la cuenta bancaria')
     }
   }
 
-  // Calcular total de filas seleccionadas
-  const selectedRows = table.getFilteredSelectedRowModel().rows
-  const total = selectedRows.reduce((sum, row) => sum + row.original.monto, 0)
+  // Manejar selección de cuotas
+  const toggleCuota = (cuotaId: number) => {
+    setSelectedCuotas(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(cuotaId)) {
+        newSet.delete(cuotaId)
+      } else {
+        newSet.add(cuotaId)
+      }
+      return newSet
+    })
+  }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  // Calcular total de cuotas seleccionadas
+  const total = cuotas
+    .filter(c => selectedCuotas.has(c.id))
+    .reduce((sum, cuota) => sum + cuota.montoCuota, 0)
+
+  // Manejar envío del formulario principal
+  const onSubmit = async (data: CardPaymentFormValues) => {
+    if (selectedCuotas.size === 0) {
+      toast.error('Debes seleccionar al menos una cuota para pagar.')
+      return
+    }
+
+    toast.info('Función no implementada aún.')
     console.log({
-      date,
-      cuenta,
-      selectedInstallments: selectedRows.map(row => row.original),
+      ...data,
+      cuotasSeleccionadas: Array.from(selectedCuotas),
       total,
     })
+  }
+
+  // Manejar errores en el envío
+  const handleFormError = () => {
+    toast.error('Por favor, revisa los campos obligatorios.')
+  }
+
+  // Filtrar caracteres no permitidos en nombre de cuenta
+  const handleCuentaNombreChange = (value: string) => {
+    const filtered = value.replace(/[^a-zA-Z0-9,()_\-/\s]/g, '')
+    if (filtered.length <= 50) {
+      newCuentaForm.setValue('nombre', filtered)
+    }
   }
 
   return (
@@ -285,247 +248,274 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
         <DialogHeader>
           <DialogTitle>Pagar resumen tarjeta</DialogTitle>
           <DialogDescription>
-            Anotar que pagaste el resumen de este mes de la tarjeta. Puedes seleccionar qué cuotas pendientes pagaste.
+            Selecciona las cuotas pendientes que deseas pagar del resumen de tu tarjeta.
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Fecha */}
-          <div className="space-y-1.5">
-            <Label className="text-sm">Fecha</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full h-9 justify-start text-left font-normal',
-                    !date && 'text-muted-foreground'
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, 'PPP', { locale: es }) : 'Seleccionar fecha'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Cuenta Bancaria */}
-          <div className="space-y-1.5">
-            <Label htmlFor="cuenta" className="text-sm">Cuenta bancaria (opcional)</Label>
-            <div className="flex gap-2">
-              <Select value={cuenta} onValueChange={setCuenta}>
-                <SelectTrigger id="cuenta" className="flex-1 h-9">
-                  <SelectValue placeholder="Seleccionar cuenta bancaria..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="principal">Cuenta principal</SelectItem>
-                  <SelectItem value="ahorros">Ahorros</SelectItem>
-                  <SelectItem value="gastos">Gastos</SelectItem>
-                  <SelectItem value="inversiones">Inversiones</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-9 w-9 p-0"
-                onClick={() => setShowNewCuenta(!showNewCuenta)}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {showNewCuenta && (
-              <div className="space-y-2 pt-2">
-                <Input
-                  placeholder="Nombre de la cuenta"
-                  className="h-9"
-                  value={newCuentaNombre}
-                  onChange={(e) => setNewCuentaNombre(e.target.value)}
-                />
-                <Select value={newCuentaEntidad} onValueChange={setNewCuentaEntidad}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Seleccionar entidad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="banco1">Banco Nación</SelectItem>
-                    <SelectItem value="banco2">Banco Provincia</SelectItem>
-                    <SelectItem value="banco3">Banco Galicia</SelectItem>
-                    <SelectItem value="banco4">Banco Santander</SelectItem>
-                    <SelectItem value="banco5">BBVA</SelectItem>
-                    <SelectItem value="banco6">Banco Macro</SelectItem>
-                    <SelectItem value="efectivo">Efectivo</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8"
-                    onClick={() => {
-                      setShowNewCuenta(false)
-                      setNewCuentaNombre('')
-                      setNewCuentaEntidad('')
-                    }}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-8"
-                    onClick={() => {
-                      console.log('Nueva cuenta:', { nombre: newCuentaNombre, entidad: newCuentaEntidad })
-                      setShowNewCuenta(false)
-                      setNewCuentaNombre('')
-                      setNewCuentaEntidad('')
-                    }}
-                  >
-                    Guardar
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Data Table */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Cuotas pendientes</h3>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8">
-                    Columnas <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {table
-                    .getAllColumns()
-                    .filter((column) => column.getCanHide())
-                    .map((column) => {
-                      return (
-                        <DropdownMenuCheckboxItem
-                          key={column.id}
-                          className="capitalize"
-                          checked={column.getIsVisible()}
-                          onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                        >
-                          {column.id === 'numero' ? 'Número' : column.id === 'vencimiento' ? 'Vencimiento' : column.id === 'motivo' ? 'Motivo' : column.id === 'monto' ? 'Monto' : column.id}
-                        </DropdownMenuCheckboxItem>
-                      )
-                    })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <div className="rounded-md border">
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <Table>
-                  <TableHeader className="bg-sidebar">
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <TableRow key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <TableHead key={header.id} style={{ width: header.getSize() }}>
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(header.column.columnDef.header, header.getContext())}
-                          </TableHead>
+        <ScrollArea className="max-h-[65vh] pr-4">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-4">
+              {/* Tarjeta */}
+              <FormField
+                control={form.control}
+                name="tarjeta"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tarjeta de crédito</FormLabel>
+                    <Select 
+                      onValueChange={handleTarjetaChange} 
+                      value={field.value}
+                      disabled={loadingTarjetas}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder={loadingTarjetas ? "Cargando..." : "Seleccionar tarjeta..."} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {tarjetas.map((t) => (
+                          <SelectItem key={t.id} value={t.id.toString()}>
+                            {t.redDePago} - {t.numeroTarjeta} - {t.entidadFinanciera}
+                          </SelectItem>
                         ))}
-                      </TableRow>
-                    ))}
-                  </TableHeader>
-                  <TableBody>
-                    <SortableContext items={installments.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-                      {table.getRowModel().rows?.length ? (
-                        table.getRowModel().rows.map((row) => (
-                          <SortableRow key={row.id} row={row} />
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={columns.length} className="h-24 text-center">
-                            No hay cuotas pendientes.
-                          </TableCell>
-                        </TableRow>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Fecha */}
+              <FormField
+                control={form.control}
+                name="fecha"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fecha de pago</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              'w-full h-9 justify-start text-left font-normal',
+                              !field.value && 'text-muted-foreground'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? format(field.value, 'PPP', { locale: es }) : 'Seleccionar fecha'}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => date > new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Separator />
+
+              {/* Cuenta Bancaria */}
+              <FormField
+                control={form.control}
+                name="cuenta"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Cuenta bancaria <span className="text-zinc-500 text-xs">(opcional)</span>
+                    </FormLabel>
+                    <div className="flex gap-2">
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        disabled={loadingCuentas}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="flex-1 h-9">
+                            <SelectValue placeholder={loadingCuentas ? "Cargando..." : "Sin cuenta bancaria"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">Sin cuenta bancaria</SelectItem>
+                          {cuentas.map((c) => (
+                            <SelectItem key={c.id} value={c.id.toString()}>
+                              {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toFixed(2)})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 w-9 p-0"
+                        onClick={() => setShowNewCuenta(!showNewCuenta)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <FormMessage />
+
+                    {showNewCuenta && (
+                      <div className="space-y-2 pt-2 border-l-2 border-muted pl-3">
+                        <Form {...newCuentaForm}>
+                          <FormField
+                            control={newCuentaForm.control}
+                            name="nombre"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder="Nombre de la cuenta (máx. 50 caracteres)"
+                                    className="h-9"
+                                    onChange={(e) => handleCuentaNombreChange(e.target.value)}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={newCuentaForm.control}
+                            name="entidadFinanciera"
+                            render={({ field }) => (
+                              <FormItem>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger className="h-9">
+                                      <SelectValue placeholder="Seleccionar entidad" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {ENTIDADES_FINANCIERAS.map((entidad) => (
+                                      <SelectItem key={entidad} value={entidad}>
+                                        {entidad}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </Form>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8"
+                            onClick={() => {
+                              setShowNewCuenta(false)
+                              newCuentaForm.reset()
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-8"
+                            onClick={handleSaveNewCuenta}
+                            disabled={createCuentaMutation.isPending}
+                          >
+                            {createCuentaMutation.isPending ? 'Guardando...' : 'Guardar'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </FormItem>
+                )}
+              />
+
+              {/* Data Table Cuotas Pendientes */}
+              {selectedTarjetaId && (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">Cuotas pendientes</h3>
+                  {loadingCuotas ? (
+                    <div className="text-center py-8 text-muted-foreground">Cargando cuotas...</div>
+                  ) : cuotas.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No hay cuotas pendientes para esta tarjeta.
+                    </div>
+                  ) : (
+                    <>
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[50px]"></TableHead>
+                              <TableHead>Cuota</TableHead>
+                              <TableHead>Vencimiento</TableHead>
+                              <TableHead className="text-right">Monto</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {cuotas.map((cuota) => (
+                              <TableRow key={cuota.id}>
+                                <TableCell>
+                                  <Checkbox
+                                    checked={selectedCuotas.has(cuota.id)}
+                                    onCheckedChange={() => toggleCuota(cuota.id)}
+                                  />
+                                </TableCell>
+                                <TableCell>{cuota.numeroCuota}</TableCell>
+                                <TableCell>
+                                  {format(new Date(cuota.fechaVencimiento), 'PPP', { locale: es })}
+                                </TableCell>
+                                <TableCell className="text-right font-mono font-medium tabular-nums">
+                                  ${cuota.montoCuota.toFixed(2)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      {/* Total */}
+                      {selectedCuotas.size > 0 && (
+                        <div className="flex justify-end items-center gap-2 pt-2 border-t">
+                          <span className="text-sm font-medium">
+                            Total seleccionado ({selectedCuotas.size} {selectedCuotas.size === 1 ? 'cuota' : 'cuotas'}):
+                          </span>
+                          <span className="text-lg font-bold">
+                            ${total.toFixed(2)}
+                          </span>
+                        </div>
                       )}
-                    </SortableContext>
-                  </TableBody>
-                </Table>
-              </DndContext>
-            </div>
-
-            {/* Pagination */}
-            {table.getPageCount() > 1 && (
-              <div className="flex justify-end">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() => table.previousPage()}
-                        className={!table.getCanPreviousPage() ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                      />
-                    </PaginationItem>
-                    {Array.from({ length: table.getPageCount() }, (_, i) => (
-                      <PaginationItem key={i}>
-                        <PaginationLink
-                          onClick={() => table.setPageIndex(i)}
-                          isActive={table.getState().pagination.pageIndex === i}
-                          className="cursor-pointer"
-                        >
-                          {i + 1}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() => table.nextPage()}
-                        className={!table.getCanNextPage() ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            )}
-
-            {/* Total */}
-            {selectedRows.length > 0 && (
-              <div className="flex justify-end items-center gap-2 pt-2 border-t">
-                <span className="text-sm font-medium">Total seleccionado:</span>
-                <span className="text-lg font-bold">
-                  {new Intl.NumberFormat('es-AR', {
-                    style: 'currency',
-                    currency: 'ARS',
-                  }).format(total)}
-                </span>
-              </div>
-            )}
-          </div>
-          </form>
+                    </>
+                  )}
+                </div>
+              )}
+            </form>
+          </Form>
         </ScrollArea>
 
         <DialogFooter className="mt-4">
           <Button
             type="button"
             variant="outline"
-            onClick={() => {
-              onOpenChange(false)
-              setRowSelection({})
-              setDate(undefined)
-              setCuenta('')
-            }}
+            onClick={() => onOpenChange(false)}
           >
             Cancelar
           </Button>
-          <Button type="submit" onClick={handleSubmit}>Pagar resumen</Button>
+          <Button 
+            type="submit" 
+            onClick={form.handleSubmit(onSubmit, handleFormError)}
+            disabled={form.formState.isSubmitting || !selectedTarjetaId || selectedCuotas.size === 0}
+          >
+            Pagar resumen
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

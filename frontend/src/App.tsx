@@ -7,6 +7,7 @@ import { MovimientosPage } from '@/pages/MovimientosPage'
 import { CreditosPage } from '@/pages/CreditosPage'
 import { ConfiguracionPage } from '@/pages/ConfiguracionPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { Toaster } from 'sonner'
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
             <Route path="configuracion" element={<ConfiguracionPage />} />
           </Route>
         </Routes>
+        <Toaster richColors position="top-right" />
       </AuthProvider>
     </Router>
   )

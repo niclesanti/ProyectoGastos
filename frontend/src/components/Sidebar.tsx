@@ -171,8 +171,9 @@ export function AppSidebar() {
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton
                       size="default"
-                      className="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground data-[state=open]:bg-sidebar-primary data-[state=open]:text-sidebar-primary-foreground"
-                      tooltip="Nuevo registro"
+                      className="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground data-[state=open]:bg-sidebar-primary data-[state=open]:text-sidebar-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                      tooltip={currentWorkspace ? "Nuevo registro" : "Selecciona un espacio de trabajo"}
+                      disabled={!currentWorkspace}
                     >
                       <Plus className="size-4" />
                       <span className="font-semibold">Nuevo registro</span>

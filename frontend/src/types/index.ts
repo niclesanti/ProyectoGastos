@@ -75,21 +75,21 @@ export interface Transaccion {
 
 // DTOs Request
 export interface TransaccionDTORequest {
-  tipo: TipoTransaccion
+  tipo: string // 'gasto' | 'ingreso'
   monto: number
-  fecha: string
+  fecha: string // ISO date string
   descripcion?: string
-  espacioTrabajoId: number
-  motivoId: number
-  contactoId?: number
-  cuentaBancariaId?: number
+  nombreCompletoAuditoria: string
+  idEspacioTrabajo: number
+  idMotivo: number
+  idContacto?: number
+  idCuentaBancaria?: number
 }
 
 export interface CuentaBancariaDTORequest {
   nombre: string
   entidadFinanciera: string
-  saldoActual: number
-  espacioTrabajoId: number
+  idEspacioTrabajo: number
 }
 
 export interface EspacioTrabajoDTORequest {
@@ -99,6 +99,45 @@ export interface EspacioTrabajoDTORequest {
 
 export interface MotivoTransaccionDTORequest {
   motivo: string
+  idEspacioTrabajo: number
+}
+
+export interface ContactoDTORequest {
+  nombre: string
+  idEspacioTrabajo: number
+}
+
+export interface TarjetaDTORequest {
+  nombreTarjeta: string
+  entidadFinanciera: string
+  diaVencimiento: number
+  espacioTrabajoId: number
+}
+
+export interface CompraCreditoDTORequest {
+  fechaCompra: string
+  montoTotal: number
+  cantidadCuotas: number
+  descripcion?: string
+  nombreCompletoAuditoria: string
+  espacioTrabajoId: number
+  motivoId: number
+  comercioId?: number
+  tarjetaId: number
+}
+
+// Aliases para compatibilidad
+export type Motivo = MotivoTransaccion
+export type MotivoDTORequest = MotivoTransaccionDTORequest
+export type Contacto = ContactoTransferencia
+
+export interface Tarjeta {
+  id: number
+  numeroTarjeta: string
+  entidadFinanciera: string
+  redDePago: string
+  diaCierre: number
+  diaVencimientoPago: number
   espacioTrabajoId: number
 }
 
