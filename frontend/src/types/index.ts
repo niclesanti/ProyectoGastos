@@ -134,9 +134,21 @@ export interface TransaccionBusquedaDTO {
 }
 
 export interface TarjetaDTORequest {
-  nombreTarjeta: string
+  numeroTarjeta: string
   entidadFinanciera: string
-  diaVencimiento: number
+  redDePago: string
+  diaCierre: number
+  diaVencimientoPago: number
+  espacioTrabajoId: number
+}
+
+export interface TarjetaDTOResponse {
+  id: number
+  numeroTarjeta: string
+  entidadFinanciera: string
+  redDePago: string
+  diaCierre: number
+  diaVencimientoPago: number
   espacioTrabajoId: number
 }
 

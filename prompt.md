@@ -1,73 +1,153 @@
-Para diseñar un modal de **"Detalles de transacción"** que se sienta profesional y de nivel SaaS, debemos aplicar una jerarquía visual clara. El usuario no debe "leer" el modal, debe "escanearlo".
+# Sección Tarjetas de crédito (CreditosPage)
 
-Como diseñador UX/UI, mi propuesta es dividir la información en tres capas: **Resumen Visual (Hero)**, **Información de Negocio** y **Metadatos de Auditoría**.
+Al seleccionar un espacio de trabajo en la Sidebar, se debe cargar visualmente las tarjetas que pertenecen a este espacio. Para ello consumir la API de forma moderna y profesional (sin fetch) y mantener los datos en cache:
+- GET "/api/comprascredito/tarjetas/{idEspacioTrabajo}"
+  - public ResponseEntity<List<TarjetaDTOResponse>> listarTarjetas(@PathVariable Long idEspacioTrabajo)
+
+MUY IMPORTANTE -> No modificar componentes ya definidos para mostrar las tarjetas.
+
+## Modal Agregar Tarjeta de Crédito
+
+Los siguientes cambios que se proponen en este modal es para que el mismo sea mas profesional y se valide las entradas de los usuarios.
+
+### Campos de entrada:
+
+#### Últimos 4 dígitos
+
+- Campo obligatorio:
+  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
+  - Restricción en el backend en la validación de datos del DTO que el campo no puede ser null ni estar vacío ni ser una cadena "".
+- Solo pueden ser dígitos numéricos del 1 al 9
+  - Validar esto en el frontend.
+  - Validar esto en el backend en el DTO.
+
+#### Entidad financiera
+- Campo obligatorio:
+  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
+  - Restricción en el backend en la validación de datos del DTO que el campo no puede ser null ni estar vacío ni ser una cadena "".
+- Rellenar selector con las siguientes entidades financieras:
+  - Banco Credicoop
+  - Banco de Santa Fe
+  - Banco Macro
+  - Banco Patagonia
+  - Banco Santander
+  - BBVA
+  - BNA
+  - Brubank
+  - Galicia
+  - HSBC
+  - ICBC
+  - Lemon Cash
+  - Mercado Pago
+  - Naranja X
+  - Personal Pay
+  - Ualá
+
+#### Red de pago
+- Campo obligatorio:
+  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
+  - Restricción en el backend en la validación de datos del DTO que el campo no puede ser null ni estar vacío ni ser una cadena "".
+- Cambiar "Visa" por "VISA".
+
+#### Dia de cierre
+- Campo obligatorio:
+  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
+  - Restricción en el backend en la validación de datos del DTO que el campo no puede ser null ni estar vacío ni ser una cadena "".
+- Solo pueden ser dígitos numéricos del 1 al 29
+  - Validar esto en el frontend.
+  - Validar esto en el backend en el DTO.
+
+#### Dia de vencimiento
+- Campo obligatorio:
+  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
+  - Restricción en el backend en la validación de datos del DTO que el campo no puede ser null ni estar vacío ni ser una cadena "".
+- Solo pueden ser dígitos numéricos del 1 al 29
+  - Validar esto en el frontend.
+  - Validar esto en el backend en el DTO.
+
+### Botón "Guardar Tarjeta"
+Consumir la API de la forma mas profesional y moderna como lo has hecho las anteriores veces.
+- POST "/api/comprascredito/registrarTarjeta"
+  - public ResponseEntity<TarjetaDTOResponse> registrarTarjeta(@Valid @RequestBody TarjetaDTORequest tarjetaDTO)
+
+
+## Para cada campo obligatorio:
+Implementar de manera genérica para los campos obligatorios la siguiente solución moderna para que los usuarios entiendan que les faltó completar uno o mas campos:
+
+La validación de formularios en aplicaciones modernas ha evolucionado de simples alertas a una **retroalimentación contextual y elegante**. Como diseñador y desarrollador, la mejor práctica actual no es solo "avisar del error", sino guiar al usuario para que lo corrija sin frustración.
+
+En el ecosistema de **shadcn/ui**, la solución estándar y más profesional es utilizar la integración de **React Hook Form** con **Zod** para la validación de esquemas.
 
 ---
 
-### 1. Propuesta de Estructura UX
+### 1. El Concepto UX: Validación "Justo a Tiempo"
 
-* **Cabecera:** Título claro y un subtítulo que contextualice (ej: "Consulta el historial completo de este movimiento").
-* **Sección Hero (Impacto):** El monto y el tipo (Ingreso/Gasto) deben ser lo primero que se vea. Usaremos un tamaño de fuente grande y un `Badge` de color.
-* **Cuerpo Principal:** Una cuadrícula (Grid) de 2 columnas para los datos operativos (Motivo, Contacto, Fecha, Cuenta).
-* **Sección de Notas:** Espacio dedicado para la descripción, ya que puede ser extensa.
-* **Pie de Auditoría:** Información técnica (creado por, fecha de creación, espacio de trabajo) en una sección visualmente separada y con tipografía más pequeña (`text-muted-foreground`).
+Para que tu aplicación se sienta profesional, la validación debe seguir estas reglas:
 
----
-
-### 2. Diseño Visual (Concepto)
+* **No ser punitiva:** No uses colores rojos chillones o alertas intrusivas.
+* **Contextual:** El mensaje de error debe aparecer justo debajo del campo afectado.
+* **Visualmente sutil:** El borde del componente cambia a un tono "Destructive" (rojo suave) para llamar la atención sin gritar.
 
 ---
 
-### 3. Componentes shadcn/ui a utilizar
+### 2. Anatomía de un Campo con Error (Componentes shadcn/ui)
 
-Para que Copilot lo desarrolle, usaremos:
+Para implementar esto, utilizaremos el componente `<Form />` de shadcn, que ya incluye toda la lógica de accesibilidad.
 
-* **`Dialog`**: El contenedor principal.
-* **`Badge`**: Para el `TipoTransaccion`.
-* **`Separator`**: Para dividir la información operativa de la auditoría.
-* **`Label`**: Para los títulos de cada dato.
-* **`ScrollArea`**: Por si la descripción es muy larga.
-* **`Lucide Icons`**: Iconos sutiles al lado de los labels para mejorar el reconocimiento visual rápido.
+* **`FormControl`**: Cambia automáticamente el borde del input a `border-destructive` cuando el esquema de Zod detecta un error.
+* **`FormMessage`**: Un componente animado que aparece debajo del input con el texto del error. Utiliza un tono rojo mate (`text-destructive`) que combina con tu tema Zinc.
 
 ---
 
-### 4. Guía de Mapeo de Información (DTO a UI)
+### 3. Definición del Esquema de Validación (Zod)
 
-| Sección | Datos del DTO | Estilo Sugerido |
-| --- | --- | --- |
-| **Hero** | `monto` + `tipo` | Texto extra grande (`text-3xl`) y Badge (Emerald/Rose). |
-| **Grid Principal** | `nombreMotivo`, `fecha`, `nombreContacto`, `nombreCuentaBancaria` | Grid de 2x2 con labels en `zinc-400`. |
-| **Descripción** | `descripcion` | Bloque de texto con fondo sutil (`bg-zinc-900/50`). |
-| **Auditoría** | `nombreEspacioTrabajo`, `nombreCompletoAuditoria`, `fechaCreacion`, `id` | Texto pequeño (`text-xs`) en el pie del modal. |
+Para que el usuario entienda qué le faltó, los mensajes deben ser específicos. En lugar de un genérico "Campo obligatorio", usa **mensajes de acción**:
+
+```typescript
+const formSchema = z.object({
+  tipo: z.string().min(1, { message: "Por favor, selecciona un tipo de transacción." }),
+  fecha: z.date({ required_error: "La fecha es necesaria para el registro." }),
+  monto: z.coerce.number().gt(0, { message: "El monto debe ser mayor a 0." }),
+  motivo: z.string().min(1, { message: "Debes asignar un motivo al gasto." }),
+});
+
+```
 
 ---
 
-### 5. Prompt para GitHub Copilot (Implementación)
+### 4. Retroalimentación Global: El uso de "Toasts"
 
-Copia este prompt para generar el componente profesionalmente:
+Si el usuario intenta presionar "Guardar" y hay múltiples errores, la mejor práctica moderna es disparar un **Sonner (Toast)**.
 
-> **"Role: Senior Frontend Developer & UI Designer. Build a 'TransactionDetailsModal' using React 19, TypeScript, and shadcn/ui.**
-> **1. Header:** Title 'Detalles de transacción' and subtitle 'Resumen completo del movimiento registrado'.
-> **2. Hero Section:** Display the `monto` formatted as `$XX.XXX,XX` in a large, bold font. Next to it, show a `Badge` for `tipo` (Gasto/Ingreso) using semantic colors (emerald/rose).
-> **3. Details Grid:** Create a 2-column grid using shadcn components to show:
-> * **Motivo:** `nombreMotivo` (with Tag icon)
-> * **Fecha:** `fecha` formatted (with Calendar icon)
-> * **Contacto:** `nombreContacto` or 'Sin contacto' (with User icon)
-> * **Cuenta:** `nombreCuentaBancaria` or 'Sin cuenta' (with Landmark icon)
+* **Mensaje:** *"Error al guardar: Por favor, revisa los campos obligatorios."*
+* Esto le da al usuario una señal auditiva y visual de que algo falló, incluso si los campos con error están fuera de su vista inmediata.
+
+---
+
+### 5. Prompt para GitHub Copilot (Implementación de Validación Pro)
+
+Usa este prompt para que Copilot transforme tus modales en formularios con validación profesional:
+
+> **"Implement professional form validation for the 'New Transaction' modal using `react-hook-form`, `zod`, and shadcn/ui `<Form />` components.**
+> **1. Validation Schema:** Create a Zod schema where 'Tipo', 'Fecha', 'Monto', and 'Motivo' are required.
+> * 'Monto' must be a positive number.
+> * Use custom user-friendly messages like: 'Por favor, indica el monto de la operación'.
 > 
 > 
-> **4. Description:** If `descripcion` exists, show it in a dedicated section with a `Separator` above it and a subtle background.
-> **5. Audit Footer:** At the bottom, add a gray-toned section (text-xs) separated by another `Separator`. Show:
-> * 'Espacio: `nombreEspacioTrabajo`'
-> * 'Registrado por: `nombreCompletoAuditoria`'
-> * 'Fecha de registro: `fechaCreacion`'
-> * 'ID: `id`'
+> **2. Visual Feedback:** >    - Use the `<FormMessage />` component to display errors in `text-destructive` (muted red).
+> * Ensure the `Input` and `Select` components automatically get a `border-destructive` style when invalid.
 > 
 > 
-> **Style:** Follow the Zinc dark theme, use 'Sentence case' for all labels, and ensure high visual density without feeling cluttered."
+> **3. Submission Logic:** >    - If the form is invalid on submit, trigger a shadcn `toast` (Sonner) notifying the user to check required fields.
+> * Disable the 'Guardar' button while the form is submitting (`isSubmitting`).
+> 
+> 
+> **4. Accessibility:** Ensure all error messages have the correct ARIA attributes provided by shadcn's Form wrapper. Keep the Zinc dark theme aesthetic."
 
 ---
 
-### Un detalle "Pro" de UX
+### Por qué esta es la mejor solución:
 
-Para este modal, te sugiero agregar un botón de **"Copiar ID"** pequeño al lado del ID de la transacción en el pie de página. Es una funcionalidad muy útil cuando un usuario necesita reportar un error o buscar ese registro específico en pgAdmin.
+1. **Consistencia:** Utiliza los mismos tokens de color que el resto de tu app.
+2. **Accesibilidad:** Los lectores de pantalla identificarán automáticamente qué campo tiene el error.
+3. **Mantenibilidad:** Toda la lógica de validación vive en el esquema de Zod, no mezclada con tu código HTML/JSX.

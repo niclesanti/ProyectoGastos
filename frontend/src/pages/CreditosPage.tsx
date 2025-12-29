@@ -1,8 +1,21 @@
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAppStore } from '@/store/app-store'
+import { useTarjetas, useCreateTarjeta } from '@/features/selectors/api/selector-queries'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import { toast } from 'sonner'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -14,7 +27,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -22,42 +34,48 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Plus, CreditCard as CreditCardIcon, Calendar, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { TarjetaDTOResponse } from '@/types'
 
-interface CreditCard {
-  id: string
-  numeroTarjeta: string
-  entidadFinanciera: string
-  redDePago: string
-  diaCierre: number
-  diaVencimientoPago: number
-}
-
-const mockCards: CreditCard[] = [
-  {
-    id: '1',
-    numeroTarjeta: '1234',
-    entidadFinanciera: 'Banco Galicia',
-    redDePago: 'Visa',
-    diaCierre: 15,
-    diaVencimientoPago: 25,
-  },
-  {
-    id: '2',
-    numeroTarjeta: '5678',
-    entidadFinanciera: 'Banco Santander',
-    redDePago: 'Mastercard',
-    diaCierre: 10,
-    diaVencimientoPago: 20,
-  },
-  {
-    id: '3',
-    numeroTarjeta: '9012',
-    entidadFinanciera: 'BBVA',
-    redDePago: 'Visa',
-    diaCierre: 5,
-    diaVencimientoPago: 15,
-  },
+const ENTIDADES_FINANCIERAS = [
+  'Banco Credicoop',
+  'Banco de Santa Fe',
+  'Banco Macro',
+  'Banco Patagonia',
+  'Banco Santander',
+  'BBVA',
+  'BNA',
+  'Brubank',
+  'Galicia',
+  'HSBC',
+  'ICBC',
+  'Lemon Cash',
+  'Mercado Pago',
+  'Naranja X',
+  'Personal Pay',
+  'Ualá',
 ]
+
+const REDES_PAGO = ['VISA', 'Mastercard', 'American Express', 'Cabal']
+
+// Schema de validación con Zod
+const tarjetaFormSchema = z.object({
+  numeroTarjeta: z.string()
+    .min(4, { message: 'Debes ingresar los 4 dígitos de la tarjeta.' })
+    .max(4, { message: 'Debe tener exactamente 4 dígitos.' })
+    .regex(/^[0-9]{4}$/, { message: 'Solo se permiten dígitos numéricos.' }),
+  entidadFinanciera: z.string().min(1, { message: 'Por favor, selecciona una entidad financiera.' }),
+  redDePago: z.string().min(1, { message: 'Por favor, selecciona una red de pago.' }),
+  diaCierre: z.number()
+    .int({ message: 'Debe ser un número entero.' })
+    .min(1, { message: 'El día debe ser entre 1 y 29.' })
+    .max(29, { message: 'El día debe ser entre 1 y 29.' }),
+  diaVencimientoPago: z.number()
+    .int({ message: 'Debe ser un número entero.' })
+    .min(1, { message: 'El día debe ser entre 1 y 29.' })
+    .max(29, { message: 'El día debe ser entre 1 y 29.' }),
+})
+
+type TarjetaFormValues = z.infer<typeof tarjetaFormSchema>
 
 // Función para calcular días hasta el próximo cierre
 const calculateDaysUntilClosure = (diaCierre: number): number => {
@@ -79,7 +97,7 @@ const calculateDaysUntilClosure = (diaCierre: number): number => {
 }
 
 // Componente de tarjeta visual
-function CreditCardComponent({ card }: { card: CreditCard }) {
+function CreditCardComponent({ card }: { card: TarjetaDTOResponse }) {
   const daysUntilClosure = calculateDaysUntilClosure(card.diaCierre)
   
   // Color dinámico según días hasta cierre
@@ -153,30 +171,40 @@ function CreditCardComponent({ card }: { card: CreditCard }) {
 }
 
 // Modal de registro
-function AddCardDialog() {
+function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
   const [open, setOpen] = useState(false)
-  const [numeroTarjeta, setNumeroTarjeta] = useState('')
-  const [entidadFinanciera, setEntidadFinanciera] = useState('')
-  const [redDePago, setRedDePago] = useState('')
-  const [diaCierre, setDiaCierre] = useState('')
-  const [diaVencimientoPago, setDiaVencimientoPago] = useState('')
+  const createTarjetaMutation = useCreateTarjeta()
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log({
-      numeroTarjeta,
-      entidadFinanciera,
-      redDePago,
-      diaCierre: parseInt(diaCierre),
-      diaVencimientoPago: parseInt(diaVencimientoPago),
-    })
-    setOpen(false)
-    // Resetear formulario
-    setNumeroTarjeta('')
-    setEntidadFinanciera('')
-    setRedDePago('')
-    setDiaCierre('')
-    setDiaVencimientoPago('')
+  const form = useForm<TarjetaFormValues>({
+    resolver: zodResolver(tarjetaFormSchema),
+    defaultValues: {
+      numeroTarjeta: '',
+      entidadFinanciera: '',
+      redDePago: '',
+      diaCierre: 1,
+      diaVencimientoPago: 1,
+    },
+  })
+
+  const onSubmit = async (values: TarjetaFormValues) => {
+    try {
+      await createTarjetaMutation.mutateAsync({
+        ...values,
+        espacioTrabajoId,
+      })
+      
+      toast.success('Tarjeta registrada', {
+        description: 'La tarjeta se ha agregado correctamente.',
+      })
+      
+      setOpen(false)
+      form.reset()
+    } catch (error: any) {
+      console.error('Error al registrar tarjeta:', error)
+      toast.error('Error al registrar tarjeta', {
+        description: error?.message || 'Intenta nuevamente o contacta al soporte.',
+      })
+    }
   }
 
   return (
@@ -194,158 +222,184 @@ function AddCardDialog() {
             Registra una nueva tarjeta para controlar cierres y vencimientos.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4 py-4">
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
             {/* Últimos 4 dígitos */}
-            <div className="space-y-1.5">
-              <Label htmlFor="numeroTarjeta" className="text-sm">
-                Últimos 4 dígitos <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="numeroTarjeta"
-                placeholder="1234"
-                value={numeroTarjeta}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 4)
-                  setNumeroTarjeta(value)
-                }}
-                maxLength={4}
-                required
-                className="h-9"
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="numeroTarjeta"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Últimos 4 dígitos <span className="text-destructive">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="1234"
+                      maxLength={4}
+                      {...field}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '').slice(0, 4)
+                        field.onChange(value)
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Entidad Financiera */}
-            <div className="space-y-1.5">
-              <Label htmlFor="entidadFinanciera" className="text-sm">
-                Entidad Financiera <span className="text-destructive">*</span>
-              </Label>
-              <Select value={entidadFinanciera} onValueChange={setEntidadFinanciera} required>
-                <SelectTrigger id="entidadFinanciera" className="h-9">
-                  <SelectValue placeholder="Seleccionar banco" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Banco Nación">Banco Nación</SelectItem>
-                  <SelectItem value="Banco Provincia">Banco Provincia</SelectItem>
-                  <SelectItem value="Banco Ciudad">Banco Ciudad</SelectItem>
-                  <SelectItem value="Banco Galicia">Banco Galicia</SelectItem>
-                  <SelectItem value="Banco Santander">Banco Santander</SelectItem>
-                  <SelectItem value="BBVA">BBVA</SelectItem>
-                  <SelectItem value="Banco Macro">Banco Macro</SelectItem>
-                  <SelectItem value="ICBC">ICBC</SelectItem>
-                  <SelectItem value="Banco Supervielle">Banco Supervielle</SelectItem>
-                  <SelectItem value="HSBC">HSBC</SelectItem>
-                  <SelectItem value="Banco Patagonia">Banco Patagonia</SelectItem>
-                  <SelectItem value="Banco Comafi">Banco Comafi</SelectItem>
-                  <SelectItem value="Banco Itaú">Banco Itaú</SelectItem>
-                  <SelectItem value="Brubank">Brubank</SelectItem>
-                  <SelectItem value="Ualá">Ualá</SelectItem>
-                  <SelectItem value="Mercado Pago">Mercado Pago</SelectItem>
-                  <SelectItem value="Naranja X">Naranja X</SelectItem>
-                  <SelectItem value="Tarjeta Nevada">Tarjeta Nevada</SelectItem>
-                  <SelectItem value="Otro">Otro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <FormField
+              control={form.control}
+              name="entidadFinanciera"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Entidad Financiera <span className="text-destructive">*</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar banco" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {ENTIDADES_FINANCIERAS.map((entidad) => (
+                        <SelectItem key={entidad} value={entidad}>
+                          {entidad}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Red de Pago */}
-            <div className="space-y-1.5">
-              <Label htmlFor="redDePago" className="text-sm">
-                Red de Pago <span className="text-destructive">*</span>
-              </Label>
-              <Select value={redDePago} onValueChange={setRedDePago} required>
-                <SelectTrigger id="redDePago" className="h-9">
-                  <SelectValue placeholder="Seleccionar red" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Visa">Visa</SelectItem>
-                  <SelectItem value="Mastercard">Mastercard</SelectItem>
-                  <SelectItem value="Amex">American Express</SelectItem>
-                  <SelectItem value="Cabal">Cabal</SelectItem>
-                  <SelectItem value="Naranja">Naranja</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <FormField
+              control={form.control}
+              name="redDePago"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Red de Pago <span className="text-destructive">*</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar red" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {REDES_PAGO.map((red) => (
+                        <SelectItem key={red} value={red}>
+                          {red}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               {/* Día de Cierre */}
-              <div className="space-y-1.5">
-                <Label htmlFor="diaCierre" className="text-sm">
-                  Día de Cierre <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="diaCierre"
-                  type="number"
-                  placeholder="15"
-                  value={diaCierre}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value)
-                    if (value >= 1 && value <= 29) {
-                      setDiaCierre(e.target.value)
-                    } else if (e.target.value === '') {
-                      setDiaCierre('')
-                    }
-                  }}
-                  min="1"
-                  max="29"
-                  required
-                  className="h-9"
-                />
-                <p className="text-xs text-muted-foreground">1-29</p>
-              </div>
+              <FormField
+                control={form.control}
+                name="diaCierre"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Día de Cierre <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="15"
+                        min="1"
+                        max="29"
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          field.onChange(val === '' ? 1 : parseInt(val, 10))
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {/* Día de Vencimiento */}
-              <div className="space-y-1.5">
-                <Label htmlFor="diaVencimiento" className="text-sm">
-                  Día de Vencimiento <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="diaVencimiento"
-                  type="number"
-                  placeholder="25"
-                  value={diaVencimientoPago}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value)
-                    if (value >= 1 && value <= 29) {
-                      setDiaVencimientoPago(e.target.value)
-                    } else if (e.target.value === '') {
-                      setDiaVencimientoPago('')
-                    }
-                  }}
-                  min="1"
-                  max="29"
-                  required
-                  className="h-9"
-                />
-                <p className="text-xs text-muted-foreground">1-29</p>
-              </div>
+              <FormField
+                control={form.control}
+                name="diaVencimientoPago"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Día de Vencimiento <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="25"
+                        min="1"
+                        max="29"
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          field.onChange(val === '' ? 1 : parseInt(val, 10))
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <div className="rounded-lg bg-muted p-3">
               <p className="text-xs text-muted-foreground">
-                <strong>Nota:</strong> Solo almacenamos los últimos 4 dígitos por seguridad. 
+                Solo almacenamos los últimos 4 dígitos por seguridad. 
                 Los días deben estar entre 1 y 29 para evitar conflictos con meses de diferente duración.
               </p>
             </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit">Guardar Tarjeta</Button>
-          </DialogFooter>
-        </form>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={form.formState.isSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? 'Guardando...' : 'Guardar Tarjeta'}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )
 }
 
 export function CreditosPage() {
-  const [cards] = useState<CreditCard[]>(mockCards)
+  const espacioActual = useAppStore((state) => state.currentWorkspace)
+  const { data: tarjetas = [], isLoading } = useTarjetas(espacioActual?.id)
+
+  if (!espacioActual) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <p className="text-muted-foreground">Selecciona un espacio de trabajo</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 pt-6">
@@ -357,13 +411,17 @@ export function CreditosPage() {
             Gestiona tus tarjetas y controla cierres y vencimientos
           </p>
         </div>
-        <AddCardDialog />
+        <AddCardDialog espacioTrabajoId={espacioActual.id} />
       </div>
 
       {/* Grid de Tarjetas */}
-      {cards.length > 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Cargando tarjetas...</p>
+        </div>
+      ) : tarjetas.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {cards.map((card) => (
+          {tarjetas.map((card) => (
             <CreditCardComponent key={card.id} card={card} />
           ))}
         </div>
@@ -378,7 +436,7 @@ export function CreditosPage() {
             <p className="text-sm text-muted-foreground mb-6">
               Agrégalas para controlar tus cierres y vencimientos
             </p>
-            <AddCardDialog />
+            <AddCardDialog espacioTrabajoId={espacioActual.id} />
           </CardContent>
         </Card>
       )}

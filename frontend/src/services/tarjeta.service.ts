@@ -1,14 +1,14 @@
 import { apiClient } from '@/lib/api-client'
-import type { Tarjeta, TarjetaDTORequest, CuotaCredito } from '@/types'
+import type { TarjetaDTORequest, TarjetaDTOResponse, CuotaCredito } from '@/types'
 
 export const tarjetaService = {
-  async listarTarjetas(idEspacioTrabajo: number): Promise<Tarjeta[]> {
-    const { data } = await apiClient.get<Tarjeta[]>(`/comprascredito/tarjetas/${idEspacioTrabajo}`)
+  async listarTarjetas(idEspacioTrabajo: number): Promise<TarjetaDTOResponse[]> {
+    const { data } = await apiClient.get<TarjetaDTOResponse[]>(`/comprascredito/tarjetas/${idEspacioTrabajo}`)
     return data
   },
 
-  async registrarTarjeta(tarjeta: TarjetaDTORequest): Promise<Tarjeta> {
-    const { data } = await apiClient.post<Tarjeta>('/comprascredito/registrarTarjeta', tarjeta)
+  async registrarTarjeta(tarjeta: TarjetaDTORequest): Promise<TarjetaDTOResponse> {
+    const { data } = await apiClient.post<TarjetaDTOResponse>('/comprascredito/registrarTarjeta', tarjeta)
     return data
   },
 
