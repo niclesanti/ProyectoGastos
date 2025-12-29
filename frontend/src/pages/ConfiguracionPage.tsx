@@ -3,7 +3,11 @@ import { useAppStore } from '@/store/app-store'
 import { useAuth } from '@/contexts/AuthContext'
 import { espacioTrabajoService } from '@/services/espacio-trabajo.service'
 import { useCreateWorkspace, useShareWorkspace } from '@/features/workspaces/api/workspace-queries'
-import type { MiembroEspacio, RolMiembro } from '@/types'
+import type { MiembroEspacio } from '@/types'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import { toast } from 'sonner'
 import {
   Users,
   Landmark,
@@ -11,8 +15,6 @@ import {
   User,
   UserPlus,
   Trash2,
-  Shield,
-  Mail,
 } from 'lucide-react'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -20,13 +22,48 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+
+// Schema de validación para crear espacio de trabajo
+const createWorkspaceSchema = z.object({
+  nombre: z
+    .string()
+    .min(1, { message: 'Por favor, ingresa el nombre del espacio de trabajo.' })
+    .max(50, { message: 'El nombre no puede exceder los 50 caracteres.' })
+    .regex(
+      /^[a-zA-Z0-9,()\\-_/\s]+$/,
+      { message: 'Solo se permiten letras, números, coma, paréntesis, guiones, barra y espacios.' }
+    ),
+})
+
+// Schema de validación para compartir espacio de trabajo
+const shareWorkspaceSchema = z.object({
+  email: z
+    .string()
+    .min(1, { message: 'Por favor, ingresa un correo electrónico.' })
+    .max(100, { message: 'El correo no puede exceder los 100 caracteres.' })
+    .email({ message: 'Debe proporcionar un email válido.' })
+    .regex(
+      /^[a-zA-Z0-9@.\-_]+$/,
+      { message: 'El email solo puede contener letras, números, @, punto, guiones y barra baja.' }
+    ),
+})
+
+type CreateWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
+type ShareWorkspaceFormValues = z.infer<typeof shareWorkspaceSchema>
 
 export function ConfiguracionPage() {
   const espacioActual = useAppStore((state) => state.currentWorkspace)
@@ -38,10 +75,24 @@ export function ConfiguracionPage() {
   
   const [miembros, setMiembros] = useState<MiembroEspacio[]>([])
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false)
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [nombreEspacio, setNombreEspacio] = useState('')
   const [isLoadingMiembros, setIsLoadingMiembros] = useState(false)
   const [errorMiembros, setErrorMiembros] = useState<string | null>(null)
+
+  // Form para crear espacio de trabajo
+  const createWorkspaceForm = useForm<CreateWorkspaceFormValues>({
+    resolver: zodResolver(createWorkspaceSchema),
+    defaultValues: {
+      nombre: '',
+    },
+  })
+
+  // Form para compartir espacio de trabajo
+  const shareWorkspaceForm = useForm<ShareWorkspaceFormValues>({
+    resolver: zodResolver(shareWorkspaceSchema),
+    defaultValues: {
+      email: '',
+    },
+  })
 
   useEffect(() => {
     if (espacioActual) {
@@ -62,75 +113,70 @@ export function ConfiguracionPage() {
     } catch (error: any) {
       console.error('Error al cargar miembros:', error)
       setErrorMiembros(error?.message || 'No se pudieron cargar los miembros')
-      // Por ahora, si falla, dejamos la lista vacía
       setMiembros([])
     } finally {
       setIsLoadingMiembros(false)
     }
   }
 
-  const handleShareWorkspace = async () => {
-    if (!inviteEmail || !usuario?.id || !espacioActual?.id) {
-      console.log('Validación falló:', { inviteEmail, usuarioId: usuario?.id, espacioActualId: espacioActual?.id })
+  const onCreateWorkspace = async (values: CreateWorkspaceFormValues) => {
+    if (!usuario?.id) {
+      toast.error('Error de autenticación', {
+        description: 'No se pudo identificar el usuario. Por favor, vuelve a iniciar sesión.',
+      })
       return
     }
-    
-    shareWorkspaceMutation.mutate(
+
+    createWorkspaceMutation.mutate(
       {
-        email: inviteEmail,
-        idEspacioTrabajo: espacioActual.id,
+        nombre: values.nombre.trim(),
         idUsuarioAdmin: usuario.id,
       },
       {
         onSuccess: () => {
-          console.log('Espacio compartido exitosamente')
-          setIsInviteDialogOpen(false)
-          setInviteEmail('')
-          // Recargar miembros después de compartir
-          loadMiembros()
+          toast.success('¡Espacio creado exitosamente!', {
+            description: `El espacio "${values.nombre}" ha sido creado correctamente.`,
+          })
+          createWorkspaceForm.reset()
         },
-        onError: (error) => {
-          console.error('Error al compartir espacio:', error)
+        onError: (error: any) => {
+          console.error('Error al crear espacio de trabajo:', error)
+          toast.error('Error al crear el espacio de trabajo', {
+            description: error?.message || 'Intenta nuevamente o contacta al soporte.',
+          })
         },
       }
     )
   }
 
-  const handleRemoveMember = async (miembroId: number) => {
-    if (!espacioActual) return
-    
-    try {
-      // TODO: Implementar endpoint de eliminación de miembro
-      console.log('Eliminar miembro:', miembroId)
-      // await espacioTrabajoService.eliminarMiembro(espacioActual.id, miembroId)
-      // await loadMiembros()
-    } catch (error) {
-      console.error('Error al eliminar miembro:', error)
-    }
-  }
-
-  const handleCreateWorkspace = async () => {
-    console.log('handleCreateWorkspace llamado', { nombreEspacio, usuario })
-    
-    if (!nombreEspacio.trim() || !usuario?.id) {
-      console.log('Validación falló:', { nombreEspacio: nombreEspacio.trim(), usuarioId: usuario?.id })
+  const onShareWorkspace = async (values: ShareWorkspaceFormValues) => {
+    if (!usuario?.id || !espacioActual?.id) {
+      toast.error('Error de configuración', {
+        description: 'No se pudo identificar el espacio o usuario. Intenta recargar la página.',
+      })
       return
     }
-    
-    console.log('Ejecutando mutation con:', { nombre: nombreEspacio.trim(), idUsuarioAdmin: usuario.id })
-    
-    createWorkspaceMutation.mutate(
+
+    shareWorkspaceMutation.mutate(
       {
-        nombre: nombreEspacio.trim(),
+        email: values.email,
+        idEspacioTrabajo: espacioActual.id,
         idUsuarioAdmin: usuario.id,
       },
       {
         onSuccess: () => {
-          console.log('Espacio de trabajo creado exitosamente')
-          setNombreEspacio('') // Limpiar el input
+          toast.success('¡Invitación enviada!', {
+            description: `Se ha compartido el espacio con ${values.email}.`,
+          })
+          setIsInviteDialogOpen(false)
+          shareWorkspaceForm.reset()
+          loadMiembros()
         },
-        onError: (error) => {
-          console.error('Error al crear espacio de trabajo:', error)
+        onError: (error: any) => {
+          console.error('Error al compartir espacio:', error)
+          toast.error('Error al compartir el espacio', {
+            description: error?.message || 'Verifica el correo e intenta nuevamente.',
+          })
         },
       }
     )
@@ -138,16 +184,49 @@ export function ConfiguracionPage() {
 
   const isAdmin = espacioActual?.usuarioAdmin.id === usuario?.id
 
-  const getRolBadgeVariant = (rol: RolMiembro) => {
-    switch (rol) {
-      case 'ADMIN':
-        return 'default'
-      case 'EDITOR':
-        return 'secondary'
-      default:
-        return 'outline'
-    }
+  // Función para filtrar caracteres permitidos en el nombre del espacio
+  const filterWorkspaceName = (value: string): string => {
+    // Solo permite: letras, números, coma, paréntesis, guiones, barra y espacios
+    return value.replace(/[^a-zA-Z0-9,()\-_/\s]/g, '')
   }
+
+  // Función para filtrar caracteres permitidos en emails
+  const filterEmailChars = (value: string): string => {
+    // Solo permite: letras, números, @, punto, guiones y barra baja
+    return value.replace(/[^a-zA-Z0-9@.\-_]/g, '')
+  }
+
+  // Estas funciones están comentadas porque actualmente no se usan en la UI
+  // Se pueden habilitar cuando se implemente la funcionalidad completa de gestión de miembros
+  
+  // const handleRemoveMember = async (miembroId: number) => {
+  //   if (!espacioActual) return
+  //   
+  //   try {
+  //     console.log('Eliminar miembro:', miembroId)
+  //     toast.info('Función en desarrollo', {
+  //       description: 'La eliminación de miembros estará disponible próximamente.',
+  //     })
+  //     // await espacioTrabajoService.eliminarMiembro(espacioActual.id, miembroId)
+  //     // await loadMiembros()
+  //   } catch (error) {
+  //     console.error('Error al eliminar miembro:', error)
+  //     toast.error('Error al eliminar miembro', {
+  //       description: 'No se pudo eliminar el miembro. Intenta nuevamente.',
+  //     })
+  //   }
+  // }
+
+  // const getRolBadgeVariant = (rol: RolMiembro) => {
+  //   switch (rol) {
+  //     case 'ADMIN':
+  //       return 'default'
+  //     case 'EDITOR':
+  //       return 'secondary'
+  //     default:
+  //       return 'outline'
+  //   }
+  // }
 
   const getInitials = (name: string) => {
     return name
@@ -197,35 +276,41 @@ export function ConfiguracionPage() {
                 Crea y personaliza el nombre de tu espacio de trabajo
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="workspace-name">Nombre del espacio</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="workspace-name"
-                    value={nombreEspacio}
-                    onChange={(e) => setNombreEspacio(e.target.value)}
-                    placeholder="Mi Espacio de Trabajo"
-                    disabled={createWorkspaceMutation.isPending}
+            <CardContent>
+              <Form {...createWorkspaceForm}>
+                <form onSubmit={createWorkspaceForm.handleSubmit(onCreateWorkspace)} className="space-y-4">
+                  <FormField
+                    control={createWorkspaceForm.control}
+                    name="nombre"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre del espacio</FormLabel>
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <Input
+                              placeholder="Mi Espacio de Trabajo"
+                              {...field}
+                              onChange={(e) => {
+                                const filteredValue = filterWorkspaceName(e.target.value)
+                                field.onChange(filteredValue)
+                              }}
+                              disabled={createWorkspaceMutation.isPending}
+                              maxLength={50}
+                            />
+                          </FormControl>
+                          <Button
+                            type="submit"
+                            disabled={createWorkspaceMutation.isPending || !field.value?.trim()}
+                          >
+                            {createWorkspaceMutation.isPending ? 'Guardando...' : 'Guardar'}
+                          </Button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  <Button
-                    onClick={handleCreateWorkspace}
-                    disabled={!nombreEspacio.trim() || createWorkspaceMutation.isPending}
-                  >
-                    {createWorkspaceMutation.isPending ? 'Guardando...' : 'Guardar'}
-                  </Button>
-                </div>
-                {createWorkspaceMutation.isError && (
-                  <p className="text-sm text-destructive">
-                    Error al crear el espacio de trabajo. Intenta nuevamente.
-                  </p>
-                )}
-                {createWorkspaceMutation.isSuccess && (
-                  <p className="text-sm text-green-500">
-                    ¡Espacio de trabajo creado exitosamente!
-                  </p>
-                )}
-              </div>
+                </form>
+              </Form>
             </CardContent>
           </Card>
 
@@ -253,42 +338,55 @@ export function ConfiguracionPage() {
                         Comparte "{espacioActual?.nombre}" con otra persona por correo electrónico.
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Correo electrónico</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="usuario@ejemplo.com"
-                          value={inviteEmail}
-                          onChange={(e) => setInviteEmail(e.target.value)}
-                          disabled={shareWorkspaceMutation.isPending}
+                    <Form {...shareWorkspaceForm}>
+                      <form onSubmit={shareWorkspaceForm.handleSubmit(onShareWorkspace)} className="space-y-4 py-4">
+                        <FormField
+                          control={shareWorkspaceForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Correo electrónico</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="email"
+                                  placeholder="usuario@ejemplo.com"
+                                  {...field}
+                                  onChange={(e) => {
+                                    const filteredValue = filterEmailChars(e.target.value)
+                                    field.onChange(filteredValue)
+                                  }}
+                                  disabled={shareWorkspaceMutation.isPending}
+                                  maxLength={100}
+                                />
+                              </FormControl>
+                              <p className="text-sm text-muted-foreground">
+                                La persona recibirá acceso al espacio "{espacioActual?.nombre}".
+                              </p>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                        <p className="text-sm text-muted-foreground">
-                          La persona recibirá acceso al espacio "{espacioActual?.nombre}".
-                        </p>
-                        {shareWorkspaceMutation.isError && (
-                          <p className="text-sm text-destructive">
-                            Error al compartir el espacio. Intenta nuevamente.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        variant="outline"
-                        onClick={() => setIsInviteDialogOpen(false)}
-                        disabled={shareWorkspaceMutation.isPending}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button
-                        onClick={handleShareWorkspace}
-                        disabled={shareWorkspaceMutation.isPending || !inviteEmail.trim()}
-                      >
-                        {shareWorkspaceMutation.isPending ? 'Compartiendo...' : 'Compartir Espacio'}
-                      </Button>
-                    </DialogFooter>
+                        <DialogFooter>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setIsInviteDialogOpen(false)
+                              shareWorkspaceForm.reset()
+                            }}
+                            disabled={shareWorkspaceMutation.isPending}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            type="submit"
+                            disabled={shareWorkspaceMutation.isPending}
+                          >
+                            {shareWorkspaceMutation.isPending ? 'Compartiendo...' : 'Compartir Espacio'}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </Form>
                   </DialogContent>
                 </Dialog>
               </div>

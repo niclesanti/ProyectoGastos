@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,12 +22,17 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/espaciotrabajo")
 @Tag(name = "EspacioTrabajo", description = "Operaciones para la gestión de espacios de trabajo")
 @RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
+@Validated
 public class EspacioTrabajoController {
 
     private final EspacioTrabajoService espacioTrabajoService;
@@ -53,7 +59,15 @@ public class EspacioTrabajoController {
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @PutMapping("/compartir/{email}/{idEspacioTrabajo}/{idUsuarioAdmin}")
     public ResponseEntity<Void> compartirEspacioTrabajo(
-            @PathVariable String email,
+            @PathVariable 
+            @NotBlank(message = "El email no puede estar vacío")
+            @Size(max = 100, message = "El email no puede exceder los 100 caracteres")
+            @Email(message = "Debe proporcionar un email válido")
+            @Pattern(
+                regexp = "^[a-zA-Z0-9@.\\-_]+$",
+                message = "El email solo puede contener letras, números, @, punto, guiones y barra baja"
+            )
+            String email,
             @PathVariable Long idEspacioTrabajo,
             @PathVariable Long idUsuarioAdmin) {
         espacioTrabajoService.compartirEspacioTrabajo(email, idEspacioTrabajo, idUsuarioAdmin);

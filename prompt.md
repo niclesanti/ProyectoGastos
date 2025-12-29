@@ -1,34 +1,15 @@
-# Modal Pagar resumen tarjeta: CardPaymentModal
+# Sección /Configuración
 
-Los siguientes cambios que se proponen en este modal es para que el mismo sea mas profesional y se valide las entradas de los usuarios.
+Los siguientes cambios que se proponen en esta sección es para que el mismo sea mas profesional y se valide las entradas de los usuarios.
 
-## Campos de entrada:
+## Card Nuevo espacio de trabajo
 
-### Tarjeta
-- Campo obligatorio:
-  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
+### Campos de entrada:
 
-### Fecha
+#### Nombre del espacio
 
 - Campo obligatorio:
-  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
-- La fecha solo puede ser del pasado o del presente:
-  - Validar esto en el frontend.
-- Por defecto el valor debe ser la fecha actual cuando se carga el modal.
-
-### Separador
-- Separador sutil (<Separator /> de shadcn). Para distinguir los campos obligatorios de los no obligatorios.
-
-### Cuenta bancaria
-
-- Campo opcional: Agrega el texto (opcional) al lado del label, pero con un estilo mucho más sutil (usando text-zinc-500 y un tamaño de fuente un punto más pequeño).
-
-#### Nueva Cuenta Bancaria
-
-##### Nombre de la cuenta
-Para poder guardar/registrar una nueva cuenta (presionar el botón guardar de la sección Cuenta Bancaria), se requiere:
-- Campo obligatorio:
-  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
+  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos
   - Restricción en el backend en la validación de datos del DTO que el campo no puede ser null ni estar vacío ni ser una cadena "".
 - Restricción de cantidad maxima de 50 caracteres:
   - Validar esto en el frontend -> restringir el ingreso
@@ -37,41 +18,33 @@ Para poder guardar/registrar una nueva cuenta (presionar el botón guardar de la
   - Validar esto en el frontend -> restringir el ingreso de cualquier otro caracter
   - Validar esto en el backend en el DTO -> validar esto con una expresion regular.
 
-##### Entidad financiera
+### Notificaciones
+- Quitar la notificación de exito o fracaso debajo del campo de entrada.
+- Usar un metodo mas moderno como mensajes mediante toust. Mensajes de exito, fracaso, advertencia, información.
+
+## Card Miembros del equipo/ Modal Compartir espacio de trabajo
+
+### Campos de entrada:
+
+#### Correo electrónico
 - Campo obligatorio:
-  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos (debe elegir una opción distinta a "Seleccionar entidad).
-  - Restricción en el backend en la validación de datos del DTO que el campo no puede ser null ni estar vacío ni ser una cadena "".
-- Eliminar los datos fijos actuales del selector y poblarlo (de la forma que creas mas eficiente) con los siguientes datos:
-  - Banco Credicoop
-  - Banco de Santa Fe
-  - Banco Macro
-  - Banco Patagonia
-  - Banco Santander
-  - BBVA
-  - BNA
-  - Brubank
-  - Galicia
-  - HSBC
-  - ICBC
-  - Lemon Cash
-  - Mercado Pago
-  - Naranja X
-  - Personal Pay
-  - Ualá
+  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos
+  - Restricción en el backend en la validación de datos endpoint que el campo no puede ser null ni estar vacío ni ser una cadena "".
+  - public ResponseEntity<Void> compartirEspacioTrabajo(
+            @PathVariable String email,
+            @PathVariable Long idEspacioTrabajo,
+            @PathVariable Long idUsuarioAdmin)
+- Restricción de cantidad maxima de 100 caracteres:
+  - Validar esto en el frontend -> restringir el ingreso
+  - Validar esto en el backend en el endpoint.
+- Agregar restricción que solo se puede ingresar los caracteres (letras minusculas y mayusculas, digitos del 0 al 9, coma(,), parentesis, guion medio y bajo y barra(/))
+  - Validar esto en el frontend -> restringir el ingreso de cualquier otro caracter
+  - Validar esto en el backend en el endpoint -> validar esto con una expresion regular.
+- Validar que sea un email -> Debe haber una anotación de jakarta.validation para esto.
 
-##### Botón "Guardar" de la subfunción
-Consumir la API de forma profesional y moderna como se ha hecho en otras ocasiones en esta aplicación, usar los mismos métodos.
-Al presionar este botón se debe registrar un nuevo motivo:
-POST "/api/cuentabancaria/crear"
-public ResponseEntity<Void> crearCuentaBancaria(@Valid @RequestBody CuentaBancariaDTORequest cuentaBancariaDTO)
-
-### Data table "Cuotas pendientes"
-- Cargar esta lista donde cada fila es una cuota pendiente de ser pagada. Consumir la API de forma profesional y moderna como se ha hecho en otras ocasiones en esta aplicación, usar los mismos métodos. Al elegir una tarjeta del selector se debe buscar las cuotas pendientes para esa tarjeta. Mantener en memoria luego para no acceder muchas veces a la BD:
-  - GET "/api/comprascredito/cuotas/{idTarjeta}"
-  - public ResponseEntity<List<CuotaCreditoDTOResponse>> listarCuotasPorTarjeta(@PathVariable Long idTarjeta)
-
-### Botón "Pagar resumen"
-- De momento no hacer nada. Solo mostrar un mensaje de "Función no implementada aún.
+### Notificaciones
+- Quitar la notificación de exito o fracaso debajo del campo de entrada.
+- Usar un metodo mas moderno como mensajes mediante toust. Mensajes de exito, fracaso, advertencia, información.
 
 ## Para cada campo obligatorio:
 Implementar de manera genérica para los campos obligatorios la siguiente solución moderna para que los usuarios entiendan que les faltó completar uno o mas campos:
