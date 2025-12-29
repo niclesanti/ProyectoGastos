@@ -1,4 +1,7 @@
 import { useState, useMemo } from 'react'
+import { useAppStore } from '@/store/app-store'
+import { useBuscarTransacciones, useMotivosTransaccion, useContactosTransaccion } from '@/features/selectors/api/selector-queries'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -60,6 +63,7 @@ import {
   GripVertical,
   ChevronDown,
   ArrowUpDown,
+  Search,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -219,19 +223,30 @@ const meses = [
 
 const anos = [
   { value: 'todos', label: 'Todos los años' },
+  { value: '2030', label: '2030' },
+  { value: '2029', label: '2029' },
+  { value: '2028', label: '2028' },
+  { value: '2027', label: '2027' },
+  { value: '2026', label: '2026' },
   { value: '2025', label: '2025' },
   { value: '2024', label: '2024' },
-  { value: '2023', label: '2023' },
-  { value: '2022', label: '2022' },
 ]
 
 export function MovimientosPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions)
+  const espacioActual = useAppStore((state) => state.currentWorkspace)
+  
+  // Hooks de TanStack Query
+  const buscarTransaccionesMutation = useBuscarTransacciones()
+  const { data: motivosData = [], isLoading: isLoadingMotivos } = useMotivosTransaccion(espacioActual?.id)
+  const { data: contactosData = [], isLoading: isLoadingContactos } = useContactosTransaccion(espacioActual?.id)
+  
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [hasSearched, setHasSearched] = useState(false)
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   
   // Filtros
-  const [mesSeleccionado, setMesSeleccionado] = useState('todos')
-  const [anoSeleccionado, setAnoSeleccionado] = useState('todos')
+  const [mesSeleccionado, setMesSeleccionado] = useState('12')
+  const [anoSeleccionado, setAnoSeleccionado] = useState('2025')
   const [motivoSeleccionado, setMotivoSeleccionado] = useState('todos')
   const [contactoSeleccionado, setContactoSeleccionado] = useState('todos')
   
@@ -242,40 +257,67 @@ export function MovimientosPage() {
   const [openMotivo, setOpenMotivo] = useState(false)
   const [openContacto, setOpenContacto] = useState(false)
 
-  // Obtener listas únicas de motivos y contactos
+  // Convertir datos de la BD a formato de la UI
   const motivos = useMemo(() => {
-    const uniqueMotivos = Array.from(new Set(transactions.map(t => t.motivo)))
-    return uniqueMotivos.sort()
-  }, [transactions])
+    if (!motivosData || motivosData.length === 0) return []
+    return motivosData.map(m => m.motivo).sort()
+  }, [motivosData])
 
   const contactos = useMemo(() => {
-    const uniqueContactos = Array.from(new Set(transactions.map(t => t.contacto)))
-    return uniqueContactos.sort()
-  }, [transactions])
+    if (!contactosData || contactosData.length === 0) return []
+    return contactosData.map(c => c.nombre).sort()
+  }, [contactosData])
 
-  // Filtrar y ordenar transacciones
-  const filteredTransactions = useMemo(() => {
-    const filtered = transactions.filter(transaction => {
-      // Filtro de mes
-      const transactionDate = new Date(transaction.fecha)
-      const transactionMonth = (transactionDate.getMonth() + 1).toString()
-      const matchesMonth = mesSeleccionado === 'todos' || transactionMonth === mesSeleccionado
+  // Función para buscar transacciones
+  const handleBuscar = async () => {
+    if (!espacioActual?.id) {
+      toast.error('Error de configuración', {
+        description: 'No se pudo identificar el espacio de trabajo. Intenta recargar la página.',
+      })
+      return
+    }
 
-      // Filtro de año
-      const transactionYear = transactionDate.getFullYear().toString()
-      const matchesYear = anoSeleccionado === 'todos' || transactionYear === anoSeleccionado
+    const busquedaDTO = {
+      mes: mesSeleccionado === 'todos' ? null : parseInt(mesSeleccionado),
+      anio: anoSeleccionado === 'todos' ? null : parseInt(anoSeleccionado),
+      motivo: motivoSeleccionado === 'todos' ? null : motivoSeleccionado,
+      contacto: contactoSeleccionado === 'todos' ? null : contactoSeleccionado,
+      idEspacioTrabajo: espacioActual.id,
+    }
 
-      // Filtro de motivo
-      const matchesMotivo = motivoSeleccionado === 'todos' || transaction.motivo === motivoSeleccionado
-
-      // Filtro de contacto
-      const matchesContacto = contactoSeleccionado === 'todos' || transaction.contacto === contactoSeleccionado
-
-      return matchesMonth && matchesYear && matchesMotivo && matchesContacto
+    buscarTransaccionesMutation.mutate(busquedaDTO, {
+      onSuccess: (data) => {
+        // Transformar los datos de la API al formato de la UI
+        const transaccionesTransformadas = data.map(t => ({
+          id: t.id.toString(),
+          tipo: t.tipo === 'INGRESO' ? 'Ingreso' as const : 'Gasto' as const,
+          fecha: t.fecha,
+          motivo: t.motivo?.motivo || 'Sin motivo',
+          contacto: t.contacto?.nombre || 'Sin contacto',
+          cuenta: t.cuentaBancaria?.nombre || 'Sin cuenta',
+          monto: t.monto,
+          descripcion: t.descripcion,
+        }))
+        
+        setTransactions(transaccionesTransformadas)
+        setHasSearched(true)
+        
+        toast.success('Búsqueda completada', {
+          description: `Se encontraron ${transaccionesTransformadas.length} transacciones.`,
+        })
+      },
+      onError: (error: any) => {
+        console.error('Error al buscar transacciones:', error)
+        toast.error('Error al buscar transacciones', {
+          description: error?.message || 'Intenta nuevamente o contacta al soporte.',
+        })
+      },
     })
+  }
 
-    // Ordenar
-    const sorted = [...filtered].sort((a, b) => {
+  // Filtrar y ordenar transacciones (solo para ordenar, el filtrado lo hace la API)
+  const filteredTransactions = useMemo(() => {
+    const sorted = [...transactions].sort((a, b) => {
       if (ordenamiento === 'fecha-desc') {
         return new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
       } else if (ordenamiento === 'fecha-asc') {
@@ -288,7 +330,7 @@ export function MovimientosPage() {
     })
 
     return sorted
-  }, [transactions, mesSeleccionado, anoSeleccionado, motivoSeleccionado, contactoSeleccionado, ordenamiento])
+  }, [transactions, ordenamiento])
 
   // Calcular totales
   const { totalIngresos, totalGastos, cantidadResultados } = useMemo(() => {
@@ -315,10 +357,18 @@ export function MovimientosPage() {
 
   // Limpiar filtros
   const clearFilters = () => {
-    setMesSeleccionado('todos')
-    setAnoSeleccionado('todos')
+    setMesSeleccionado('12')
+    setAnoSeleccionado('2025')
     setMotivoSeleccionado('todos')
     setContactoSeleccionado('todos')
+  }
+
+  // Handler para cambiar el año y resetear el mes si es necesario
+  const handleAnoChange = (value: string) => {
+    setAnoSeleccionado(value)
+    if (value === 'todos') {
+      setMesSeleccionado('todos')
+    }
   }
 
   // Sensores DnD
@@ -492,7 +542,7 @@ export function MovimientosPage() {
       {/* Smart Toolbar - Filtros */}
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-4">
         {/* Selector de Mes */}
-        <Select value={mesSeleccionado} onValueChange={setMesSeleccionado}>
+        <Select value={mesSeleccionado} onValueChange={setMesSeleccionado} disabled={anoSeleccionado === 'todos'}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filtrar por mes..." />
           </SelectTrigger>
@@ -506,7 +556,7 @@ export function MovimientosPage() {
         </Select>
 
         {/* Selector de Año */}
-        <Select value={anoSeleccionado} onValueChange={setAnoSeleccionado}>
+        <Select value={anoSeleccionado} onValueChange={handleAnoChange}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Filtrar por año..." />
           </SelectTrigger>
@@ -627,6 +677,16 @@ export function MovimientosPage() {
           </PopoverContent>
         </Popover>
 
+        {/* Botón Buscar */}
+        <Button
+          onClick={handleBuscar}
+          disabled={buscarTransaccionesMutation.isPending || !espacioActual}
+          size="sm"
+        >
+          <Search className="mr-2 h-4 w-4" />
+          {buscarTransaccionesMutation.isPending ? 'Buscando...' : 'Buscar'}
+        </Button>
+
         {/* Botón Limpiar Filtros */}
         {hasActiveFilters && (
           <Button
@@ -727,8 +787,30 @@ export function MovimientosPage() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={columns.length} className="h-24 text-center">
-                        No se encontraron resultados.
+                      <TableCell colSpan={columns.length} className="h-48 text-center">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          {!hasSearched ? (
+                            <>
+                              <Search className="h-12 w-12 text-muted-foreground/50" />
+                              <p className="text-lg font-semibold text-muted-foreground">
+                                Realiza una búsqueda
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Selecciona los filtros y presiona "Buscar" para ver tus transacciones
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <X className="h-12 w-12 text-muted-foreground/50" />
+                              <p className="text-lg font-semibold text-muted-foreground">
+                                No se encontraron transacciones
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Intenta ajustar los filtros de búsqueda
+                              </p>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}

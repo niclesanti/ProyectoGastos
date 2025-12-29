@@ -107,6 +107,14 @@ export interface ContactoDTORequest {
   idEspacioTrabajo: number
 }
 
+export interface TransaccionBusquedaDTO {
+  mes?: number | null
+  anio?: number | null
+  motivo?: string | null
+  contacto?: string | null
+  idEspacioTrabajo: number
+}
+
 export interface TarjetaDTORequest {
   nombreTarjeta: string
   entidadFinanciera: string

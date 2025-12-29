@@ -11,7 +11,8 @@ import type {
   CuentaBancariaDTORequest, 
   TarjetaDTORequest,
   TransaccionDTORequest,
-  CompraCreditoDTORequest
+  CompraCreditoDTORequest,
+  TransaccionBusquedaDTO
 } from '@/types'
 
 // ============ TRANSACCIONES ============
@@ -25,6 +26,30 @@ export const useCreateTransaccion = () => {
       // Invalidar todas las queries relacionadas con transacciones
       queryClient.invalidateQueries({ queryKey: ['transacciones'] })
     },
+  })
+}
+
+export const useBuscarTransacciones = () => {
+  return useMutation({
+    mutationFn: (busqueda: TransaccionBusquedaDTO) => transaccionService.buscarTransacciones(busqueda),
+  })
+}
+
+export const useMotivosTransaccion = (idEspacioTrabajo: number | undefined) => {
+  return useQuery({
+    queryKey: ['motivos-transaccion', idEspacioTrabajo],
+    queryFn: () => transaccionService.listarMotivos(idEspacioTrabajo!),
+    enabled: !!idEspacioTrabajo,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  })
+}
+
+export const useContactosTransaccion = (idEspacioTrabajo: number | undefined) => {
+  return useQuery({
+    queryKey: ['contactos-transaccion', idEspacioTrabajo],
+    queryFn: () => transaccionService.listarContactos(idEspacioTrabajo!),
+    enabled: !!idEspacioTrabajo,
+    staleTime: 5 * 60 * 1000, // 5 minutos
   })
 }
 
