@@ -1,34 +1,73 @@
-# Sección /Movimientos
+Para diseñar un modal de **"Detalles de transacción"** que se sienta profesional y de nivel SaaS, debemos aplicar una jerarquía visual clara. El usuario no debe "leer" el modal, debe "escanearlo".
 
-Los siguientes cambios que se proponen en esta sección es para que el mismo sea mas profesional y se valide las entradas de los usuarios.
+Como diseñador UX/UI, mi propuesta es dividir la información en tres capas: **Resumen Visual (Hero)**, **Información de Negocio** y **Metadatos de Auditoría**.
 
-## Campos de entrada:
+---
 
-### Años
+### 1. Propuesta de Estructura UX
 
-- Agregar los años desde el 2024 hasta el 2030, quitar el resto
+* **Cabecera:** Título claro y un subtítulo que contextualice (ej: "Consulta el historial completo de este movimiento").
+* **Sección Hero (Impacto):** El monto y el tipo (Ingreso/Gasto) deben ser lo primero que se vea. Usaremos un tamaño de fuente grande y un `Badge` de color.
+* **Cuerpo Principal:** Una cuadrícula (Grid) de 2 columnas para los datos operativos (Motivo, Contacto, Fecha, Cuenta).
+* **Sección de Notas:** Espacio dedicado para la descripción, ya que puede ser extensa.
+* **Pie de Auditoría:** Información técnica (creado por, fecha de creación, espacio de trabajo) en una sección visualmente separada y con tipografía más pequeña (`text-muted-foreground`).
 
-### Filtrar por motivos
+---
 
-- Poblar el selector con los motivos de la base de datos de la misma forma que has poblado los demás selectores.
+### 2. Diseño Visual (Concepto)
 
-### Filtrar por motivos
+---
 
-- Poblar el selector con los contactos de la base de datos de la misma forma que has poblado los demás selectores.
+### 3. Componentes shadcn/ui a utilizar
 
-### Botón buscar
-- Implementar un botón "Buscar" al lado del filtro de contactos
-- Usar componentes shadcn/ui ya definidos
-- Al presionar buscar se debe consumir la siguiente API de la misma forma que se ha hecho en toda la aplicación y mantener en el cache.
-  - POST "/api/transaccion/buscar"
-  - public ResponseEntity<List<TransaccionDTOResponse>> buscarTransaccion(@Valid @RequestBody TransaccionBusquedaDTO datosBusqueda)
-- Todos los campos son opcionales
-- Si el usuario deja un campo por defecto (Todos los meses, Todos los años, Todos los motivos, Todos los contactos) se envia ese campo en el JSON como null.
-- Si no se encuentra ninguna transacción o no se ha buscado aún y la lista está vacía poner un mensaje.
+Para que Copilot lo desarrolle, usaremos:
 
-# MUY IMPORTANTE
-No modificar ningún componente actual (salvo agregar el botón "Buscar").
+* **`Dialog`**: El contenedor principal.
+* **`Badge`**: Para el `TipoTransaccion`.
+* **`Separator`**: Para dividir la información operativa de la auditoría.
+* **`Label`**: Para los títulos de cada dato.
+* **`ScrollArea`**: Por si la descripción es muy larga.
+* **`Lucide Icons`**: Iconos sutiles al lado de los labels para mejorar el reconocimiento visual rápido.
 
+---
 
-# Notificaciones
-- Usar un metodo mas moderno como mensajes mediante toust. Mensajes de exito, fracaso, advertencia, información.
+### 4. Guía de Mapeo de Información (DTO a UI)
+
+| Sección | Datos del DTO | Estilo Sugerido |
+| --- | --- | --- |
+| **Hero** | `monto` + `tipo` | Texto extra grande (`text-3xl`) y Badge (Emerald/Rose). |
+| **Grid Principal** | `nombreMotivo`, `fecha`, `nombreContacto`, `nombreCuentaBancaria` | Grid de 2x2 con labels en `zinc-400`. |
+| **Descripción** | `descripcion` | Bloque de texto con fondo sutil (`bg-zinc-900/50`). |
+| **Auditoría** | `nombreEspacioTrabajo`, `nombreCompletoAuditoria`, `fechaCreacion`, `id` | Texto pequeño (`text-xs`) en el pie del modal. |
+
+---
+
+### 5. Prompt para GitHub Copilot (Implementación)
+
+Copia este prompt para generar el componente profesionalmente:
+
+> **"Role: Senior Frontend Developer & UI Designer. Build a 'TransactionDetailsModal' using React 19, TypeScript, and shadcn/ui.**
+> **1. Header:** Title 'Detalles de transacción' and subtitle 'Resumen completo del movimiento registrado'.
+> **2. Hero Section:** Display the `monto` formatted as `$XX.XXX,XX` in a large, bold font. Next to it, show a `Badge` for `tipo` (Gasto/Ingreso) using semantic colors (emerald/rose).
+> **3. Details Grid:** Create a 2-column grid using shadcn components to show:
+> * **Motivo:** `nombreMotivo` (with Tag icon)
+> * **Fecha:** `fecha` formatted (with Calendar icon)
+> * **Contacto:** `nombreContacto` or 'Sin contacto' (with User icon)
+> * **Cuenta:** `nombreCuentaBancaria` or 'Sin cuenta' (with Landmark icon)
+> 
+> 
+> **4. Description:** If `descripcion` exists, show it in a dedicated section with a `Separator` above it and a subtle background.
+> **5. Audit Footer:** At the bottom, add a gray-toned section (text-xs) separated by another `Separator`. Show:
+> * 'Espacio: `nombreEspacioTrabajo`'
+> * 'Registrado por: `nombreCompletoAuditoria`'
+> * 'Fecha de registro: `fechaCreacion`'
+> * 'ID: `id`'
+> 
+> 
+> **Style:** Follow the Zinc dark theme, use 'Sentence case' for all labels, and ensure high visual density without feeling cluttered."
+
+---
+
+### Un detalle "Pro" de UX
+
+Para este modal, te sugiero agregar un botón de **"Copiar ID"** pequeño al lado del ID de la transacción en el pie de página. Es una funcionalidad muy útil cuando un usuario necesita reportar un error o buscar ese registro específico en pgAdmin.

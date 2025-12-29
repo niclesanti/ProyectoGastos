@@ -73,6 +73,24 @@ export interface Transaccion {
   cuentaBancaria?: CuentaBancaria
 }
 
+// DTO Response para búsqueda de transacciones
+export interface TransaccionDTOResponse {
+  id: number
+  fecha: string // LocalDate
+  monto: number
+  tipo: TipoTransaccion
+  descripcion?: string
+  nombreCompletoAuditoria: string
+  fechaCreacion: string // LocalDateTime
+  idEspacioTrabajo: number
+  nombreEspacioTrabajo: string
+  idMotivo: number
+  nombreMotivo: string
+  idContacto?: number
+  nombreContacto?: string
+  nombreCuentaBancaria?: string
+}
+
 // DTOs Request
 export interface TransaccionDTORequest {
   tipo: string // 'gasto' | 'ingreso'

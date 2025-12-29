@@ -2,6 +2,7 @@ import { apiClient } from '@/lib/api-client'
 import type {
   Transaccion,
   TransaccionDTORequest,
+  TransaccionDTOResponse,
   TransaccionBusquedaDTO,
   MotivoTransaccion,
   ContactoTransferencia,
@@ -22,8 +23,8 @@ export const transaccionService = {
     await apiClient.delete(`/transaccion/remover/${id}`)
   },
 
-  async buscarTransacciones(busqueda: TransaccionBusquedaDTO): Promise<Transaccion[]> {
-    const { data } = await apiClient.post<Transaccion[]>('/transaccion/buscar', busqueda)
+  async buscarTransacciones(busqueda: TransaccionBusquedaDTO): Promise<TransaccionDTOResponse[]> {
+    const { data } = await apiClient.post<TransaccionDTOResponse[]>('/transaccion/buscar', busqueda)
     return data
   },
 

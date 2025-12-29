@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useAppStore } from '@/store/app-store'
 import { useBuscarTransacciones, useMotivosTransaccion, useContactosTransaccion } from '@/features/selectors/api/selector-queries'
 import { toast } from 'sonner'
+import { TransactionDetailsModal } from '@/components/TransactionDetailsModal'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -95,6 +96,9 @@ interface Transaction {
   cuenta: string
   monto: number
   descripcion?: string
+  nombreEspacioTrabajo: string
+  nombreCompletoAuditoria: string
+  fechaCreacion: string
 }
 
 function SortableRow({ row }: any) {
@@ -121,89 +125,6 @@ function SortableRow({ row }: any) {
     </TableRow>
   )
 }
-
-const mockTransactions: Transaction[] = [
-  {
-    id: '1',
-    tipo: 'Ingreso',
-    fecha: '2025-01-15',
-    motivo: 'Salario',
-    contacto: 'Empresa ABC',
-    cuenta: 'Cuenta principal',
-    monto: 45000,
-    descripcion: 'Salario mensual'
-  },
-  {
-    id: '2',
-    tipo: 'Gasto',
-    fecha: '2025-01-10',
-    motivo: 'Supermercado',
-    contacto: 'Carrefour',
-    cuenta: 'Cuenta principal',
-    monto: 8500,
-    descripcion: 'Compras del mes'
-  },
-  {
-    id: '3',
-    tipo: 'Gasto',
-    fecha: '2025-01-08',
-    motivo: 'Transporte',
-    contacto: 'YPF',
-    cuenta: 'Gastos',
-    monto: 6000,
-    descripcion: 'Combustible'
-  },
-  {
-    id: '4',
-    tipo: 'Ingreso',
-    fecha: '2025-01-05',
-    motivo: 'Freelance',
-    contacto: 'Cliente XYZ',
-    cuenta: 'Ahorros',
-    monto: 15000,
-    descripcion: 'Proyecto web'
-  },
-  {
-    id: '5',
-    tipo: 'Gasto',
-    fecha: '2025-01-03',
-    motivo: 'Entretenimiento',
-    contacto: 'Netflix',
-    cuenta: 'Cuenta principal',
-    monto: 1200,
-    descripcion: 'Suscripción mensual'
-  },
-  {
-    id: '6',
-    tipo: 'Gasto',
-    fecha: '2024-12-28',
-    motivo: 'Servicios',
-    contacto: 'EDESUR',
-    cuenta: 'Cuenta principal',
-    monto: 3200,
-    descripcion: 'Factura de luz'
-  },
-  {
-    id: '7',
-    tipo: 'Ingreso',
-    fecha: '2024-12-20',
-    motivo: 'Venta',
-    contacto: 'MercadoLibre',
-    cuenta: 'Cuenta principal',
-    monto: 12000,
-    descripcion: 'Venta de artículo'
-  },
-  {
-    id: '8',
-    tipo: 'Gasto',
-    fecha: '2024-12-15',
-    motivo: 'Alimentos',
-    contacto: 'Alvear',
-    cuenta: 'Cuenta principal',
-    monto: 10000,
-    descripcion: 'Compras semanales'
-  },
-]
 
 const meses = [
   { value: 'todos', label: 'Todos los meses' },
@@ -243,6 +164,10 @@ export function MovimientosPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [hasSearched, setHasSearched] = useState(false)
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  
+  // Estado para el modal de detalles
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   
   // Filtros
   const [mesSeleccionado, setMesSeleccionado] = useState('12')
@@ -292,11 +217,14 @@ export function MovimientosPage() {
           id: t.id.toString(),
           tipo: t.tipo === 'INGRESO' ? 'Ingreso' as const : 'Gasto' as const,
           fecha: t.fecha,
-          motivo: t.motivo?.motivo || 'Sin motivo',
-          contacto: t.contacto?.nombre || 'Sin contacto',
-          cuenta: t.cuentaBancaria?.nombre || 'Sin cuenta',
+          motivo: t.nombreMotivo || 'Sin motivo',
+          contacto: t.nombreContacto || 'Sin contacto',
+          cuenta: t.nombreCuentaBancaria || 'Sin cuenta',
           monto: t.monto,
           descripcion: t.descripcion,
+          nombreEspacioTrabajo: t.nombreEspacioTrabajo,
+          nombreCompletoAuditoria: t.nombreCompletoAuditoria,
+          fechaCreacion: t.fechaCreacion,
         }))
         
         setTransactions(transaccionesTransformadas)
@@ -369,6 +297,12 @@ export function MovimientosPage() {
     if (value === 'todos') {
       setMesSeleccionado('todos')
     }
+  }
+
+  // Handler para abrir el modal de detalles
+  const handleViewDetails = (transaction: Transaction) => {
+    setSelectedTransaction(transaction)
+    setIsDetailsModalOpen(true)
   }
 
   // Sensores DnD
@@ -471,7 +405,7 @@ export function MovimientosPage() {
     },
     {
       id: 'actions',
-      cell: () => {
+      cell: ({ row }) => {
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -481,7 +415,9 @@ export function MovimientosPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>Ver detalles</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleViewDetails(row.original)}>
+                Ver detalles
+              </DropdownMenuItem>
               <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -853,6 +789,13 @@ export function MovimientosPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de Detalles de Transacción */}
+      <TransactionDetailsModal
+        transaction={selectedTransaction}
+        open={isDetailsModalOpen}
+        onOpenChange={setIsDetailsModalOpen}
+      />
     </div>
   )
 }
