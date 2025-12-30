@@ -34,6 +34,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Plus, CreditCard as CreditCardIcon, Calendar, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PaymentProviderLogo } from '@/components/PaymentProviderLogo'
 import type { TarjetaDTOResponse } from '@/types'
 
 const ENTIDADES_FINANCIERAS = [
@@ -107,27 +108,60 @@ function CreditCardComponent({ card }: { card: TarjetaDTOResponse }) {
     return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
   }
   
-  // Colores según red de pago
+  // Premium mesh gradients según red de pago
   const getCardColor = (red: string) => {
     switch (red.toLowerCase()) {
       case 'visa':
-        return 'from-blue-900 to-blue-700'
+        return 'from-blue-700 via-indigo-800 to-zinc-950'
       case 'mastercard':
-        return 'from-gray-900 to-gray-700'
+        return 'from-zinc-800 via-zinc-900 to-black'
+      case 'american express':
       case 'amex':
-        return 'from-green-900 to-green-700'
+        return 'from-emerald-700 via-teal-900 to-zinc-950'
+      case 'cabal':
+        return 'from-blue-900 via-slate-900 to-zinc-950'
       default:
-        return 'from-zinc-900 to-zinc-700'
+        return 'from-zinc-900 via-zinc-950 to-black'
     }
   }
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <div className={cn('h-48 p-6 flex flex-col justify-between bg-gradient-to-br', getCardColor(card.redDePago))}>
-        <div className="flex items-start justify-between">
-          <div className="text-white/80 text-sm font-medium">
-            {card.redDePago}
-          </div>
+    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+      <div className={cn(
+        'relative h-48 p-6 flex flex-col justify-between bg-gradient-to-br overflow-hidden',
+        'border-t border-white/10',
+        getCardColor(card.redDePago)
+      )}>
+        {/* SVG Wave Pattern Background */}
+        <svg
+          className="absolute inset-0 w-full h-full opacity-10 pointer-events-none"
+          viewBox="0 0 400 200"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M0,100 Q50,80 100,100 T200,100 T300,100 T400,100 L400,200 L0,200 Z"
+            fill="currentColor"
+            className="text-white"
+          />
+          <path
+            d="M0,120 Q50,100 100,120 T200,120 T300,120 T400,120 L400,200 L0,200 Z"
+            fill="currentColor"
+            className="text-white opacity-50"
+          />
+        </svg>
+
+        {/* Noise Texture Overlay */}
+        <div 
+          className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          }}
+        />
+
+        {/* Content */}
+        <div className="relative z-10 flex items-start justify-between">
+          <PaymentProviderLogo network={card.redDePago} size="lg" />
           <div className={cn('backdrop-blur-sm px-3 py-1 rounded-full border', getClosureBadgeColor(daysUntilClosure))}>
             <p className="text-xs font-medium">
               {daysUntilClosure === 0 ? 'Cierra hoy' : 
@@ -137,14 +171,14 @@ function CreditCardComponent({ card }: { card: TarjetaDTOResponse }) {
           </div>
         </div>
 
-        <div>
+        <div className="relative z-10">
           <div className="flex items-center gap-2 mb-3">
             <CreditCardIcon className="h-8 w-8 text-white/60" />
-            <p className="text-white/80 text-lg tracking-wider">
+            <p className="text-white/90 text-lg tracking-wider font-mono">
               **** **** **** {card.numeroTarjeta}
             </p>
           </div>
-          <p className="text-white font-semibold text-lg">
+          <p className="text-white/90 font-semibold text-lg">
             {card.entidadFinanciera}
           </p>
         </div>
@@ -208,16 +242,21 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen)
+      if (!isOpen) {
+        form.reset()
+      }
+    }}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Agregar Tarjeta
+          Agregar tarjeta
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Agregar Tarjeta de Crédito</DialogTitle>
+          <DialogTitle>Agregar tarjeta de crédito</DialogTitle>
           <DialogDescription>
             Registra una nueva tarjeta para controlar cierres y vencimientos.
           </DialogDescription>
@@ -232,7 +271,7 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Últimos 4 dígitos <span className="text-destructive">*</span>
+                    Últimos 4 dígitos
                   </FormLabel>
                   <FormControl>
                     <Input
@@ -257,7 +296,7 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Entidad Financiera <span className="text-destructive">*</span>
+                    Entidad financiera
                   </FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
@@ -285,7 +324,7 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Red de Pago <span className="text-destructive">*</span>
+                    Red de pago
                   </FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
@@ -314,7 +353,7 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Día de Cierre <span className="text-destructive">*</span>
+                      Día de cierre
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -324,8 +363,20 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
                         max="29"
                         value={field.value || ''}
                         onChange={(e) => {
-                          const val = e.target.value
-                          field.onChange(val === '' ? 1 : parseInt(val, 10))
+                          const val = e.target.value.replace(/\D/g, '')
+                          if (val === '') {
+                            field.onChange(1)
+                          } else {
+                            const num = parseInt(val, 10)
+                            if (num >= 1 && num <= 29) {
+                              field.onChange(num)
+                            }
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E' || e.key === '.') {
+                            e.preventDefault()
+                          }
                         }}
                       />
                     </FormControl>
@@ -334,14 +385,14 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
                 )}
               />
 
-              {/* Día de Vencimiento */}
+              {/* Día de vencimiento */}
               <FormField
                 control={form.control}
                 name="diaVencimientoPago"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Día de Vencimiento <span className="text-destructive">*</span>
+                      Día de vencimiento
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -351,8 +402,20 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
                         max="29"
                         value={field.value || ''}
                         onChange={(e) => {
-                          const val = e.target.value
-                          field.onChange(val === '' ? 1 : parseInt(val, 10))
+                          const val = e.target.value.replace(/\D/g, '')
+                          if (val === '') {
+                            field.onChange(1)
+                          } else {
+                            const num = parseInt(val, 10)
+                            if (num >= 1 && num <= 29) {
+                              field.onChange(num)
+                            }
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E' || e.key === '.') {
+                            e.preventDefault()
+                          }
                         }}
                       />
                     </FormControl>
@@ -373,7 +436,10 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  setOpen(false)
+                  form.reset()
+                }}
                 disabled={form.formState.isSubmitting}
               >
                 Cancelar

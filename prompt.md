@@ -1,153 +1,53 @@
-# Sección Tarjetas de crédito (CreditosPage)
+Para que tu sección de tarjetas alcance un nivel de diseño **Fintech Premium**, debemos crear un **sistema de identidad visual** donde el fondo de la tarjeta no solo sea un color, sino que cuente una historia basada en la red de pago, manteniendo la coherencia con el resto de tu aplicación.
 
-Al seleccionar un espacio de trabajo en la Sidebar, se debe cargar visualmente las tarjetas que pertenecen a este espacio. Para ello consumir la API de forma moderna y profesional (sin fetch) y mantener los datos en cache:
-- GET "/api/comprascredito/tarjetas/{idEspacioTrabajo}"
-  - public ResponseEntity<List<TarjetaDTOResponse>> listarTarjetas(@PathVariable Long idEspacioTrabajo)
-
-MUY IMPORTANTE -> No modificar componentes ya definidos para mostrar las tarjetas.
-
-## Modal Agregar Tarjeta de Crédito
-
-Los siguientes cambios que se proponen en este modal es para que el mismo sea mas profesional y se valide las entradas de los usuarios.
-
-### Campos de entrada:
-
-#### Últimos 4 dígitos
-
-- Campo obligatorio:
-  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
-  - Restricción en el backend en la validación de datos del DTO que el campo no puede ser null ni estar vacío ni ser una cadena "".
-- Solo pueden ser dígitos numéricos del 1 al 9
-  - Validar esto en el frontend.
-  - Validar esto en el backend en el DTO.
-
-#### Entidad financiera
-- Campo obligatorio:
-  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
-  - Restricción en el backend en la validación de datos del DTO que el campo no puede ser null ni estar vacío ni ser una cadena "".
-- Rellenar selector con las siguientes entidades financieras:
-  - Banco Credicoop
-  - Banco de Santa Fe
-  - Banco Macro
-  - Banco Patagonia
-  - Banco Santander
-  - BBVA
-  - BNA
-  - Brubank
-  - Galicia
-  - HSBC
-  - ICBC
-  - Lemon Cash
-  - Mercado Pago
-  - Naranja X
-  - Personal Pay
-  - Ualá
-
-#### Red de pago
-- Campo obligatorio:
-  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
-  - Restricción en el backend en la validación de datos del DTO que el campo no puede ser null ni estar vacío ni ser una cadena "".
-- Cambiar "Visa" por "VISA".
-
-#### Dia de cierre
-- Campo obligatorio:
-  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
-  - Restricción en el backend en la validación de datos del DTO que el campo no puede ser null ni estar vacío ni ser una cadena "".
-- Solo pueden ser dígitos numéricos del 1 al 29
-  - Validar esto en el frontend.
-  - Validar esto en el backend en el DTO.
-
-#### Dia de vencimiento
-- Campo obligatorio:
-  - Restricción en el frontend que no se puede enviar el formulario con estos datos vacíos.
-  - Restricción en el backend en la validación de datos del DTO que el campo no puede ser null ni estar vacío ni ser una cadena "".
-- Solo pueden ser dígitos numéricos del 1 al 29
-  - Validar esto en el frontend.
-  - Validar esto en el backend en el DTO.
-
-### Botón "Guardar Tarjeta"
-Consumir la API de la forma mas profesional y moderna como lo has hecho las anteriores veces.
-- POST "/api/comprascredito/registrarTarjeta"
-  - public ResponseEntity<TarjetaDTOResponse> registrarTarjeta(@Valid @RequestBody TarjetaDTORequest tarjetaDTO)
-
-
-## Para cada campo obligatorio:
-Implementar de manera genérica para los campos obligatorios la siguiente solución moderna para que los usuarios entiendan que les faltó completar uno o mas campos:
-
-La validación de formularios en aplicaciones modernas ha evolucionado de simples alertas a una **retroalimentación contextual y elegante**. Como diseñador y desarrollador, la mejor práctica actual no es solo "avisar del error", sino guiar al usuario para que lo corrija sin frustración.
-
-En el ecosistema de **shadcn/ui**, la solución estándar y más profesional es utilizar la integración de **React Hook Form** con **Zod** para la validación de esquemas.
+Como diseñador experto, propongo utilizar **Mesh Gradients** (gradientes de malla) y **patrones algorítmicos** que imiten las ondas de tus gráficos de flujo de caja.
 
 ---
 
-### 1. El Concepto UX: Validación "Justo a Tiempo"
+### 1. Sistema de Identidad por Red de Pago
 
-Para que tu aplicación se sienta profesional, la validación debe seguir estas reglas:
+En lugar de colores planos, utilizaremos combinaciones de gradientes que respeten la psicología de cada marca dentro de tu modo oscuro:
 
-* **No ser punitiva:** No uses colores rojos chillones o alertas intrusivas.
-* **Contextual:** El mensaje de error debe aparecer justo debajo del campo afectado.
-* **Visualmente sutil:** El borde del componente cambia a un tono "Destructive" (rojo suave) para llamar la atención sin gritar.
-
----
-
-### 2. Anatomía de un Campo con Error (Componentes shadcn/ui)
-
-Para implementar esto, utilizaremos el componente `<Form />` de shadcn, que ya incluye toda la lógica de accesibilidad.
-
-* **`FormControl`**: Cambia automáticamente el borde del input a `border-destructive` cuando el esquema de Zod detecta un error.
-* **`FormMessage`**: Un componente animado que aparece debajo del input con el texto del error. Utiliza un tono rojo mate (`text-destructive`) que combina con tu tema Zinc.
+| Red de Pago | Combinación de Gradiente (Tailwind) | Patrón Visual Sugerido |
+| --- | --- | --- |
+| **Visa** | `from-blue-600 via-indigo-700 to-slate-900` | Ondas fluidas de largo alcance (como tu gráfico de ingresos). |
+| **Mastercard** | `from-zinc-800 via-zinc-900 to-black` | Ondas concéntricas sutiles que emanen desde el logo. |
+| **Amex** | `from-emerald-800 via-teal-900 to-zinc-950` | Líneas diagonales de precisión (estilo "Platinum"). |
+| **Cabal / Otros** | `from-zinc-900 via-zinc-950 to-black` | Textura de ruido (noise) pura con un borde de luz superior. |
 
 ---
 
-### 3. Definición del Esquema de Validación (Zod)
+### 2. Elementos de Pulido Profesional
 
-Para que el usuario entienda qué le faltó, los mensajes deben ser específicos. En lugar de un genérico "Campo obligatorio", usa **mensajes de acción**:
-
-```typescript
-const formSchema = z.object({
-  tipo: z.string().min(1, { message: "Por favor, selecciona un tipo de transacción." }),
-  fecha: z.date({ required_error: "La fecha es necesaria para el registro." }),
-  monto: z.coerce.number().gt(0, { message: "El monto debe ser mayor a 0." }),
-  motivo: z.string().min(1, { message: "Debes asignar un motivo al gasto." }),
-});
-
-```
+* **El "Shining Edge" (Borde de luz):** Añade un borde superior de 1px con `border-t-white/20` para simular el reflejo de la luz sobre el plástico de la tarjeta.
+* **Textura de Ruido:** Aplica una capa de "grain" con una opacidad del 3% para que el gradiente no se vea digitalmente perfecto, sino con una textura física de tarjeta real.
+* **Brand Consistency:** El patrón de fondo debe usar el mismo trazado SVG que las ondas de tu sección de **Panel de datos**, reforzando la identidad de marca de tu aplicación.
 
 ---
 
-### 4. Retroalimentación Global: El uso de "Toasts"
+### 3. Prompt Maestro para GitHub Copilot
 
-Si el usuario intenta presionar "Guardar" y hay múltiples errores, la mejor práctica moderna es disparar un **Sonner (Toast)**.
+Copia y pega este prompt estructurado para que Copilot realice la refactorización completa:
 
-* **Mensaje:** *"Error al guardar: Por favor, revisa los campos obligatorios."*
-* Esto le da al usuario una señal auditiva y visual de que algo falló, incluso si los campos con error están fuera de su vista inmediata.
+> **"Role: Senior Frontend Developer & UI Specialist. Refactor the `CreditCard` component backgrounds to a 'Premium Mesh Gradient' style.**
+> **1. Background Logic:** Implement a function that returns a specific Tailwind gradient based on the `red_de_pago` prop:
+> * **Visa:** `bg-gradient-to-br from-blue-700 via-indigo-800 to-zinc-950`.
+> * **Mastercard:** `bg-gradient-to-br from-zinc-800 via-zinc-900 to-black`.
+> * **Amex:** `bg-gradient-to-br from-emerald-700 via-teal-900 to-zinc-950`.
+> * **Default:** `bg-zinc-900`.
+> 
+> 
+> **2. Brand Pattern:** Add an absolute-positioned SVG inside the card with 10% opacity. The SVG should be a 'wave' path similar to the one used in the 'Flujo de caja' chart in `image_cd72aa.png`.
+> **3. Professional Finish:**
+> * Apply `border-t border-white/10` to the card to create a 'shining edge'.
+> * Add an overlay `div` with a subtle noise texture (`mix-blend-overlay` at 0.03 opacity).
+> * Add a `hover` state using Framer Motion or Tailwind to slightly lift the card (`hover:-translate-y-1`) and increase the border-white opacity.
+> 
+> 
+> **4. Content Integrity:** Ensure the monochrome logos (already in `image_22f1c5.png`) and the masked card numbers maintain high contrast against these new backgrounds. Use `text-white/90` for the 'Banco' name and numbers."
 
 ---
 
-### 5. Prompt para GitHub Copilot (Implementación de Validación Pro)
+### Resultado Esperado
 
-Usa este prompt para que Copilot transforme tus modales en formularios con validación profesional:
-
-> **"Implement professional form validation for the 'New Transaction' modal using `react-hook-form`, `zod`, and shadcn/ui `<Form />` components.**
-> **1. Validation Schema:** Create a Zod schema where 'Tipo', 'Fecha', 'Monto', and 'Motivo' are required.
-> * 'Monto' must be a positive number.
-> * Use custom user-friendly messages like: 'Por favor, indica el monto de la operación'.
-> 
-> 
-> **2. Visual Feedback:** >    - Use the `<FormMessage />` component to display errors in `text-destructive` (muted red).
-> * Ensure the `Input` and `Select` components automatically get a `border-destructive` style when invalid.
-> 
-> 
-> **3. Submission Logic:** >    - If the form is invalid on submit, trigger a shadcn `toast` (Sonner) notifying the user to check required fields.
-> * Disable the 'Guardar' button while the form is submitting (`isSubmitting`).
-> 
-> 
-> **4. Accessibility:** Ensure all error messages have the correct ARIA attributes provided by shadcn's Form wrapper. Keep the Zinc dark theme aesthetic."
-
----
-
-### Por qué esta es la mejor solución:
-
-1. **Consistencia:** Utiliza los mismos tokens de color que el resto de tu app.
-2. **Accesibilidad:** Los lectores de pantalla identificarán automáticamente qué campo tiene el error.
-3. **Mantenibilidad:** Toda la lógica de validación vive en el esquema de Zod, no mezclada con tu código HTML/JSX.
+Tus tarjetas dejarán de verse como elementos estáticos y pasarán a tener **volumen y profundidad**. Al usar gradientes oscuros que terminan en `zinc-950` o `black`, la integración con el fondo general de tu aplicación será perfecta, pero cada tarjeta tendrá su propia "personalidad" financiera.
