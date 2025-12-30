@@ -14,6 +14,7 @@ import {
   useCreateContacto,
   useCreateCompraCredito
 } from '@/features/selectors/api/selector-queries'
+import { useDashboardCache } from '@/hooks'
 import {
   Dialog,
   DialogContent,
@@ -222,6 +223,8 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
     }
   }
 
+  const { refreshComprasPendientes } = useDashboardCache()
+
   // Manejar envío del formulario principal
   const onSubmit = async (data: CreditPurchaseFormValues) => {
     if (!currentWorkspace || !user) return
@@ -240,6 +243,9 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
       }
 
       await createCompraMutation.mutateAsync(compraData)
+      
+      // Actualizar el caché de compras pendientes
+      await refreshComprasPendientes()
       
       toast.success('Compra con crédito registrada exitosamente')
       onOpenChange(false)

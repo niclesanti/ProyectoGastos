@@ -11,76 +11,32 @@ import { DataTable } from '@/components/ui/data-table'
 import { ColumnDef } from '@tanstack/react-table'
 import { formatCurrency } from '@/lib/utils'
 import { ArrowUpRight, ArrowDownRight, MoreHorizontal, Trash2, Eye, GripVertical } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useAppStore } from '@/store/app-store'
+import type { Transaccion } from '@/types'
+import { Skeleton } from '@/components/ui/skeleton'
+import { format, isToday, isYesterday, parseISO } from 'date-fns'
+import { es } from 'date-fns/locale'
 
-type Transaction = {
-  id: number
-  tipo: 'INGRESO' | 'GASTO'
-  motivo: string
-  cuenta: string
-  contacto: string
-  fecha: string
-  monto: number
+const formatFecha = (fechaString: string): string => {
+  try {
+    const fecha = parseISO(fechaString)
+    
+    if (isToday(fecha)) {
+      return `Hoy, ${format(fecha, 'HH:mm')}`
+    }
+    
+    if (isYesterday(fecha)) {
+      return `Ayer, ${format(fecha, 'HH:mm')}`
+    }
+    
+    return format(fecha, 'd MMM', { locale: es })
+  } catch {
+    return fechaString
+  }
 }
 
-const initialTransactions: Transaction[] = [
-  {
-    id: 1,
-    tipo: 'INGRESO',
-    motivo: 'Salario Upwork',
-    cuenta: 'Cuenta principal',
-    contacto: 'Upwork Inc.',
-    fecha: 'Hoy, 10:23',
-    monto: 4200.00,
-  },
-  {
-    id: 2,
-    tipo: 'GASTO',
-    motivo: 'Viaje Uber',
-    cuenta: 'Gastos',
-    contacto: 'Uber',
-    fecha: 'Ayer, 20:45',
-    monto: -24.50,
-  },
-  {
-    id: 3,
-    tipo: 'GASTO',
-    motivo: 'Spotify Premium',
-    cuenta: 'Gastos',
-    contacto: 'Spotify',
-    fecha: '12 Oct',
-    monto: -12.00,
-  },
-  {
-    id: 4,
-    tipo: 'GASTO',
-    motivo: 'Apple Store',
-    cuenta: 'Cuenta principal',
-    contacto: 'Apple',
-    fecha: '10 Oct',
-    monto: -124.99,
-  },
-  {
-    id: 5,
-    tipo: 'INGRESO',
-    motivo: 'Freelance',
-    cuenta: 'Ahorros',
-    contacto: 'Cliente X',
-    fecha: '08 Oct',
-    monto: 850.00,
-  },
-  {
-    id: 6,
-    tipo: 'GASTO',
-    motivo: 'Supermercado',
-    cuenta: 'Gastos',
-    contacto: 'Mercadona',
-    fecha: '07 Oct',
-    monto: -86.30,
-  },
-]
-
-export const columns: ColumnDef<Transaction>[] = [
+export const columns: ColumnDef<Transaccion>[] = [
   {
     id: "drag",
     header: "",
@@ -118,15 +74,17 @@ export const columns: ColumnDef<Transaction>[] = [
     header: "Motivo",
     enableHiding: true,
     cell: ({ row }) => {
-      return <div className="font-medium">{row.getValue("motivo")}</div>
+      const motivoNombre = row.original.motivo?.motivo || 'Sin motivo'
+      return <div className="font-medium">{motivoNombre}</div>
     },
   },
   {
-    accessorKey: "cuenta",
+    accessorKey: "cuentaBancaria",
     header: "Cuenta",
     enableHiding: true,
     cell: ({ row }) => {
-      return <div className="text-muted-foreground text-sm">{row.getValue("cuenta")}</div>
+      const cuentaNombre = row.original.cuentaBancaria?.nombre || 'Sin cuenta'
+      return <div className="text-muted-foreground text-sm">{cuentaNombre}</div>
     },
   },
   {
@@ -134,7 +92,8 @@ export const columns: ColumnDef<Transaction>[] = [
     header: "Contacto",
     enableHiding: true,
     cell: ({ row }) => {
-      return <div className="text-muted-foreground text-sm">{row.getValue("contacto")}</div>
+      const contactoNombre = row.original.contacto?.nombre || '-'
+      return <div className="text-muted-foreground text-sm">{contactoNombre}</div>
     },
   },
   {
@@ -142,7 +101,8 @@ export const columns: ColumnDef<Transaction>[] = [
     header: "Fecha",
     enableHiding: true,
     cell: ({ row }) => {
-      return <div className="text-muted-foreground text-sm">{row.getValue("fecha")}</div>
+      const fechaFormateada = formatFecha(row.getValue("fecha"))
+      return <div className="text-muted-foreground text-sm">{fechaFormateada}</div>
     },
   },
   {
@@ -206,10 +166,60 @@ export const columns: ColumnDef<Transaction>[] = [
 ]
 
 export function RecentTransactions() {
-  const [transactions, setTransactions] = useState(initialTransactions)
+  const { currentWorkspace, loadRecentTransactions } = useAppStore()
+  const [transactions, setTransactions] = useState<Transaccion[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleReorder = (newData: Transaction[]) => {
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      if (!currentWorkspace?.id) {
+        setTransactions([])
+        setLoading(false)
+        setError(null)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await loadRecentTransactions(currentWorkspace.id)
+        setTransactions(data)
+      } catch (err) {
+        console.error('Error al cargar transacciones recientes:', err)
+        setError('Error al cargar las transacciones recientes')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTransactions()
+  }, [currentWorkspace?.id, loadRecentTransactions])
+
+  const handleReorder = (newData: Transaccion[]) => {
     setTransactions(newData)
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+        <p className="text-sm text-destructive">{error}</p>
+      </div>
+    )
   }
 
   return (

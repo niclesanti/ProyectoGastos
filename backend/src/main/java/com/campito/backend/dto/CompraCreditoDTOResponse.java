@@ -13,9 +13,15 @@ public record CompraCreditoDTOResponse(
     String nombreCompletoAuditoria,
     LocalDateTime fechaCreacion,
     Long espacioTrabajoId,
+    String nombreEspacioTrabajo,
     Long motivoId,
+    String nombreMotivo,
     Long comercioId,
-    Long tarjetaId
+    String nombreComercio,
+    Long tarjetaId,
+    String numeroTarjeta,
+    String entidadFinanciera,
+    String redDePago
 ) {
 
 }

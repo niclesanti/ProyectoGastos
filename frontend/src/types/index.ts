@@ -233,6 +233,27 @@ export interface CompraCredito {
   espacioTrabajo?: EspacioTrabajo
 }
 
+export interface CompraCreditoDTOResponse {
+  id: number
+  fechaCompra: string
+  montoTotal: number
+  cantidadCuotas: number
+  cuotasPagadas: number
+  descripcion?: string
+  nombreCompletoAuditoria: string
+  fechaCreacion: string
+  espacioTrabajoId: number
+  nombreEspacioTrabajo: string
+  motivoId: number
+  nombreMotivo: string
+  comercioId?: number
+  nombreComercio?: string
+  tarjetaId: number
+  numeroTarjeta: string
+  entidadFinanciera: string
+  redDePago: string
+}
+
 export interface CuotaCredito {
   id: number
   numeroCuota: number

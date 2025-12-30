@@ -1,23 +1,12 @@
 import { DataTable } from '@/components/ui/data-table'
 import { ColumnDef } from '@tanstack/react-table'
 import { formatCurrency } from '@/lib/utils'
+import { useAppStore } from '@/store/app-store'
+import { useEffect, useState } from 'react'
+import type { CuentaBancaria } from '@/types'
+import { Skeleton } from '@/components/ui/skeleton'
 
-type Account = {
-  id: number
-  nombre: string
-  entidad: string
-  saldo: number
-}
-
-const accounts: Account[] = [
-  { id: 1, nombre: 'Cuenta principal', entidad: 'Banco Santander', saldo: 15420.50 },
-  { id: 2, nombre: 'Ahorros', entidad: 'BBVA', saldo: 8200.00 },
-  { id: 3, nombre: 'Nómina', entidad: 'CaixaBank', saldo: 3450.75 },
-  { id: 4, nombre: 'Inversiones', entidad: 'ING', saldo: 25600.00 },
-  { id: 5, nombre: 'Gastos', entidad: 'Banco Santander', saldo: 1230.25 },
-]
-
-export const columns: ColumnDef<Account>[] = [
+const columns: ColumnDef<CuentaBancaria>[] = [
   {
     accessorKey: "nombre",
     header: "Nombre",
@@ -27,19 +16,19 @@ export const columns: ColumnDef<Account>[] = [
     },
   },
   {
-    accessorKey: "entidad",
+    accessorKey: "entidadFinanciera",
     header: "Entidad",
     enableHiding: true,
     cell: ({ row }) => {
-      return <div className="text-muted-foreground">{row.getValue("entidad")}</div>
+      return <div className="text-muted-foreground">{row.getValue("entidadFinanciera")}</div>
     },
   },
   {
-    accessorKey: "saldo",
+    accessorKey: "saldoActual",
     header: () => <div className="text-right">Saldo</div>,
     enableHiding: true,
     cell: ({ row }) => {
-      const saldo = parseFloat(row.getValue("saldo"))
+      const saldo = parseFloat(row.getValue("saldoActual"))
       return (
         <div className="text-right font-semibold">
           {formatCurrency(saldo)}
@@ -50,6 +39,55 @@ export const columns: ColumnDef<Account>[] = [
 ]
 
 export function BankAccounts() {
+  const { currentWorkspace, loadBankAccounts } = useAppStore()
+  const [accounts, setAccounts] = useState<CuentaBancaria[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      if (!currentWorkspace?.id) {
+        setAccounts([])
+        setLoading(false)
+        setError(null)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await loadBankAccounts(currentWorkspace.id)
+        setAccounts(data)
+      } catch (err) {
+        console.error('Error al cargar cuentas bancarias:', err)
+        setError('Error al cargar las cuentas bancarias')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAccounts()
+  }, [currentWorkspace?.id, loadBankAccounts])
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+        <p className="text-sm text-destructive">{error}</p>
+      </div>
+    )
+  }
+
   return (
     <DataTable 
       columns={columns} 

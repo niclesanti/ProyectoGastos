@@ -15,6 +15,7 @@ import {
   useCreateContacto,
   useCreateCuentaBancaria
 } from '@/features/selectors/api/selector-queries'
+import { useDashboardCache } from '@/hooks'
 import { format as formatDate } from 'date-fns'
 import {
   Dialog,
@@ -213,6 +214,8 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
     }
   }, [open, form])
 
+  const { refreshDashboard } = useDashboardCache()
+
   // Manejar el envío del formulario
   const onSubmit = async (data: TransactionFormValues) => {
     if (!currentWorkspace || !user) {
@@ -234,6 +237,10 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
       }
 
       await createTransaccionMutation.mutateAsync(transaccionData)
+      
+      // Actualizar el caché del dashboard
+      await refreshDashboard()
+      
       toast.success('Transacción registrada exitosamente')
       onOpenChange(false)
     } catch (error) {

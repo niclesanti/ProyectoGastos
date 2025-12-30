@@ -1,55 +1,55 @@
 import { DataTable } from '@/components/ui/data-table'
 import { ColumnDef } from '@tanstack/react-table'
 import { formatCurrency } from '@/lib/utils'
+import { useAppStore } from '@/store/app-store'
+import { useEffect, useState } from 'react'
+import type { CompraCreditoDTOResponse } from '@/types'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
 
-type Payment = {
-  id: number
-  numero: number
-  motivo: string
-  vencimiento: string
-  monto: number
-}
-
-const payments: Payment[] = [
-  { id: 1, numero: 1, motivo: 'Suscripción Netflix', vencimiento: '15 Oct', monto: 15.99 },
-  { id: 2, numero: 2, motivo: 'Servicios AWS', vencimiento: '18 Oct', monto: 64.20 },
-  { id: 3, numero: 3, motivo: 'Alquiler Mensual', vencimiento: '01 Nov', monto: 1800.00 },
-  { id: 4, numero: 4, motivo: 'Spotify Premium', vencimiento: '05 Nov', monto: 12.00 },
-  { id: 5, numero: 5, motivo: 'Seguro Coche', vencimiento: '10 Nov', monto: 85.50 },
-  { id: 6, numero: 6, motivo: 'Gym Membership', vencimiento: '15 Nov', monto: 45.00 },
-]
-
-export const columns: ColumnDef<Payment>[] = [
+const columns: ColumnDef<CompraCreditoDTOResponse>[] = [
   {
-    accessorKey: "numero",
-    header: "Número",
+    accessorKey: "cantidadCuotas",
+    header: "Cuotas/Pagadas",
     enableHiding: true,
     cell: ({ row }) => {
-      return <div className="font-medium">{row.getValue("numero")}</div>
+      const pagadas = row.original.cuotasPagadas
+      const total = row.getValue("cantidadCuotas") as number
+      const porcentaje = Math.round((pagadas / total) * 100)
+      
+      return (
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{pagadas}/{total}</span>
+          <Badge variant={pagadas === total ? "success" : "secondary"} className="text-xs">
+            {porcentaje}%
+          </Badge>
+        </div>
+      )
     },
   },
   {
-    accessorKey: "motivo",
+    accessorKey: "nombreMotivo",
     header: "Motivo",
     enableHiding: true,
     cell: ({ row }) => {
-      return <div>{row.getValue("motivo")}</div>
+      return <div>{row.getValue("nombreMotivo")}</div>
     },
   },
   {
-    accessorKey: "vencimiento",
-    header: "Vencimiento",
+    accessorKey: "nombreComercio",
+    header: "Comercio",
     enableHiding: true,
     cell: ({ row }) => {
-      return <div className="text-muted-foreground">{row.getValue("vencimiento")}</div>
+      const comercio = row.getValue("nombreComercio") as string | undefined
+      return <div className="text-muted-foreground">{comercio || '-'}</div>
     },
   },
   {
-    accessorKey: "monto",
+    accessorKey: "montoTotal",
     header: () => <div className="text-right">Monto</div>,
     enableHiding: true,
     cell: ({ row }) => {
-      const monto = parseFloat(row.getValue("monto"))
+      const monto = parseFloat(row.getValue("montoTotal"))
       return (
         <div className="text-right font-semibold">
           {formatCurrency(monto)}
@@ -60,11 +60,60 @@ export const columns: ColumnDef<Payment>[] = [
 ]
 
 export function UpcomingPayments() {
+  const { currentWorkspace, loadComprasPendientes } = useAppStore()
+  const [compras, setCompras] = useState<CompraCreditoDTOResponse[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchCompras = async () => {
+      if (!currentWorkspace?.id) {
+        setCompras([])
+        setLoading(false)
+        setError(null)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await loadComprasPendientes(currentWorkspace.id)
+        setCompras(data)
+      } catch (err) {
+        console.error('Error al cargar compras pendientes:', err)
+        setError('Error al cargar las compras pendientes')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCompras()
+  }, [currentWorkspace?.id, loadComprasPendientes])
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+        <p className="text-sm text-destructive">{error}</p>
+      </div>
+    )
+  }
+
   return (
     <DataTable 
       columns={columns} 
-      data={payments}
-      title="Próximas cuotas"
+      data={compras}
+      title="Compras con cuotas pendientes"
       pageSize={6}
     />
   )

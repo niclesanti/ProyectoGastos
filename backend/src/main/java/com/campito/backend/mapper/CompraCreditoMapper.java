@@ -46,8 +46,14 @@ public interface CompraCreditoMapper {
      * @return DTO de respuesta con todos los datos de la compra a crédito
      */
     @Mapping(target = "espacioTrabajoId", source = "espacioTrabajo.id")
+    @Mapping(target = "nombreEspacioTrabajo", source = "espacioTrabajo.nombre")
     @Mapping(target = "motivoId", source = "motivo.id")
+    @Mapping(target = "nombreMotivo", source = "motivo.motivo")
     @Mapping(target = "comercioId", source = "comercio.id")
+    @Mapping(target = "nombreComercio", source = "comercio.nombre")
     @Mapping(target = "tarjetaId", source = "tarjeta.id")
+    @Mapping(target = "numeroTarjeta", source = "tarjeta.numeroTarjeta")
+    @Mapping(target = "entidadFinanciera", source = "tarjeta.entidadFinanciera")
+    @Mapping(target = "redDePago", source = "tarjeta.redDePago")
     CompraCreditoDTOResponse toResponse(CompraCredito compraCredito);
 }

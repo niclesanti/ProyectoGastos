@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useAppStore } from '@/store/app-store'
 import { useCuentasBancarias, useTransferenciaCuentas } from '@/features/selectors/api/selector-queries'
+import { useDashboardCache } from '@/hooks'
 import {
   Dialog,
   DialogContent,
@@ -88,6 +89,8 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
     }
   }, [open, form])
 
+  const { refreshBankAccounts } = useDashboardCache()
+
   // Manejar envío del formulario
   const onSubmit = async (data: TransferFormValues) => {
     try {
@@ -96,6 +99,9 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
         idCuentaDestino: parseInt(data.cuentaDestino),
         monto: parseFloat(data.monto),
       })
+      
+      // Actualizar el caché de cuentas bancarias
+      await refreshBankAccounts()
       
       toast.success('Transferencia realizada exitosamente')
       onOpenChange(false)

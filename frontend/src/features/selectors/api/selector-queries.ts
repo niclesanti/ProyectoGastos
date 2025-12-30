@@ -29,6 +29,18 @@ export const useCreateTransaccion = () => {
   })
 }
 
+export const useRemoverTransaccion = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: number) => transaccionService.removerTransaccion(id),
+    onSuccess: () => {
+      // Invalidar todas las queries relacionadas con transacciones
+      queryClient.invalidateQueries({ queryKey: ['transacciones'] })
+    },
+  })
+}
+
 export const useBuscarTransacciones = () => {
   return useMutation({
     mutationFn: (busqueda: TransaccionBusquedaDTO) => transaccionService.buscarTransacciones(busqueda),
