@@ -142,7 +142,7 @@ export function SpendingByCategory() {
                 <span className="text-sm font-medium capitalize">
                   {chartConfig[item.category as keyof typeof chartConfig]?.label}
                 </span>
-                <span className="text-xs text-muted-foreground">{item.value}%</span>
+                <span className="text-xs text-muted-foreground">{Number(item.value).toFixed(2)}%</span>
               </div>
             </div>
           ))}

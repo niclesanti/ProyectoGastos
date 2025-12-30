@@ -91,6 +91,39 @@
   }
 }
 
+/* Estilos personalizados para scrollbars - tema oscuro consistente */
+@layer base {
+  /* Para navegadores basados en Webkit (Chrome, Safari, Edge) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) hsl(var(--background));
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+    border-radius: 5px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 5px;
+    border: 2px solid hsl(var(--background));
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: hsl(var(--background));
+  }
+}
+
 @layer utilities {
   .tabular-nums {
     font-variant-numeric: tabular-nums;

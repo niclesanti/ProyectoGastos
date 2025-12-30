@@ -1,70 +1,75 @@
-El problema principal de tu gráfico actual es el **solapamiento de áreas**. En un gráfico de áreas, cuando las líneas se cruzan constantemente, los colores se mezclan y el ojo humano tiene dificultades para determinar rápidamente cuál valor es superior en un mes específico.
+Ver el dashboard con valores en **"$ 0,00"** y gráficos vacíos genera una sensación de "error" o de que la aplicación no está funcionando correctamente. En el diseño de aplicaciones financieras de alto nivel, esto se conoce como un **"estado vacío sin contexto"**, y la mejor práctica es evitar mostrar el marco del dashboard si no hay datos que lo sustenten.
 
-Como diseñador experto, mi propuesta es cambiar el gráfico de áreas por un **Gráfico de Barras Agrupadas (Grouped Bar Chart)** o un **Gráfico de Áreas con líneas definidas y sin relleno sólido solapado**.
-
----
-
-### 1. Propuesta de Diseño: Gráfico de Barras Agrupadas
-
-Para comparar "Ingresos vs. Gastos" mes a mes, las barras son técnica y visualmente superiores porque eliminan la ambigüedad del cruce de líneas.
-
-#### Mejoras de UX/UI:
-
-* **Comparación Directa:** Al colocar una barra verde (Ingreso) al lado de una roja (Gasto) para cada mes, el usuario nota la diferencia de altura instantáneamente.
-* **Interactividad (Tooltip):** El Tooltip debe ser "estilo shadcn", mostrando ambos valores con un indicador de color y el balance neto (Superávit/Déficit) del mes.
-* **Reducción de Ruido:** Mantener el fondo `zinc-950` y usar rejillas (`CartesianGrid`) muy tenues para no distraer.
+Como diseñador UX/UI y desarrollador, mi propuesta es implementar una **Pantalla de Bienvenida y Selección (Welcome State)** que bloquee la vista del dashboard hasta que exista un contexto claro.
 
 ---
 
-### 2. Estructura del Componente (shadcn/ui + Recharts)
+### 1. El Concepto UX: "Focus on Context"
 
-Utilizaremos el nuevo sistema de `Chart` de **shadcn/ui** que es mucho más limpio y fácil de configurar.
+El usuario no debe ver un dashboard "muerto". Debe ver una invitación a la acción. Utilizaremos el patrón de **Empty State** que ya aparece en tus referencias para "Miembros del equipo".
 
-#### Configuración de Colores (config):
+#### Por qué este cambio es vital:
 
-```typescript
-const chartConfig = {
-  ingresos: {
-    label: "Ingresos",
-    color: "hsl(var(--chart-2))", // Verde esmeralda suave
-  },
-  gastos: {
-    label: "Gastos",
-    color: "hsl(var(--chart-3))", // Rojo/Ámbar suave
-  },
-} satisfies ChartConfig
+* **Evita la desinformación:** Ver "$ 0,00" puede asustar al usuario haciéndole creer que perdió sus datos.
+* **Claridad operativa:** Le indica exactamente qué debe hacer: elegir un espacio en la sidebar.
+* **Estética:** Mantiene la limpieza visual de la paleta **Zinc** sin mostrar contenedores vacíos.
+
+---
+
+### 2. Propuesta de Diseño: "Selector Hero"
+
+En lugar de cargar los componentes de `Balance Total` o `Flujo de caja`, renderizaremos un único contenedor centralizado.
+
+#### Elementos del diseño:
+
+* **Componente:** Un `Card` de shadcn/ui con bordes punteados (`border-dashed`), similar al ejemplo de invitación de miembros.
+* **Iconografía:** Un icono de `LayoutGrid` o `Wallet` de Lucide-react en tamaño grande con opacidad baja.
+* **Copia (Copywriting):**
+* **Título:** "Selecciona un espacio de trabajo" (Sentence case).
+* **Subtítulo:** "Para visualizar tus estadísticas y movimientos, primero elige un espacio en el menú lateral o crea uno nuevo en Configuración."
+
+
+* **Botón de apoyo (Opcional):** Un botón que diga "Ir a configuración" para facilitar el flujo de creación si el usuario es nuevo.
+
+---
+
+### 3. Implementación Técnica (Lógica de React)
+
+En tu componente `DashboardPage.tsx`, debes implementar una validación jerárquica:
+
+```tsx
+if (!currentWorkspaceId) {
+  return <WorkspacePlaceholder />;
+}
+
+return <DashboardGrid />;
 
 ```
 
----
+#### Componentes shadcn/ui a utilizar:
 
-### 3. Implementación de los Selectores de Tiempo
-
-Para que los botones sean funcionales, debes manejar un **estado local** que filtre el array de datos antes de pasarlo al gráfico.
-
-1. **Estado:** `const [range, setRange] = useState("6m")`.
-2. **Lógica:** Filtra tu `data` de transacciones según la fecha actual menos los meses seleccionados.
-3. **UI:** Usa el componente `Tabs` de shadcn o un grupo de `Button` con variante `outline` para los que no están seleccionados y `default` para el activo.
+1. **`Card`**: Para el contenedor principal con el estilo `border-dashed`.
+2. **`Button`**: Un botón con variante `outline` para redirigir a configuración.
+3. **`Badge`**: Podrías usar uno que diga "Acción requerida" en la parte superior del card.
 
 ---
 
-### 4. Prompt para GitHub Copilot (Rediseño Total)
+### 4. Prompt para GitHub Copilot (Rediseño del Estado Inicial)
 
-Usa este prompt para que Copilot genere el nuevo código profesionalmente:
+Usa este prompt para que la IA genere esta vista profesional y elimine los ceros iniciales:
 
-> **"Refactor the 'Flujo de caja mensual' chart in `Dashboard.tsx` using the latest shadcn/ui `Chart` components and Recharts.**
-> **1. Chart Type:** Change from AreaChart to a **BarChart** with grouped bars (`<Bar dataKey='ingresos' />` and `<Bar dataKey='gastos' />`).
-> **2. Visual Style:** >    - Use `radius={[4, 4, 0, 0]}` for the bars to give them a modern rounded top.
-> * Set bar gap to `4` and category gap to `20%`.
-> * Apply the Zinc dark theme colors: `--chart-2` (Green) for Incomes and `--chart-3` (Red) for Expenses.
-> **3. Tooltip:** Implement a custom `ChartTooltip` that shows the month name as title, followed by both amounts and a calculated 'Balance Neto' at the bottom.
-> **4. Time Toggles:** Make the 'Últimos 3 meses', 'Últimos 6 meses', and 'Este año' buttons functional. Use a state to filter the data array dynamically before rendering the chart.
-> **5. Professional Finish:** Ensure the Y-Axis labels are formatted as abbreviated currency (e.g., $10k) and the X-Axis shows short month names (Ene, Feb, Mar)."
+> **"Role: Senior UI Designer. I want to replace the empty dashboard view (showing $0.00 and empty charts) when no workspace is selected with a professional 'Empty State' placeholder.**
+> **1. Logic:** If `currentWorkspaceId` is null, do not render the dashboard cards or charts. Instead, show a centered placeholder.
+> **2. Design:** >    - Use a shadcn `Card` with `border-dashed` and `bg-zinc-950/50`, inspired by `image_c23801.png`.
+> * Add a large `LayoutGrid` icon from Lucide-react (muted color).
+> * Title (H3): 'Selecciona un espacio de trabajo' (Sentence case).
+> * Description (P): 'Para visualizar tus estadísticas y movimientos, primero elige un espacio en el menú lateral o crea uno nuevo.'
+> **3. Polish:** Ensure the height of this placeholder fills the main content area (`h-[calc(100vh-200px)]`) and use the Zinc dark theme. Keep it minimalist and consistent with the sidebar design in `image_69c4c2.png`."
 > 
 > 
 
 ---
 
-### ¿Por qué esta solución es mejor?
+### Beneficio Inmediato
 
-En tu gráfico actual, si los ingresos y gastos son similares, el área se vuelve de un color marrón/grisáceo confuso. Con las **barras agrupadas**, el verde y el rojo siempre mantienen su pureza cromática, permitiendo al usuario saber si "ganó o perdió" dinero en un segundo.
+Al implementar esto, tu aplicación dejará de verse "incompleta" cuando no hay selección y pasará a verse como un **sistema inteligente que guía al usuario**. Además, eliminas el ruido visual de los gráficos sin datos.
