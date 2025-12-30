@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useAppStore } from '@/store/app-store'
+import { useDashboardCache } from '@/hooks'
 import { 
   useTarjetas, 
   useCuentasBancarias, 
@@ -214,6 +215,8 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
     .filter(c => selectedCuotas.has(c.id))
     .reduce((sum, cuota) => sum + cuota.montoCuota, 0)
 
+  const { refreshDashboard } = useDashboardCache()
+
   // Manejar envío del formulario principal
   const onSubmit = async (data: CardPaymentFormValues) => {
     if (selectedCuotas.size === 0) {
@@ -221,12 +224,16 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
       return
     }
 
+    // TODO: Implementar lógica de pago
     toast.info('Función no implementada aún.')
     console.log({
       ...data,
       cuotasSeleccionadas: Array.from(selectedCuotas),
       total,
     })
+    
+    // Cuando se implemente, agregar:
+    // await refreshDashboard()
   }
 
   // Manejar errores en el envío

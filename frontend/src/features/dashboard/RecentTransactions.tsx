@@ -13,163 +13,162 @@ import { formatCurrency } from '@/lib/utils'
 import { ArrowUpRight, ArrowDownRight, MoreHorizontal, Trash2, Eye, GripVertical } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/store/app-store'
-import type { Transaccion } from '@/types'
+import type { TransaccionDTOResponse } from '@/types'
 import { Skeleton } from '@/components/ui/skeleton'
-import { format, isToday, isYesterday, parseISO } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { format, parseISO } from 'date-fns'
+import { TransactionDetailsModal } from '@/components/TransactionDetailsModal'
 
 const formatFecha = (fechaString: string): string => {
   try {
     const fecha = parseISO(fechaString)
-    
-    if (isToday(fecha)) {
-      return `Hoy, ${format(fecha, 'HH:mm')}`
-    }
-    
-    if (isYesterday(fecha)) {
-      return `Ayer, ${format(fecha, 'HH:mm')}`
-    }
-    
-    return format(fecha, 'd MMM', { locale: es })
+    return format(fecha, 'dd/MM/yyyy')
   } catch {
     return fechaString
   }
 }
 
-export const columns: ColumnDef<Transaccion>[] = [
-  {
-    id: "drag",
-    header: "",
-    cell: () => (
-      <div className="cursor-grab active:cursor-grabbing">
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "tipo",
-    header: "Tipo",
-    enableHiding: true,
-    cell: ({ row }) => {
-      const tipo = row.getValue("tipo") as string
-      return (
-        <Badge
-          variant={tipo === 'INGRESO' ? 'success' : 'destructive'}
-          className="flex w-fit items-center gap-1"
-        >
-          {tipo === 'INGRESO' ? (
-            <ArrowUpRight className="h-3 w-3" />
-          ) : (
-            <ArrowDownRight className="h-3 w-3" />
-          )}
-          {tipo === 'INGRESO' ? 'Ingreso' : 'Gasto'}
-        </Badge>
-      )
-    },
-  },
-  {
-    accessorKey: "motivo",
-    header: "Motivo",
-    enableHiding: true,
-    cell: ({ row }) => {
-      const motivoNombre = row.original.motivo?.motivo || 'Sin motivo'
-      return <div className="font-medium">{motivoNombre}</div>
-    },
-  },
-  {
-    accessorKey: "cuentaBancaria",
-    header: "Cuenta",
-    enableHiding: true,
-    cell: ({ row }) => {
-      const cuentaNombre = row.original.cuentaBancaria?.nombre || 'Sin cuenta'
-      return <div className="text-muted-foreground text-sm">{cuentaNombre}</div>
-    },
-  },
-  {
-    accessorKey: "contacto",
-    header: "Contacto",
-    enableHiding: true,
-    cell: ({ row }) => {
-      const contactoNombre = row.original.contacto?.nombre || '-'
-      return <div className="text-muted-foreground text-sm">{contactoNombre}</div>
-    },
-  },
-  {
-    accessorKey: "fecha",
-    header: "Fecha",
-    enableHiding: true,
-    cell: ({ row }) => {
-      const fechaFormateada = formatFecha(row.getValue("fecha"))
-      return <div className="text-muted-foreground text-sm">{fechaFormateada}</div>
-    },
-  },
-  {
-    accessorKey: "monto",
-    header: () => <div className="text-right">Monto</div>,
-    enableHiding: true,
-    cell: ({ row }) => {
-      const monto = parseFloat(row.getValue("monto"))
-      const tipo = row.original.tipo
-      
-      return (
-        <div
-          className={`text-right font-mono font-semibold tabular-nums ${
-            tipo === 'INGRESO' ? 'text-emerald-400' : 'text-rose-400'
-          }`}
-        >
-          {tipo === 'INGRESO' ? '+' : ''}
-          {formatCurrency(monto)}
-        </div>
-      )
-    },
-  },
-  {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }) => {
-      const transaction = row.original
- 
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Abrir menú</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={() => {
-                console.log('Ver detalles:', transaction.id)
-              }}
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              Ver detalles
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => {
-                console.log('Eliminar transacción:', transaction.id)
-              }}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Eliminar
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
-    },
-  },
-]
-
 export function RecentTransactions() {
-  const { currentWorkspace, loadRecentTransactions } = useAppStore()
-  const [transactions, setTransactions] = useState<Transaccion[]>([])
+  const currentWorkspace = useAppStore((state) => state.currentWorkspace)
+  const loadRecentTransactions = useAppStore((state) => state.loadRecentTransactions)
+  const recentTransactionsCache = useAppStore((state) => state.recentTransactions)
+  
+  const [transactions, setTransactions] = useState<TransaccionDTOResponse[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedTransaction, setSelectedTransaction] = useState<TransaccionDTOResponse | null>(null)
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false)
+
+  const handleViewDetails = (transaction: TransaccionDTOResponse) => {
+    setSelectedTransaction(transaction)
+    setDetailsModalOpen(true)
+  }
+
+  const columns: ColumnDef<TransaccionDTOResponse>[] = [
+    {
+      id: "drag",
+      header: "",
+      cell: () => (
+        <div className="cursor-grab active:cursor-grabbing">
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "tipo",
+      header: "Tipo",
+      enableHiding: true,
+      cell: ({ row }) => {
+        const tipo = row.getValue("tipo") as string
+        return (
+          <Badge
+            variant={tipo === 'INGRESO' ? 'success' : 'destructive'}
+            className="flex w-fit items-center gap-1"
+          >
+            {tipo === 'INGRESO' ? (
+              <ArrowUpRight className="h-3 w-3" />
+            ) : (
+              <ArrowDownRight className="h-3 w-3" />
+            )}
+            {tipo === 'INGRESO' ? 'Ingreso' : 'Gasto'}
+          </Badge>
+        )
+      },
+    },
+    {
+      accessorKey: "nombreMotivo",
+      header: "Motivo",
+      enableHiding: true,
+      cell: ({ row }) => {
+        const motivoNombre = row.getValue("nombreMotivo") as string || 'Sin motivo'
+        return <div className="font-medium">{motivoNombre}</div>
+      },
+    },
+    {
+      accessorKey: "nombreCuentaBancaria",
+      header: "Cuenta",
+      enableHiding: true,
+      cell: ({ row }) => {
+        const cuentaNombre = row.getValue("nombreCuentaBancaria") as string || 'Sin cuenta'
+        return <div className="text-muted-foreground text-sm">{cuentaNombre}</div>
+      },
+    },
+    {
+      accessorKey: "nombreContacto",
+      header: "Contacto",
+      enableHiding: true,
+      cell: ({ row }) => {
+        const contactoNombre = row.getValue("nombreContacto") as string || '-'
+        return <div className="text-muted-foreground text-sm">{contactoNombre}</div>
+      },
+    },
+    {
+      accessorKey: "fecha",
+      header: "Fecha",
+      enableHiding: true,
+      cell: ({ row }) => {
+        const fechaFormateada = formatFecha(row.getValue("fecha"))
+        return <div className="text-muted-foreground text-sm">{fechaFormateada}</div>
+      },
+    },
+    {
+      accessorKey: "monto",
+      header: () => <div className="text-right">Monto</div>,
+      enableHiding: true,
+      cell: ({ row }) => {
+        const monto = parseFloat(row.getValue("monto"))
+        const tipo = row.original.tipo
+        
+        return (
+          <div
+            className={`text-right font-mono font-semibold tabular-nums ${
+              tipo === 'INGRESO' ? 'text-emerald-400' : 'text-rose-400'
+            }`}
+          >
+            {tipo === 'INGRESO' ? '+' : ''}
+            {formatCurrency(monto)}
+          </div>
+        )
+      },
+    },
+    {
+      id: "actions",
+      enableHiding: false,
+      cell: ({ row }) => {
+        const transaction = row.original
+   
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Abrir menú</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => handleViewDetails(transaction)}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Ver detalles
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  console.log('Eliminar transacción:', transaction.id)
+                }}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Eliminar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      },
+    },
+  ]
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -194,9 +193,9 @@ export function RecentTransactions() {
     }
 
     fetchTransactions()
-  }, [currentWorkspace?.id, loadRecentTransactions])
+  }, [currentWorkspace?.id, loadRecentTransactions, recentTransactionsCache])
 
-  const handleReorder = (newData: Transaccion[]) => {
+  const handleReorder = (newData: TransaccionDTOResponse[]) => {
     setTransactions(newData)
   }
 
@@ -223,11 +222,31 @@ export function RecentTransactions() {
   }
 
   return (
-    <DataTable 
-      columns={columns} 
-      data={transactions}
-      onReorder={handleReorder}
-      title="Actividad reciente"
-    />
+    <>
+      <DataTable 
+        columns={columns} 
+        data={transactions}
+        onReorder={handleReorder}
+        title="Actividad reciente"
+      />
+      
+      <TransactionDetailsModal
+        transaction={selectedTransaction ? {
+          id: selectedTransaction.id.toString(),
+          tipo: selectedTransaction.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto',
+          fecha: selectedTransaction.fecha,
+          motivo: selectedTransaction.nombreMotivo || 'Sin motivo',
+          contacto: selectedTransaction.nombreContacto || '-',
+          cuenta: selectedTransaction.nombreCuentaBancaria || 'Sin cuenta',
+          monto: selectedTransaction.monto,
+          descripcion: selectedTransaction.descripcion,
+          nombreEspacioTrabajo: selectedTransaction.nombreEspacioTrabajo,
+          nombreCompletoAuditoria: selectedTransaction.nombreCompletoAuditoria,
+          fechaCreacion: selectedTransaction.fechaCreacion
+        } : null}
+        open={detailsModalOpen}
+        onOpenChange={setDetailsModalOpen}
+      />
+    </>
   )
 }

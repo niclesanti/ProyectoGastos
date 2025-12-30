@@ -89,7 +89,7 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
     }
   }, [open, form])
 
-  const { refreshBankAccounts } = useDashboardCache()
+  const { refreshDashboard } = useDashboardCache()
 
   // Manejar envío del formulario
   const onSubmit = async (data: TransferFormValues) => {
@@ -100,8 +100,8 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
         monto: parseFloat(data.monto),
       })
       
-      // Actualizar el caché de cuentas bancarias
-      await refreshBankAccounts()
+      // Actualizar todo el dashboard incluyendo stats
+      await refreshDashboard()
       
       toast.success('Transferencia realizada exitosamente')
       onOpenChange(false)

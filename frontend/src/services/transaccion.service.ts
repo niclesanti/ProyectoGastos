@@ -6,6 +6,7 @@ import type {
   TransaccionBusquedaDTO,
   MotivoTransaccion,
   ContactoTransferencia,
+  DashboardStatsDTO,
 } from '@/types'
 
 export const transaccionService = {
@@ -14,8 +15,8 @@ export const transaccionService = {
     return data
   },
 
-  async buscarTransaccionesRecientes(idEspacio: number): Promise<Transaccion[]> {
-    const { data } = await apiClient.get<Transaccion[]>(`/transaccion/buscarRecientes/${idEspacio}`)
+  async buscarTransaccionesRecientes(idEspacio: number): Promise<TransaccionDTOResponse[]> {
+    const { data } = await apiClient.get<TransaccionDTOResponse[]>(`/transaccion/buscarRecientes/${idEspacio}`)
     return data
   },
 
@@ -35,6 +36,11 @@ export const transaccionService = {
 
   async listarContactos(idEspacioTrabajo: number): Promise<ContactoTransferencia[]> {
     const { data } = await apiClient.get<ContactoTransferencia[]>(`/transaccion/contacto/listar/${idEspacioTrabajo}`)
+    return data
+  },
+
+  async obtenerDashboardStats(idEspacio: number): Promise<DashboardStatsDTO> {
+    const { data } = await apiClient.get<DashboardStatsDTO>(`/transaccion/dashboard-stats/${idEspacio}`)
     return data
   },
 }

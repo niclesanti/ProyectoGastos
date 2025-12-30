@@ -23,5 +23,18 @@ public interface CuotaCreditoRepository extends JpaRepository<CuotaCredito, Long
         @Param("fechaFin") LocalDate fechaFin
     );
     
+    @Query("SELECT COALESCE(SUM(c.montoCuota), 0.0) FROM CuotaCredito c " +
+           "JOIN c.compraCredito cc " +
+           "WHERE cc.espacioTrabajo.id = :idEspacioTrabajo " +
+           "AND c.pagada = false " +
+           "AND c.fechaVencimiento <= :fechaLimite")
+    Float calcularResumenTarjeta(@Param("idEspacioTrabajo") Long idEspacioTrabajo, @Param("fechaLimite") LocalDate fechaLimite);
+    
+    @Query("SELECT COALESCE(SUM(c.montoCuota), 0.0) FROM CuotaCredito c " +
+           "JOIN c.compraCredito cc " +
+           "WHERE cc.espacioTrabajo.id = :idEspacioTrabajo " +
+           "AND c.pagada = false")
+    Float calcularDeudaTotalPendiente(@Param("idEspacioTrabajo") Long idEspacioTrabajo);
+    
     void deleteByCompraCredito_Id(Long idCompraCredito);
 }

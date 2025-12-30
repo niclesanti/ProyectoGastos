@@ -39,7 +39,10 @@ const columns: ColumnDef<CuentaBancaria>[] = [
 ]
 
 export function BankAccounts() {
-  const { currentWorkspace, loadBankAccounts } = useAppStore()
+  const currentWorkspace = useAppStore((state) => state.currentWorkspace)
+  const loadBankAccounts = useAppStore((state) => state.loadBankAccounts)
+  const bankAccountsCache = useAppStore((state) => state.bankAccounts)
+  
   const [accounts, setAccounts] = useState<CuentaBancaria[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -67,7 +70,7 @@ export function BankAccounts() {
     }
 
     fetchAccounts()
-  }, [currentWorkspace?.id, loadBankAccounts])
+  }, [currentWorkspace?.id, loadBankAccounts, bankAccountsCache])
 
   if (loading) {
     return (

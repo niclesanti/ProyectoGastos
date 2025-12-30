@@ -223,7 +223,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
     }
   }
 
-  const { refreshComprasPendientes } = useDashboardCache()
+  const { refreshDashboard } = useDashboardCache()
 
   // Manejar envío del formulario principal
   const onSubmit = async (data: CreditPurchaseFormValues) => {
@@ -244,8 +244,8 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
 
       await createCompraMutation.mutateAsync(compraData)
       
-      // Actualizar el caché de compras pendientes
-      await refreshComprasPendientes()
+      // Actualizar todo el dashboard incluyendo stats
+      await refreshDashboard()
       
       toast.success('Compra con crédito registrada exitosamente')
       onOpenChange(false)

@@ -202,6 +202,16 @@ export interface DashboardInfoDTO {
   saldoAcumuladoMes: SaldoAcumuladoMesDTO[]
 }
 
+// Dashboard Stats DTO (consolidado desde backend)
+export interface DashboardStatsDTO {
+  balanceTotal: number
+  gastosMensuales: number
+  resumenTarjeta: number
+  deudaTotalPendiente: number
+  flujoMensual: IngresosGastosMesDTO[]
+  distribucionGastos: DistribucionGastoDTO[]
+}
+
 // Estadísticas del Dashboard
 export interface DashboardStats {
   totalBalance: number

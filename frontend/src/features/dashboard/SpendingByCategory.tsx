@@ -9,6 +9,9 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import { useMemo } from 'react'
+import { useDashboardStats } from '@/hooks/useDashboardStats'
+import { Loader2 } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 
 // Función para generar colores con alta saturación similares al chart de flujo de caja
 const generateCategoryColor = (index: number, total: number): string => {
@@ -22,28 +25,25 @@ const generateCategoryColor = (index: number, total: number): string => {
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`
 }
 
-const chartData = [
-  { category: 'vivienda', value: 35 },
-  { category: 'transporte', value: 25 },
-  { category: 'alimentacion', value: 20 },
-  { category: 'ocio', value: 20 },
-]
-
-const categoryLabels: Record<string, string> = {
-  vivienda: 'Vivienda',
-  transporte: 'Transporte',
-  alimentacion: 'Alimentación',
-  ocio: 'Ocio',
-}
-
 export function SpendingByCategory() {
-  // Generar colores dinámicamente para cada categoría
+  const { stats, isLoading } = useDashboardStats()
+
+  const totalGastos = useMemo(() => {
+    return stats?.gastosMensuales || 0
+  }, [stats])
+
+  // Generar datos del chart desde el backend
   const chartDataWithColors = useMemo(() => {
-    return chartData.map((item, index) => ({
-      ...item,
-      fill: generateCategoryColor(index, chartData.length),
+    if (!stats?.distribucionGastos || stats.distribucionGastos.length === 0) {
+      return []
+    }
+    
+    return stats.distribucionGastos.map((item, index) => ({
+      category: item.motivo,
+      value: item.porcentaje,
+      fill: generateCategoryColor(index, stats.distribucionGastos.length),
     }))
-  }, [])
+  }, [stats])
 
   // Generar configuración dinámica para el chart
   const chartConfig = useMemo(() => {
@@ -55,7 +55,7 @@ export function SpendingByCategory() {
     
     chartDataWithColors.forEach((item) => {
       config[item.category] = {
-        label: categoryLabels[item.category] || item.category,
+        label: item.category,
         color: item.fill,
       }
     })
@@ -67,9 +67,20 @@ export function SpendingByCategory() {
     <Card className="flex flex-col">
       <CardHeader>
         <h2 className="text-xl font-semibold">Gastos por categoría</h2>
-        <p className="text-sm text-muted-foreground">Total $3,200 este mes</p>
+        <p className="text-sm text-muted-foreground">
+          Total {formatCurrency(totalGastos)} este mes
+        </p>
       </CardHeader>
       <CardContent className="flex-1 pb-6">
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[250px]">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : chartDataWithColors.length === 0 ? (
+          <div className="flex items-center justify-center min-h-[250px] text-muted-foreground">
+            No hay datos de gastos por categoría
+          </div>
+        ) : (
         <ChartContainer
           config={chartConfig}
           className="mx-auto aspect-square max-h-[250px]"
@@ -101,7 +112,7 @@ export function SpendingByCategory() {
                           y={viewBox.cy}
                           className="fill-foreground text-3xl font-bold"
                         >
-                          {chartData.length}
+                          {chartDataWithColors.length}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
@@ -118,7 +129,9 @@ export function SpendingByCategory() {
             </Pie>
           </PieChart>
         </ChartContainer>
-        <div className="mt-6 grid grid-cols-2 gap-4 px-2">
+        )}
+        {!isLoading && chartDataWithColors.length > 0 && (
+          <div className="mt-6 grid grid-cols-2 gap-4 px-2">
           {chartDataWithColors.map((item) => (
             <div key={item.category} className="flex items-center gap-2">
               <div
@@ -133,7 +146,8 @@ export function SpendingByCategory() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

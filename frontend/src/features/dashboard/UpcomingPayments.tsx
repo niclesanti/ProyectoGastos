@@ -60,7 +60,10 @@ const columns: ColumnDef<CompraCreditoDTOResponse>[] = [
 ]
 
 export function UpcomingPayments() {
-  const { currentWorkspace, loadComprasPendientes } = useAppStore()
+  const currentWorkspace = useAppStore((state) => state.currentWorkspace)
+  const loadComprasPendientes = useAppStore((state) => state.loadComprasPendientes)
+  const comprasPendientesCache = useAppStore((state) => state.comprasPendientes)
+  
   const [compras, setCompras] = useState<CompraCreditoDTOResponse[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -88,7 +91,7 @@ export function UpcomingPayments() {
     }
 
     fetchCompras()
-  }, [currentWorkspace?.id, loadComprasPendientes])
+  }, [currentWorkspace?.id, loadComprasPendientes, comprasPendientesCache])
 
   if (loading) {
     return (

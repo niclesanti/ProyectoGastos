@@ -5,6 +5,7 @@ import java.util.List;
 import com.campito.backend.dto.ContactoDTORequest;
 import com.campito.backend.dto.ContactoDTOResponse;
 import com.campito.backend.dto.DashboardInfoDTO;
+import com.campito.backend.dto.DashboardStatsDTO;
 import com.campito.backend.dto.MotivoDTORequest;
 import com.campito.backend.dto.MotivoDTOResponse;
 import com.campito.backend.dto.TransaccionBusquedaDTO;
@@ -21,4 +22,5 @@ public interface TransaccionService {
     public List<MotivoDTOResponse> listarMotivos(Long idEspacioTrabajo);
     public List<TransaccionDTOResponse> buscarTransaccionesRecientes(Long idEspacioTrabajo);
     public DashboardInfoDTO obtenerDashboardInfo(Long idEspacio);
+    public DashboardStatsDTO obtenerDashboardStats(Long idEspacio);
 }

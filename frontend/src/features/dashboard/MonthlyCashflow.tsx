@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import {
   ChartContainer,
   ChartTooltip,
@@ -11,28 +11,119 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from '@/components/ui/chart'
-
-const chartData = [
-  { month: 'Ene', ingresos: 4000, gastos: 2400 },
-  { month: 'Feb', ingresos: 3000, gastos: 1398 },
-  { month: 'Mar', ingresos: 5000, gastos: 3800 },
-  { month: 'Abr', ingresos: 4500, gastos: 3908 },
-  { month: 'May', ingresos: 6000, gastos: 4800 },
-  { month: 'Jun', ingresos: 5500, gastos: 3800 },
-]
+import { useDashboardStats } from '@/hooks/useDashboardStats'
+import { Loader2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { formatCurrency } from '@/lib/utils'
 
 const chartConfig = {
   ingresos: {
     label: 'Ingresos',
-    color: 'hsl(142, 76%, 36%)',
+    color: 'hsl(var(--chart-2))',
   },
   gastos: {
     label: 'Gastos',
-    color: 'hsl(0, 84%, 60%)',
+    color: 'hsl(var(--chart-3))',
   },
 } satisfies ChartConfig
 
+const monthMap: Record<string, string> = {
+  '01': 'Ene',
+  '02': 'Feb',
+  '03': 'Mar',
+  '04': 'Abr',
+  '05': 'May',
+  '06': 'Jun',
+  '07': 'Jul',
+  '08': 'Ago',
+  '09': 'Sep',
+  '10': 'Oct',
+  '11': 'Nov',
+  '12': 'Dic',
+}
+
 export function MonthlyCashflow() {
+  const { stats, isLoading } = useDashboardStats()
+  const [range, setRange] = useState<'3months' | '6months' | 'year'>('6months')
+
+  const chartData = useMemo(() => {
+    if (!stats?.flujoMensual) return []
+    
+    const allData = stats.flujoMensual.map((item) => {
+      const [year, month] = item.mes.split('-')
+      return {
+        month: monthMap[month] || item.mes,
+        fullDate: item.mes, // Guardamos la fecha completa para filtrar
+        ingresos: Number(item.ingresos),
+        gastos: Number(item.gastos),
+      }
+    })
+
+    // Filtrar según el rango seleccionado
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() + 1 // 0-indexed
+
+    let filtered = allData
+    if (range === '3months') {
+      filtered = allData.slice(-3)
+    } else if (range === '6months') {
+      filtered = allData.slice(-6)
+    } else if (range === 'year') {
+      // Filtrar solo datos del año actual
+      filtered = allData.filter(item => {
+        const [year] = item.fullDate.split('-')
+        return parseInt(year) === currentYear
+      })
+    }
+
+    return filtered
+  }, [stats, range])
+
+  // Función para formatear el eje Y con valores abreviados
+  const formatYAxis = (value: number) => {
+    if (value >= 1000000) {
+      return `$${(value / 1000000).toFixed(1)}M`
+    } else if (value >= 1000) {
+      return `$${(value / 1000).toFixed(0)}k`
+    }
+    return `$${value}`
+  }
+
+  // Tooltip personalizado
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload || payload.length === 0) return null
+
+    const ingresos = payload.find((p: any) => p.dataKey === 'ingresos')?.value || 0
+    const gastos = payload.find((p: any) => p.dataKey === 'gastos')?.value || 0
+    const balance = ingresos - gastos
+
+    return (
+      <div className="rounded-lg border bg-background p-3 shadow-md">
+        <p className="font-semibold mb-2">{payload[0].payload.month}</p>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(var(--chart-2))' }} />
+            <span className="text-sm text-muted-foreground">Ingresos:</span>
+            <span className="text-sm font-semibold ml-auto">{formatCurrency(ingresos)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(var(--chart-3))' }} />
+            <span className="text-sm text-muted-foreground">Gastos:</span>
+            <span className="text-sm font-semibold ml-auto">{formatCurrency(gastos)}</span>
+          </div>
+          <div className="pt-2 mt-2 border-t">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Balance Neto:</span>
+              <span className={`text-sm font-bold ${balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {balance >= 0 ? '+' : ''}{formatCurrency(balance)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
   return (
     <Card className="col-span-1 lg:col-span-2">
       <CardHeader>
@@ -41,7 +132,7 @@ export function MonthlyCashflow() {
             <h2 className="text-xl font-semibold">Flujo de caja mensual</h2>
             <p className="text-sm text-muted-foreground">Ingresos vs gastos</p>
           </div>
-          <Tabs defaultValue="6months" className="w-auto">
+          <Tabs value={range} onValueChange={(value) => setRange(value as any)} className="w-auto">
             <TabsList>
               <TabsTrigger value="3months">Últimos 3 meses</TabsTrigger>
               <TabsTrigger value="6months">Últimos 6 meses</TabsTrigger>
@@ -51,54 +142,43 @@ export function MonthlyCashflow() {
         </div>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="min-h-[350px] w-full">
-          <AreaChart accessibilityLayer data={chartData}>
-            <defs>
-              <linearGradient id="fillIngresos" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-ingresos)" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="var(--color-ingresos)" stopOpacity={0.1} />
-              </linearGradient>
-              <linearGradient id="fillGastos" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-gastos)" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="var(--color-gastos)" stopOpacity={0.1} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="month"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-            />
-            <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
-            <ChartLegend content={<ChartLegendContent />} />
-            <Area
-              dataKey="ingresos"
-              type="natural"
-              fill="url(#fillIngresos)"
-              fillOpacity={0.4}
-              stroke="var(--color-ingresos)"
-              strokeWidth={2.5}
-              stackId="a"
-            />
-            <Area
-              dataKey="gastos"
-              type="natural"
-              fill="url(#fillGastos)"
-              fillOpacity={0.4}
-              stroke="var(--color-gastos)"
-              strokeWidth={2.5}
-              stackId="a"
-            />
-          </AreaChart>
-        </ChartContainer>
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[350px]">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <ChartContainer config={chartConfig} className="min-h-[350px] w-full">
+            <BarChart accessibilityLayer data={chartData} barGap={4} barCategoryGap="20%">
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tickFormatter={formatYAxis}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+              />
+              <ChartTooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.1)' }} />
+              <ChartLegend content={<ChartLegendContent />} />
+              <Bar
+                dataKey="ingresos"
+                fill="hsl(var(--chart-2))"
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar
+                dataKey="gastos"
+                fill="hsl(var(--chart-3))"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ChartContainer>
+        )}
       </CardContent>
     </Card>
   )

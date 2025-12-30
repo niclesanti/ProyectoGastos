@@ -15,10 +15,12 @@ export function useDashboardCache() {
     invalidateRecentTransactions, 
     invalidateBankAccounts,
     invalidateComprasPendientes,
+    invalidateDashboardStats,
     invalidateDashboardCache,
     loadRecentTransactions,
     loadBankAccounts,
     loadComprasPendientes,
+    loadDashboardStats,
   } = useAppStore()
 
   /**
@@ -52,7 +54,17 @@ export function useDashboardCache() {
   }, [currentWorkspace?.id, invalidateComprasPendientes, loadComprasPendientes])
 
   /**
-   * Invalida y recarga todo el dashboard (transacciones, cuentas y compras)
+   * Invalida y recarga las estadísticas del dashboard (KPIs + charts)
+   */
+  const refreshDashboardStats = useCallback(async () => {
+    if (!currentWorkspace?.id) return
+
+    invalidateDashboardStats(currentWorkspace.id)
+    return await loadDashboardStats(currentWorkspace.id, true)
+  }, [currentWorkspace?.id, invalidateDashboardStats, loadDashboardStats])
+
+  /**
+   * Invalida y recarga todo el dashboard (transacciones, cuentas, compras y stats)
    */
   const refreshDashboard = useCallback(async () => {
     if (!currentWorkspace?.id) return
@@ -64,6 +76,7 @@ export function useDashboardCache() {
       loadRecentTransactions(currentWorkspace.id, true),
       loadBankAccounts(currentWorkspace.id, true),
       loadComprasPendientes(currentWorkspace.id, true),
+      loadDashboardStats(currentWorkspace.id, true),
     ])
   }, [
     currentWorkspace?.id,
@@ -71,6 +84,7 @@ export function useDashboardCache() {
     loadRecentTransactions,
     loadBankAccounts,
     loadComprasPendientes,
+    loadDashboardStats,
   ])
 
   /**
@@ -86,6 +100,7 @@ export function useDashboardCache() {
     refreshTransactions,
     refreshBankAccounts,
     refreshComprasPendientes,
+    refreshDashboardStats,
     refreshDashboard,
     invalidateCache,
   }

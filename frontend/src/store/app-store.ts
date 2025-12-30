@@ -1,11 +1,11 @@
 import { create } from 'zustand'
-import type { Usuario, EspacioTrabajo, CuentaBancaria, Transaccion, CompraCreditoDTOResponse } from '@/types'
+import type { Usuario, EspacioTrabajo, CuentaBancaria, TransaccionDTOResponse, CompraCreditoDTOResponse, DashboardStatsDTO } from '@/types'
 import { transaccionService } from '@/services/transaccion.service'
 import { cuentaBancariaService } from '@/services/cuenta-bancaria.service'
 import { compraCreditoService } from '@/services/compra-credito.service'
 
 interface DashboardCache {
-  data: Transaccion[]
+  data: TransaccionDTOResponse[]
   timestamp: number
 }
 
@@ -19,6 +19,11 @@ interface ComprasPendientesCache {
   timestamp: number
 }
 
+interface DashboardStatsCache {
+  data: DashboardStatsDTO
+  timestamp: number
+}
+
 interface AppState {
   user: Usuario | null
   currentWorkspace: EspacioTrabajo | null
@@ -28,6 +33,7 @@ interface AppState {
   recentTransactions: Map<number, DashboardCache>
   bankAccounts: Map<number, CuentasCache>
   comprasPendientes: Map<number, ComprasPendientesCache>
+  dashboardStats: Map<number, DashboardStatsCache>
   
   // Actions
   setUser: (user: Usuario | null) => void
@@ -35,12 +41,14 @@ interface AppState {
   setWorkspaces: (workspaces: EspacioTrabajo[]) => void
   
   // Dashboard actions with cache
-  loadRecentTransactions: (idEspacio: number, forceRefresh?: boolean) => Promise<Transaccion[]>
+  loadRecentTransactions: (idEspacio: number, forceRefresh?: boolean) => Promise<TransaccionDTOResponse[]>
   loadBankAccounts: (idEspacio: number, forceRefresh?: boolean) => Promise<CuentaBancaria[]>
   loadComprasPendientes: (idEspacio: number, forceRefresh?: boolean) => Promise<CompraCreditoDTOResponse[]>
+  loadDashboardStats: (idEspacio: number, forceRefresh?: boolean) => Promise<DashboardStatsDTO>
   invalidateRecentTransactions: (idEspacio: number) => void
   invalidateBankAccounts: (idEspacio: number) => void
   invalidateComprasPendientes: (idEspacio: number) => void
+  invalidateDashboardStats: (idEspacio: number) => void
   invalidateDashboardCache: (idEspacio: number) => void
 }
 
@@ -57,6 +65,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   recentTransactions: new Map(),
   bankAccounts: new Map(),
   comprasPendientes: new Map(),
+  dashboardStats: new Map(),
   
   setUser: (user) => set({ user }),
   setCurrentWorkspace: (workspace) => set({ currentWorkspace: workspace }),
@@ -152,9 +161,40 @@ export const useAppStore = create<AppState>((set, get) => ({
     })
   },
   
+  loadDashboardStats: async (idEspacio: number, forceRefresh = false) => {
+    const cache = get().dashboardStats.get(idEspacio)
+    
+    // Si existe caché válido y no se fuerza el refresh, retornar del caché
+    if (cache && isCacheValid(cache.timestamp) && !forceRefresh) {
+      return cache.data
+    }
+    
+    // Llamar a la API
+    const data = await transaccionService.obtenerDashboardStats(idEspacio)
+    
+    // Actualizar el caché
+    set((state) => ({
+      dashboardStats: new Map(state.dashboardStats).set(idEspacio, {
+        data,
+        timestamp: Date.now(),
+      }),
+    }))
+    
+    return data
+  },
+  
+  invalidateDashboardStats: (idEspacio: number) => {
+    set((state) => {
+      const newCache = new Map(state.dashboardStats)
+      newCache.delete(idEspacio)
+      return { dashboardStats: newCache }
+    })
+  },
+  
   invalidateDashboardCache: (idEspacio: number) => {
     get().invalidateRecentTransactions(idEspacio)
     get().invalidateBankAccounts(idEspacio)
     get().invalidateComprasPendientes(idEspacio)
+    get().invalidateDashboardStats(idEspacio)
   },
 }))
