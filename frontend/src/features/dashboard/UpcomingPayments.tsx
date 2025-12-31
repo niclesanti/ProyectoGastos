@@ -15,6 +15,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal, Eye, Trash2 } from 'lucide-react'
 import { CreditPurchaseDetailsModal } from '@/components/CreditPurchaseDetailsModal'
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
+import { useRemoverCompraCredito } from '@/features/selectors/api/selector-queries'
+import { toast } from 'sonner'
 
 export function UpcomingPayments() {
   const currentWorkspace = useAppStore((state) => state.currentWorkspace)
@@ -26,10 +29,43 @@ export function UpcomingPayments() {
   const [error, setError] = useState<string | null>(null)
   const [selectedPurchase, setSelectedPurchase] = useState<CompraCreditoDTOResponse | null>(null)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [purchaseToDelete, setPurchaseToDelete] = useState<CompraCreditoDTOResponse | null>(null)
+
+  const removerCompraCreditoMutation = useRemoverCompraCredito()
 
   const handleViewDetails = (purchase: CompraCreditoDTOResponse) => {
     setSelectedPurchase(purchase)
     setIsDetailsModalOpen(true)
+  }
+
+  const handleDeleteClick = (purchase: CompraCreditoDTOResponse) => {
+    if (purchase.cuotasPagadas > 0) {
+      toast.error('No se puede eliminar', {
+        description: 'No puedes eliminar una compra que ya tiene cuotas pagadas.',
+      })
+      return
+    }
+    setPurchaseToDelete(purchase)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleDeleteConfirm = () => {
+    if (!purchaseToDelete) return
+
+    removerCompraCreditoMutation.mutate(purchaseToDelete.id, {
+      onSuccess: () => {
+        toast.success('Compra eliminada', {
+          description: 'La compra a crédito ha sido eliminada correctamente.',
+        })
+      },
+      onError: (error: any) => {
+        console.error('Error al eliminar compra:', error)
+        toast.error('Error al eliminar', {
+          description: error?.response?.data?.message || 'No se pudo eliminar la compra. Intenta nuevamente.',
+        })
+      },
+    })
   }
 
   const columns: ColumnDef<CompraCreditoDTOResponse>[] = [
@@ -99,9 +135,13 @@ export function UpcomingPayments() {
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalles
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem 
+                onClick={() => handleDeleteClick(row.original)}
+                className="text-destructive focus:text-destructive"
+                disabled={removerCompraCreditoMutation.isPending || row.original.cuotasPagadas > 0}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Eliminar
+                {removerCompraCreditoMutation.isPending ? 'Eliminando...' : 'Eliminar'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -182,6 +222,15 @@ export function UpcomingPayments() {
         } : null}
         open={isDetailsModalOpen}
         onOpenChange={setIsDetailsModalOpen}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        onConfirm={handleDeleteConfirm}
+        title="¿Eliminar compra a crédito?"
+        description="Esta acción no se puede deshacer. La compra y todas sus cuotas serán eliminadas permanentemente del sistema."
+        isLoading={removerCompraCreditoMutation.isPending}
       />
     </>
   )

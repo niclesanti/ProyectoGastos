@@ -11,4 +11,8 @@ export const compraCreditoService = {
     const { data } = await apiClient.get<CompraCreditoDTOResponse[]>(`/comprascredito/pendientes/${idEspacioTrabajo}`)
     return data
   },
+
+  async removerCompraCredito(id: number): Promise<void> {
+    await apiClient.delete(`/comprascredito/${id}`)
+  },
 }

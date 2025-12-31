@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react'
 import { useAppStore } from '@/store/app-store'
-import { useBuscarTransacciones, useMotivosTransaccion, useContactosTransaccion } from '@/features/selectors/api/selector-queries'
+import { useBuscarTransacciones, useMotivosTransaccion, useContactosTransaccion, useRemoverTransaccion } from '@/features/selectors/api/selector-queries'
 import { toast } from 'sonner'
 import { TransactionDetailsModal } from '@/components/TransactionDetailsModal'
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -160,6 +161,7 @@ export function MovimientosPage() {
   
   // Hooks de TanStack Query
   const buscarTransaccionesMutation = useBuscarTransacciones()
+  const removerTransaccionMutation = useRemoverTransaccion()
   const { data: motivosData = [], isLoading: isLoadingMotivos } = useMotivosTransaccion(espacioActual?.id)
   const { data: contactosData = [], isLoading: isLoadingContactos } = useContactosTransaccion(espacioActual?.id)
   
@@ -170,6 +172,10 @@ export function MovimientosPage() {
   // Estado para el modal de detalles
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  
+  // Estado para el diálogo de confirmación de eliminación
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null)
   
   // Filtros
   const [mesSeleccionado, setMesSeleccionado] = useState('12')
@@ -307,6 +313,32 @@ export function MovimientosPage() {
     setIsDetailsModalOpen(true)
   }
 
+  // Handler para eliminar transacción
+  const handleDeleteClick = (transaction: Transaction) => {
+    setTransactionToDelete(transaction)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleDeleteConfirm = () => {
+    if (!transactionToDelete) return
+
+    removerTransaccionMutation.mutate(parseInt(transactionToDelete.id), {
+      onSuccess: () => {
+        toast.success('Transacción eliminada', {
+          description: 'La transacción ha sido eliminada correctamente.',
+        })
+        // Recargar la búsqueda actual
+        handleBuscar()
+      },
+      onError: (error: any) => {
+        console.error('Error al eliminar transacción:', error)
+        toast.error('Error al eliminar', {
+          description: error?.response?.data?.message || 'No se pudo eliminar la transacción. Intenta nuevamente.',
+        })
+      },
+    })
+  }
+
   // Sensores DnD
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -421,9 +453,13 @@ export function MovimientosPage() {
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalles
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem 
+                onClick={() => handleDeleteClick(row.original)}
+                className="text-destructive focus:text-destructive"
+                disabled={removerTransaccionMutation.isPending}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Eliminar
+                {removerTransaccionMutation.isPending ? 'Eliminando...' : 'Eliminar'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -801,6 +837,15 @@ export function MovimientosPage() {
         transaction={selectedTransaction}
         open={isDetailsModalOpen}
         onOpenChange={setIsDetailsModalOpen}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        onConfirm={handleDeleteConfirm}
+        title="¿Eliminar transacción?"
+        description="Esta acción no se puede deshacer. La transacción será eliminada permanentemente del sistema."
+        isLoading={removerTransaccionMutation.isPending}
       />
     </div>
   )

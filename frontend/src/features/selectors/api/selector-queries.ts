@@ -5,6 +5,7 @@ import { cuentaBancariaService } from '@/services/cuenta-bancaria.service'
 import { tarjetaService } from '@/services/tarjeta.service'
 import { transaccionService } from '@/services/transaccion.service'
 import { compraCreditoService } from '@/services/compra-credito.service'
+import { useAppStore } from '@/store/app-store'
 import type { 
   MotivoDTORequest, 
   ContactoDTORequest, 
@@ -31,12 +32,19 @@ export const useCreateTransaccion = () => {
 
 export const useRemoverTransaccion = () => {
   const queryClient = useQueryClient()
+  const currentWorkspace = useAppStore((state) => state.currentWorkspace)
+  const invalidateDashboardCache = useAppStore((state) => state.invalidateDashboardCache)
 
   return useMutation({
     mutationFn: (id: number) => transaccionService.removerTransaccion(id),
     onSuccess: () => {
       // Invalidar todas las queries relacionadas con transacciones
       queryClient.invalidateQueries({ queryKey: ['transacciones'] })
+      
+      // Invalidar el caché de Zustand para el dashboard
+      if (currentWorkspace?.id) {
+        invalidateDashboardCache(currentWorkspace.id)
+      }
     },
   })
 }
@@ -192,6 +200,26 @@ export const useCreateCompraCredito = () => {
       // Invalidar todas las queries relacionadas con compras y cuotas
       queryClient.invalidateQueries({ queryKey: ['compras'] })
       queryClient.invalidateQueries({ queryKey: ['cuotas'] })
+    },
+  })
+}
+
+export const useRemoverCompraCredito = () => {
+  const queryClient = useQueryClient()
+  const currentWorkspace = useAppStore((state) => state.currentWorkspace)
+  const invalidateDashboardCache = useAppStore((state) => state.invalidateDashboardCache)
+
+  return useMutation({
+    mutationFn: (id: number) => compraCreditoService.removerCompraCredito(id),
+    onSuccess: () => {
+      // Invalidar todas las queries relacionadas con compras y cuotas
+      queryClient.invalidateQueries({ queryKey: ['compras'] })
+      queryClient.invalidateQueries({ queryKey: ['cuotas'] })
+      
+      // Invalidar el caché de Zustand para el dashboard
+      if (currentWorkspace?.id) {
+        invalidateDashboardCache(currentWorkspace.id)
+      }
     },
   })
 }

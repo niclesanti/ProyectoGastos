@@ -17,6 +17,9 @@ import type { TransaccionDTOResponse } from '@/types'
 import { Skeleton } from '@/components/ui/skeleton'
 import { format, parseISO } from 'date-fns'
 import { TransactionDetailsModal } from '@/components/TransactionDetailsModal'
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
+import { useRemoverTransaccion } from '@/features/selectors/api/selector-queries'
+import { toast } from 'sonner'
 
 const formatFecha = (fechaString: string): string => {
   try {
@@ -37,10 +40,37 @@ export function RecentTransactions() {
   const [error, setError] = useState<string | null>(null)
   const [selectedTransaction, setSelectedTransaction] = useState<TransaccionDTOResponse | null>(null)
   const [detailsModalOpen, setDetailsModalOpen] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [transactionToDelete, setTransactionToDelete] = useState<TransaccionDTOResponse | null>(null)
+
+  const removerTransaccionMutation = useRemoverTransaccion()
 
   const handleViewDetails = (transaction: TransaccionDTOResponse) => {
     setSelectedTransaction(transaction)
     setDetailsModalOpen(true)
+  }
+
+  const handleDeleteClick = (transaction: TransaccionDTOResponse) => {
+    setTransactionToDelete(transaction)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleDeleteConfirm = () => {
+    if (!transactionToDelete) return
+
+    removerTransaccionMutation.mutate(transactionToDelete.id, {
+      onSuccess: () => {
+        toast.success('Transacción eliminada', {
+          description: 'La transacción ha sido eliminada correctamente.',
+        })
+      },
+      onError: (error: any) => {
+        console.error('Error al eliminar transacción:', error)
+        toast.error('Error al eliminar', {
+          description: error?.response?.data?.message || 'No se pudo eliminar la transacción. Intenta nuevamente.',
+        })
+      },
+    })
   }
 
   const columns: ColumnDef<TransaccionDTOResponse>[] = [
@@ -155,13 +185,12 @@ export function RecentTransactions() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => {
-                  console.log('Eliminar transacción:', transaction.id)
-                }}
+                onClick={() => handleDeleteClick(transaction)}
                 className="text-destructive focus:text-destructive"
+                disabled={removerTransaccionMutation.isPending}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Eliminar
+                {removerTransaccionMutation.isPending ? 'Eliminando...' : 'Eliminar'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -246,6 +275,15 @@ export function RecentTransactions() {
         } : null}
         open={detailsModalOpen}
         onOpenChange={setDetailsModalOpen}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        onConfirm={handleDeleteConfirm}
+        title="¿Eliminar transacción?"
+        description="Esta acción no se puede deshacer. La transacción será eliminada permanentemente del sistema."
+        isLoading={removerTransaccionMutation.isPending}
       />
     </>
   )
