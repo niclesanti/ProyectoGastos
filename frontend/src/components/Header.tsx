@@ -53,37 +53,16 @@ export function Header() {
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" size="icon">
                 <Bell className="h-5 w-5" />
-                <span className="absolute right-1 top-1 flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75"></span>
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive"></span>
-                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-80" align="end">
               <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium">Pago pendiente</p>
-                  <p className="text-xs text-muted-foreground">
-                    Netflix Subscription vence en 3 días
-                  </p>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium">Nuevo ingreso</p>
-                  <p className="text-xs text-muted-foreground">
-                    Se registró un ingreso de $4,200.00
-                  </p>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="justify-center text-sm">
-                Ver todas las notificaciones
-              </DropdownMenuItem>
+              <div className="py-6 text-center">
+                <p className="text-sm text-muted-foreground">No tienes notificaciones</p>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

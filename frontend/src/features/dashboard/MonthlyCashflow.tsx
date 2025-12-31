@@ -44,7 +44,7 @@ const monthMap: Record<string, string> = {
 
 export function MonthlyCashflow() {
   const { stats, isLoading } = useDashboardStats()
-  const [range, setRange] = useState<'3months' | '6months' | 'year'>('6months')
+  const [range, setRange] = useState<'3months' | '6months' | '12months'>('6months')
 
   const chartData = useMemo(() => {
     if (!stats?.flujoMensual) return []
@@ -53,28 +53,21 @@ export function MonthlyCashflow() {
       const [year, month] = item.mes.split('-')
       return {
         month: monthMap[month] || item.mes,
-        fullDate: item.mes, // Guardamos la fecha completa para filtrar
+        fullDate: item.mes,
         ingresos: Number(item.ingresos),
         gastos: Number(item.gastos),
       }
     })
 
     // Filtrar según el rango seleccionado
-    const now = new Date()
-    const currentYear = now.getFullYear()
-    const currentMonth = now.getMonth() + 1 // 0-indexed
-
     let filtered = allData
     if (range === '3months') {
       filtered = allData.slice(-3)
     } else if (range === '6months') {
       filtered = allData.slice(-6)
-    } else if (range === 'year') {
-      // Filtrar solo datos del año actual
-      filtered = allData.filter(item => {
-        const [year] = item.fullDate.split('-')
-        return parseInt(year) === currentYear
-      })
+    } else if (range === '12months') {
+      // Mostrar los últimos 12 meses
+      filtered = allData.slice(-12)
     }
 
     return filtered
@@ -136,7 +129,7 @@ export function MonthlyCashflow() {
             <TabsList>
               <TabsTrigger value="3months">Últimos 3 meses</TabsTrigger>
               <TabsTrigger value="6months">Últimos 6 meses</TabsTrigger>
-              <TabsTrigger value="year">Este año</TabsTrigger>
+              <TabsTrigger value="12months">Último año</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>

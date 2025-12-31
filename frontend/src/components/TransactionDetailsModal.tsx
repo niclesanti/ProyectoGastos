@@ -17,7 +17,7 @@ import {
   Copy,
   CheckCircle2,
 } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
@@ -127,7 +127,7 @@ export function TransactionDetailsModal({
                   <span>Fecha</span>
                 </div>
                 <p className="text-sm font-medium">
-                  {format(new Date(transaction.fecha), "dd 'de' MMMM 'de' yyyy", { locale: es })}
+                  {format(parseISO(transaction.fecha), "dd 'de' MMMM 'de' yyyy", { locale: es })}
                 </p>
               </div>
 
@@ -168,7 +168,7 @@ export function TransactionDetailsModal({
                 <div className="space-y-0.5 flex-1">
                   <p>Espacio: <span className="font-medium text-foreground">{transaction.nombreEspacioTrabajo}</span></p>
                   <p>Registrado por: <span className="font-medium text-foreground">{transaction.nombreCompletoAuditoria}</span></p>
-                  <p>Fecha creación: <span className="font-medium text-foreground">{format(new Date(transaction.fechaCreacion), "dd/MM/yyyy HH:mm", { locale: es })}</span></p>
+                  <p>Fecha creación: <span className="font-medium text-foreground">{format(parseISO(transaction.fechaCreacion), "dd/MM/yyyy HH:mm", { locale: es })}</span></p>
                   <p className="pt-1">ID: <span className="font-mono">{transaction.id}</span></p>
                 </div>
                 <Button

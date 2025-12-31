@@ -19,7 +19,7 @@ const columns: ColumnDef<CompraCreditoDTOResponse>[] = [
       
       return (
         <div className="flex items-center gap-2">
-          <span className="font-medium">{pagadas}/{total}</span>
+          <span className="font-medium">{total}/{pagadas}</span>
           <Badge variant={pagadas === total ? "success" : "secondary"} className="text-xs">
             {porcentaje}%
           </Badge>

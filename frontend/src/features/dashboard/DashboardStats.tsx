@@ -86,7 +86,7 @@ export function DashboardStats() {
         isLoading={isLoading}
       />
       <StatsCard
-        title="Próximo vencimiento"
+        title="Resumen mensual tarjeta"
         value={stats?.resumenTarjeta || 0}
         description="Vence fin de mes"
         icon={<CreditCard className="h-4 w-4" />}

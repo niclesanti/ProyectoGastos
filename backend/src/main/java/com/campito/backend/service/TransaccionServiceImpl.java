@@ -520,14 +520,14 @@ public class TransaccionServiceImpl implements TransaccionService {
             // 4. Deuda total pendiente (todas las cuotas impagadas)
             Float deudaTotalPendiente = cuotaCreditoRepository.calcularDeudaTotalPendiente(idEspacio);
 
-            // 5. Flujo mensual (últimos 6 meses)
-            LocalDate fechaLimite = now.minusMonths(6);
+            // 5. Flujo mensual (últimos 12 meses)
+            LocalDate fechaLimite = now.minusMonths(12);
             List<IngresosGastosMesDTO> flujoMensual = dashboardRepository.findIngresosVsGastos(idEspacio, fechaLimite);
             
             // Completar meses faltantes con valores en cero
             java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM");
             List<String> ultimosMeses = new java.util.ArrayList<>();
-            for (int i = 5; i >= 0; i--) {
+            for (int i = 11; i >= 0; i--) {
                 ultimosMeses.add(now.minusMonths(i).format(formatter));
             }
             
@@ -542,7 +542,7 @@ public class TransaccionServiceImpl implements TransaccionService {
                     new com.campito.backend.dto.IngresosGastosMesDTOImpl(mes, BigDecimal.ZERO, BigDecimal.ZERO)));
             }
 
-            // 6. Distribución de gastos por motivo (últimos 6 meses)
+            // 6. Distribución de gastos por motivo (últimos 12 meses)
             List<DistribucionGastoDTO> distribucionGastos = dashboardRepository.findDistribucionGastos(idEspacio, fechaLimite);
 
             DashboardStatsDTO stats = new DashboardStatsDTO(
