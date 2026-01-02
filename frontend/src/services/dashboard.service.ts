@@ -1,9 +1,9 @@
 import { api } from './api'
-import type { DashboardInfoDTO } from '@/types'
+import type { DashboardStatsDTO } from '@/types'
 
 export const dashboardService = {
-  async getDashboardInfo(espacioTrabajoId: number): Promise<DashboardInfoDTO> {
-    return api.get<DashboardInfoDTO>(`/transacciones/dashboard/${espacioTrabajoId}`)
+  async getDashboardStats(espacioTrabajoId: number): Promise<DashboardStatsDTO> {
+    return api.get<DashboardStatsDTO>(`/transaccion/dashboard-stats/${espacioTrabajoId}`)
   },
 
   async getSaldoActual(espacioTrabajoId: number): Promise<number> {

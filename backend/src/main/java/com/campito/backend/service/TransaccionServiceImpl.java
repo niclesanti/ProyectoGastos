@@ -21,13 +21,11 @@ import com.campito.backend.dao.MotivoTransaccionRepository;
 import com.campito.backend.dao.TransaccionRepository;
 import com.campito.backend.dto.ContactoDTORequest;
 import com.campito.backend.dto.ContactoDTOResponse;
-import com.campito.backend.dto.DashboardInfoDTO;
 import com.campito.backend.dto.DashboardStatsDTO;
 import com.campito.backend.dto.DistribucionGastoDTO;
 import com.campito.backend.dto.IngresosGastosMesDTO;
 import com.campito.backend.dto.MotivoDTORequest;
 import com.campito.backend.dto.MotivoDTOResponse;
-import com.campito.backend.dto.SaldoAcumuladoMesDTO;
 import com.campito.backend.dto.TransaccionBusquedaDTO;
 import com.campito.backend.dto.TransaccionDTORequest;
 import com.campito.backend.dto.TransaccionDTOResponse;
@@ -431,60 +429,6 @@ public class TransaccionServiceImpl implements TransaccionService {
                 .toList();
         } catch (Exception e) {
             logger.error("Error inesperado al buscar transacciones recientes para el espacio ID {}: {}", idEspacioTrabajo, e.getMessage(), e);
-            throw e;
-        }
-    }
-
-    /**
-     * Obtiene información consolidada del dashboard para un espacio de trabajo.
-     * 
-     * @param idEspacio ID del espacio de trabajo.
-     * @return DTO con información de ingresos/gastos, distribución de gastos y saldos acumulados.
-     * @throws Exception para cualquier error inesperado.
-     */
-    @Override
-    public DashboardInfoDTO obtenerDashboardInfo(Long idEspacio) {
-        logger.info("Obteniendo informacion del dashboard para el espacio ID: {}", idEspacio);
-        try {
-            LocalDate fechaLimite = LocalDate.now().minusMonths(6);
-
-            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM");
-            List<String> ultimosMeses = new java.util.ArrayList<>();
-            LocalDate actual = LocalDate.now();
-            for (int i = 5; i >= 0; i--) {
-                ultimosMeses.add(actual.minusMonths(i).format(formatter));
-            }
-
-            List<IngresosGastosMesDTO> ingresosGastosMes = dashboardRepository.findIngresosVsGastos(idEspacio, fechaLimite);
-            java.util.Map<String, IngresosGastosMesDTO> mapIngresosGastos = new java.util.HashMap<>();
-            for (IngresosGastosMesDTO dto : ingresosGastosMes) {
-                mapIngresosGastos.put(dto.getMes(), dto);
-            }
-            List<IngresosGastosMesDTO> ingresosGastosMesCompletos = new java.util.ArrayList<>();
-            for (String mes : ultimosMeses) {
-                ingresosGastosMesCompletos.add(mapIngresosGastos.getOrDefault(mes, new com.campito.backend.dto.IngresosGastosMesDTOImpl(mes, BigDecimal.ZERO, BigDecimal.ZERO)));
-            }
-
-            List<SaldoAcumuladoMesDTO> saldosAcumulados = dashboardRepository.findSaldosAcumulados(idEspacio, fechaLimite);
-            java.util.Map<String, SaldoAcumuladoMesDTO> mapSaldos = new java.util.HashMap<>();
-            for (SaldoAcumuladoMesDTO dto : saldosAcumulados) {
-                mapSaldos.put(dto.getMes(), dto);
-            }
-            List<SaldoAcumuladoMesDTO> saldosAcumuladosCompletos = new java.util.ArrayList<>();
-            for (String mes : ultimosMeses) {
-                saldosAcumuladosCompletos.add(mapSaldos.getOrDefault(mes, new com.campito.backend.dto.SaldoAcumuladoMesDTOImpl(mes, BigDecimal.ZERO)));
-            }
-
-            List<DistribucionGastoDTO> distribucionGastos = dashboardRepository.findDistribucionGastos(idEspacio, fechaLimite);
-
-            logger.info("Informacion del dashboard para el espacio ID {} generada exitosamente.", idEspacio);
-            return new DashboardInfoDTO(
-                ingresosGastosMesCompletos,
-                distribucionGastos,
-                saldosAcumuladosCompletos
-            );
-        } catch (Exception e) {
-            logger.error("Error inesperado al obtener informacion del dashboard para el espacio ID {}: {}", idEspacio, e.getMessage(), e);
             throw e;
         }
     }
