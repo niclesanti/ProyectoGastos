@@ -16,6 +16,7 @@ import com.campito.backend.dto.CompraCreditoDTORequest;
 import com.campito.backend.dto.CompraCreditoDTOResponse;
 import com.campito.backend.dto.CuotaCreditoDTOResponse;
 import com.campito.backend.dto.PagarResumenTarjetaRequest;
+import com.campito.backend.dto.ResumenDTOResponse;
 import com.campito.backend.dto.TarjetaDTORequest;
 import com.campito.backend.dto.TarjetaDTOResponse;
 import com.campito.backend.service.CompraCreditoService;
@@ -142,15 +143,42 @@ public class ComprasCreditoController {
     }
 
     @Operation(summary = "Pagar resumen de tarjeta",
-                description = "Registra el pago de un resumen de tarjeta, marcando las cuotas como pagadas y registrando la transacción.",
+                description = "Registra el pago de un resumen de tarjeta, marcando todas las cuotas asociadas como pagadas y registrando la transacción.",
                 responses = {
                     @ApiResponse(responseCode = "200", description = "Resumen de tarjeta pagado correctamente"),
                     @ApiResponse(responseCode = "400", description = "Error al pagar el resumen de tarjeta"),
+                    @ApiResponse(responseCode = "404", description = "Resumen no encontrado"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/pagar-resumen")
     public ResponseEntity<Void> pagarResumenTarjeta(@Valid @RequestBody PagarResumenTarjetaRequest request) {
-        comprasCreditoService.pagarResumenTarjeta(request.cuotas(), request.transaccion());
+        comprasCreditoService.pagarResumenTarjeta(request.idResumen(), request.transaccion());
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @Operation(summary = "Listar resúmenes por tarjeta",
+                description = "Obtiene todos los resúmenes de una tarjeta específica ordenados por fecha descendente.",
+                responses = {
+                    @ApiResponse(responseCode = "200", description = "Lista de resúmenes obtenida correctamente"),
+                    @ApiResponse(responseCode = "400", description = "Error al obtener los resúmenes"),
+                    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+                })
+    @GetMapping("/resumenes/tarjeta/{idTarjeta}")
+    public ResponseEntity<List<ResumenDTOResponse>> listarResumenesPorTarjeta(@PathVariable Long idTarjeta) {
+        List<ResumenDTOResponse> resumenes = comprasCreditoService.listarResumenesPorTarjeta(idTarjeta);
+        return new ResponseEntity<>(resumenes, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Listar resúmenes por espacio de trabajo",
+                description = "Obtiene todos los resúmenes de un espacio de trabajo ordenados por fecha descendente.",
+                responses = {
+                    @ApiResponse(responseCode = "200", description = "Lista de resúmenes obtenida correctamente"),
+                    @ApiResponse(responseCode = "400", description = "Error al obtener los resúmenes"),
+                    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+                })
+    @GetMapping("/resumenes/espacio/{idEspacioTrabajo}")
+    public ResponseEntity<List<ResumenDTOResponse>> listarResumenesPorEspacioTrabajo(@PathVariable Long idEspacioTrabajo) {
+        List<ResumenDTOResponse> resumenes = comprasCreditoService.listarResumenesPorEspacioTrabajo(idEspacioTrabajo);
+        return new ResponseEntity<>(resumenes, HttpStatus.OK);
     }
 }

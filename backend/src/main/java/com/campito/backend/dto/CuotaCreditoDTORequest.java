@@ -21,7 +21,7 @@ public record CuotaCreditoDTORequest(
     Float montoCuota,
     @NotNull(message = "El ID de la compra de crédito no puede ser nulo")
     Long idCompraCredito,
-    Long idTransaccionAsociada
+    Long idResumenAsociado
 ) {
 
 }

@@ -31,7 +31,7 @@ public interface CuotaCreditoMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "pagada", constant = "false")
     @Mapping(target = "compraCredito", ignore = true)
-    @Mapping(target = "transaccionAsociada", ignore = true)
+    @Mapping(target = "resumenAsociado", ignore = true)
     CuotaCredito toEntity(CuotaCreditoDTORequest request);
 
     /**
@@ -43,6 +43,6 @@ public interface CuotaCreditoMapper {
      * @return DTO de respuesta con todos los datos de la cuota de crédito
      */
     @Mapping(target = "idCompraCredito", source = "compraCredito.id")
-    @Mapping(target = "idTransaccionAsociada", source = "transaccionAsociada.id")
+    @Mapping(target = "idResumenAsociado", source = "resumenAsociado.id")
     CuotaCreditoDTOResponse toResponse(CuotaCredito cuotaCredito);
 }
