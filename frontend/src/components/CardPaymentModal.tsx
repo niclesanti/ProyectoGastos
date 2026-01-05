@@ -1,16 +1,18 @@
 ﻿"use client"
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useAppStore } from '@/store/app-store'
+import { useAuth } from '@/contexts/AuthContext'
 import { useDashboardCache } from '@/hooks'
 import { 
   useTarjetas, 
   useCuentasBancarias, 
-  useCuotasTarjeta,
-  useCreateCuentaBancaria 
+  useResumenesTarjeta,
+  useCreateCuentaBancaria,
+  usePagarResumenTarjeta
 } from '@/features/selectors/api/selector-queries'
 import {
   Dialog,
@@ -58,7 +60,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Checkbox } from '@/components/ui/checkbox'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { ChevronDown, ChevronUp } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 const ENTIDADES_FINANCIERAS = [
   'Banco Credicoop',
@@ -93,6 +97,7 @@ const newCuentaSchema = z.object({
 // Esquema de validación principal
 const cardPaymentFormSchema = z.object({
   tarjeta: z.string().min(1, { message: "Por favor, selecciona una tarjeta de crédito." }),
+  resumen: z.string().min(1, { message: "Debes seleccionar un resumen pendiente." }),
   fecha: z.date().refine((date) => date <= new Date(), {
     message: "La fecha no puede ser futura.",
   }),
@@ -108,21 +113,24 @@ interface CardPaymentModalProps {
 
 export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) {
   const currentWorkspace = useAppStore((state) => state.currentWorkspace)
+  const { user } = useAuth()
+  const { refreshDashboard } = useDashboardCache()
   
   // Cargar datos con TanStack Query
   const { data: tarjetas = [], isLoading: loadingTarjetas } = useTarjetas(currentWorkspace?.id)
   const { data: cuentas = [], isLoading: loadingCuentas } = useCuentasBancarias(currentWorkspace?.id)
   
-  // Estados para cuotas y tarjeta seleccionada
+  // Estados para resúmenes y tarjeta seleccionada
   const [selectedTarjetaId, setSelectedTarjetaId] = useState<number | undefined>()
-  const { data: cuotas = [], isLoading: loadingCuotas } = useCuotasTarjeta(selectedTarjetaId)
+  const { data: resumenes = [], isLoading: loadingResumenes } = useResumenesTarjeta(selectedTarjetaId)
   
-  // Mutation para crear cuenta
+  // Mutations
   const createCuentaMutation = useCreateCuentaBancaria()
+  const pagarResumenMutation = usePagarResumenTarjeta()
 
   // Estados para mostrar/ocultar formularios de creación
   const [showNewCuenta, setShowNewCuenta] = useState(false)
-  const [selectedCuotas, setSelectedCuotas] = useState<Set<number>>(new Set())
+  const [expandedResumen, setExpandedResumen] = useState<number | null>(null)
 
   // Formulario para nueva cuenta
   const newCuentaForm = useForm<z.infer<typeof newCuentaSchema>>({
@@ -135,6 +143,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
     resolver: zodResolver(cardPaymentFormSchema),
     defaultValues: {
       tarjeta: '',
+      resumen: '',
       fecha: new Date(),
       cuenta: 'none',
     },
@@ -145,11 +154,12 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
     if (open) {
       form.reset({
         tarjeta: '',
+        resumen: '',
         fecha: new Date(),
         cuenta: 'none',
       })
       setShowNewCuenta(false)
-      setSelectedCuotas(new Set())
+      setExpandedResumen(null)
       setSelectedTarjetaId(undefined)
       newCuentaForm.reset()
     }
@@ -158,8 +168,9 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
   // Manejar cambio de tarjeta
   const handleTarjetaChange = (value: string) => {
     form.setValue('tarjeta', value)
+    form.setValue('resumen', '') // Resetear resumen seleccionado
     setSelectedTarjetaId(parseInt(value))
-    setSelectedCuotas(new Set())
+    setExpandedResumen(null)
   }
 
   // Manejar guardado de nueva cuenta
@@ -197,43 +208,84 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
     }
   }
 
-  // Manejar selección de cuotas
-  const toggleCuota = (cuotaId: number) => {
-    setSelectedCuotas(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(cuotaId)) {
-        newSet.delete(cuotaId)
-      } else {
-        newSet.add(cuotaId)
-      }
-      return newSet
-    })
+  // Obtener resumen seleccionado
+  const resumenSeleccionado = resumenes.find(r => r.id.toString() === form.watch('resumen'))
+
+  // Obtener cuenta seleccionada
+  const cuentaId = form.watch('cuenta')
+  const cuentaSeleccionada = cuentaId && cuentaId !== 'none' ? cuentas.find(c => c.id.toString() === cuentaId) : null
+
+  // const { refreshDashboard } = useDashboardCache() // Para usar cuando se implemente el pago
+
+  // Función para obtener el estilo del badge según el estado
+  const getEstadoBadge = (estado: string, fechaVencimiento: string) => {
+    const hoy = new Date()
+    const vencimiento = new Date(fechaVencimiento)
+    
+    if (estado === 'PAGADO') {
+      return { variant: 'default' as const, text: 'Pagado' }
+    }
+    if (estado === 'VENCIDO' || vencimiento < hoy) {
+      return { variant: 'destructive' as const, text: 'Vencido' }
+    }
+    return { variant: 'secondary' as const, text: 'Pendiente' }
   }
-
-  // Calcular total de cuotas seleccionadas
-  const total = cuotas
-    .filter(c => selectedCuotas.has(c.id))
-    .reduce((sum, cuota) => sum + cuota.montoCuota, 0)
-
-  const { refreshDashboard } = useDashboardCache()
 
   // Manejar envío del formulario principal
   const onSubmit = async (data: CardPaymentFormValues) => {
-    if (selectedCuotas.size === 0) {
-      toast.error('Debes seleccionar al menos una cuota para pagar.')
+    if (!currentWorkspace || !user) {
+      toast.error('Error: No hay usuario o espacio de trabajo activo')
       return
     }
 
-    // TODO: Implementar lógica de pago
-    toast.info('Función no implementada aún.')
-    console.log({
-      ...data,
-      cuotasSeleccionadas: Array.from(selectedCuotas),
-      total,
-    })
-    
-    // Cuando se implemente, agregar:
-    // await refreshDashboard()
+    if (!resumenSeleccionado) {
+      toast.error('Debes seleccionar un resumen para pagar.')
+      return
+    }
+
+    // Validar saldo de cuenta si se especificó
+    if (cuentaSeleccionada) {
+      if (cuentaSeleccionada.saldoActual < resumenSeleccionado.montoTotal) {
+        toast.error(
+          `Saldo insuficiente. Disponible: $${cuentaSeleccionada.saldoActual.toFixed(2)}, necesitas: $${resumenSeleccionado.montoTotal.toFixed(2)}`
+        )
+        return
+      }
+    }
+
+    try {
+      const pagoRequest = {
+        idResumen: resumenSeleccionado.id,
+        fecha: format(data.fecha, 'yyyy-MM-dd'),
+        monto: resumenSeleccionado.montoTotal,
+        nombreCompletoAuditoria: user.nombre,
+        idEspacioTrabajo: currentWorkspace.id,
+        idCuentaBancaria: data.cuenta && data.cuenta !== 'none' ? parseInt(data.cuenta) : undefined,
+      }
+
+      await pagarResumenMutation.mutateAsync(pagoRequest)
+      
+      // Actualizar el caché del dashboard
+      await refreshDashboard()
+      
+      toast.success(
+        `Resumen pagado exitosamente. Total: $${resumenSeleccionado.montoTotal.toFixed(2)}`
+      )
+      onOpenChange(false)
+    } catch (error: any) {
+      console.error('Error al pagar resumen:', error)
+      
+      // Manejar errores específicos del backend
+      if (error?.response?.data?.message) {
+        toast.error(error.response.data.message)
+      } else if (error?.response?.status === 400) {
+        toast.error('Datos inválidos. Verifica la información ingresada.')
+      } else if (error?.response?.status === 404) {
+        toast.error('Resumen no encontrado.')
+      } else {
+        toast.error('Error al procesar el pago. Intenta nuevamente.')
+      }
+    }
   }
 
   // Manejar errores en el envío
@@ -255,7 +307,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
         <DialogHeader>
           <DialogTitle>Pagar resumen tarjeta</DialogTitle>
           <DialogDescription>
-            Selecciona las cuotas pendientes que deseas pagar del resumen de tu tarjeta.
+            Selecciona el resumen pendiente a pagar. Puedes ver detalles de qué cuotas incluye el resumen.
           </DialogDescription>
         </DialogHeader>
 
@@ -445,59 +497,147 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
                 )}
               />
 
-              {/* Data Table Cuotas Pendientes */}
+              {/* Data Table Resúmenes Pendientes */}
               {selectedTarjetaId && (
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Cuotas pendientes</h3>
-                  {loadingCuotas ? (
-                    <div className="text-center py-8 text-muted-foreground">Cargando cuotas...</div>
-                  ) : cuotas.length === 0 ? (
+                  <h3 className="text-lg font-semibold">Resúmenes pendientes</h3>
+                  {loadingResumenes ? (
+                    <div className="text-center py-8 text-muted-foreground">Cargando resúmenes...</div>
+                  ) : resumenes.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      No hay cuotas pendientes para esta tarjeta.
+                      ¡Felicidades! No hay resúmenes pendientes para esta tarjeta.
                     </div>
                   ) : (
                     <>
-                      <div className="rounded-md border">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-[50px]"></TableHead>
-                              <TableHead>Cuota</TableHead>
-                              <TableHead>Vencimiento</TableHead>
-                              <TableHead className="text-right">Monto</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {cuotas.map((cuota) => (
-                              <TableRow key={cuota.id}>
-                                <TableCell>
-                                  <Checkbox
-                                    checked={selectedCuotas.has(cuota.id)}
-                                    onCheckedChange={() => toggleCuota(cuota.id)}
-                                  />
-                                </TableCell>
-                                <TableCell>{cuota.numeroCuota}</TableCell>
-                                <TableCell>
-                                  {format(new Date(cuota.fechaVencimiento), 'PPP', { locale: es })}
-                                </TableCell>
-                                <TableCell className="text-right font-mono font-medium tabular-nums">
-                                  ${cuota.montoCuota.toFixed(2)}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
+                      <FormField
+                        control={form.control}
+                        name="resumen"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                className="space-y-0"
+                              >
+                                <div className="rounded-md border">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="w-[50px]"></TableHead>
+                                        <TableHead>Período</TableHead>
+                                        <TableHead>Vencimiento</TableHead>
+                                        <TableHead className="text-right">Monto</TableHead>
+                                        <TableHead>Estado</TableHead>
+                                        <TableHead className="w-[50px]"></TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {resumenes.map((resumen) => {
+                                        const estadoBadge = getEstadoBadge(resumen.estado, resumen.fechaVencimiento)
+                                        const isExpanded = expandedResumen === resumen.id
+                                        const isSelected = field.value === resumen.id.toString()
+                                        
+                                        return (
+                                          <React.Fragment key={resumen.id}>
+                                            <TableRow 
+                                              className={cn(
+                                                "cursor-pointer transition-colors",
+                                                isSelected && "bg-muted/50"
+                                              )}
+                                            >
+                                              <TableCell>
+                                                <RadioGroupItem value={resumen.id.toString()} />
+                                              </TableCell>
+                                              <TableCell>
+                                                {format(new Date(resumen.anio, resumen.mes - 1), 'MMMM yyyy', { locale: es })}
+                                              </TableCell>
+                                              <TableCell>
+                                                {format(new Date(resumen.fechaVencimiento), 'PPP', { locale: es })}
+                                              </TableCell>
+                                              <TableCell className="text-right font-mono font-medium tabular-nums">
+                                                ${resumen.montoTotal.toFixed(2)}
+                                              </TableCell>
+                                              <TableCell>
+                                                <Badge variant={estadoBadge.variant}>
+                                                  {estadoBadge.text}
+                                                </Badge>
+                                              </TableCell>
+                                              <TableCell>
+                                                <Button
+                                                  type="button"
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="h-8 w-8 p-0"
+                                                  onClick={() => setExpandedResumen(isExpanded ? null : resumen.id)}
+                                                >
+                                                  {isExpanded ? (
+                                                    <ChevronUp className="h-4 w-4" />
+                                                  ) : (
+                                                    <ChevronDown className="h-4 w-4" />
+                                                  )}
+                                                </Button>
+                                              </TableCell>
+                                            </TableRow>
+                                            {isExpanded && (
+                                              <TableRow>
+                                                <TableCell colSpan={6} className="bg-muted/50 p-0">
+                                                  <div className="p-4 space-y-2">
+                                                    <p className="text-sm font-medium">Detalle de cuotas incluidas:</p>
+                                                    {resumen.cuotas && resumen.cuotas.length > 0 ? (
+                                                      <div className="space-y-1">
+                                                        {resumen.cuotas.map((cuota) => (
+                                                          <div key={cuota.id} className="flex justify-between text-sm">
+                                                            <span className="text-muted-foreground">
+                                                              {cuota.descripcion} - Cuota {cuota.numeroCuota}/{cuota.totalCuotas} - {cuota.motivo}
+                                                            </span>
+                                                            <span className="font-mono font-medium tabular-nums">
+                                                              ${cuota.montoCuota.toFixed(2)}
+                                                            </span>
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    ) : (
+                                                      <p className="text-sm text-muted-foreground">
+                                                        No hay cuotas disponibles para este resumen.
+                                                      </p>
+                                                    )}
+                                                  </div>
+                                                </TableCell>
+                                              </TableRow>
+                                            )}
+                                          </React.Fragment>
+                                        )
+                                      })}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                      {/* Total */}
-                      {selectedCuotas.size > 0 && (
-                        <div className="flex justify-end items-center gap-2 pt-2 border-t">
-                          <span className="text-sm font-medium">
-                            Total seleccionado ({selectedCuotas.size} {selectedCuotas.size === 1 ? 'cuota' : 'cuotas'}):
-                          </span>
-                          <span className="text-lg font-bold">
-                            ${total.toFixed(2)}
-                          </span>
+                      {/* Total a pagar */}
+                      {resumenSeleccionado && (
+                        <div className="bg-muted/50 rounded-lg p-4 border mt-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="text-sm text-muted-foreground">Total a pagar</p>
+                              <p className="text-xs text-muted-foreground">
+                                Resumen {format(new Date(resumenSeleccionado.anio, resumenSeleccionado.mes - 1), 'MMMM yyyy', { locale: es })}
+                              </p>
+                            </div>
+                            <p className="text-3xl font-bold tabular-nums">
+                              ${resumenSeleccionado.montoTotal.toFixed(2)}
+                            </p>
+                          </div>
+                          {cuentaSeleccionada && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Saldo restante en cuenta: ${(cuentaSeleccionada.saldoActual - resumenSeleccionado.montoTotal).toFixed(2)}
+                            </p>
+                          )}
                         </div>
                       )}
                     </>
@@ -519,9 +659,9 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
           <Button 
             type="submit" 
             onClick={form.handleSubmit(onSubmit, handleFormError)}
-            disabled={form.formState.isSubmitting || !selectedTarjetaId || selectedCuotas.size === 0}
+            disabled={pagarResumenMutation.isPending || !selectedTarjetaId || !resumenSeleccionado}
           >
-            Pagar resumen
+            {pagarResumenMutation.isPending ? 'Procesando pago...' : 'Pagar resumen'}
           </Button>
         </DialogFooter>
       </DialogContent>

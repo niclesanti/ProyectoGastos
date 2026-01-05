@@ -189,6 +189,38 @@ export const useCuotasTarjeta = (idTarjeta: number | undefined) => {
   })
 }
 
+export const useResumenesTarjeta = (idTarjeta: number | undefined) => {
+  return useQuery({
+    queryKey: ['resumenes', idTarjeta],
+    queryFn: () => compraCreditoService.listarResumenesPorTarjeta(idTarjeta!),
+    enabled: !!idTarjeta,
+    staleTime: 2 * 60 * 1000, // 2 minutos (más fresco porque cambia con pagos)
+  })
+}
+
+export const usePagarResumenTarjeta = () => {
+  const queryClient = useQueryClient()
+  const currentWorkspace = useAppStore((state) => state.currentWorkspace)
+  const invalidateDashboardCache = useAppStore((state) => state.invalidateDashboardCache)
+
+  return useMutation({
+    mutationFn: compraCreditoService.pagarResumenTarjeta,
+    onSuccess: () => {
+      // Invalidar queries relacionadas
+      queryClient.invalidateQueries({ queryKey: ['resumenes'] })
+      queryClient.invalidateQueries({ queryKey: ['tarjetas'] })
+      queryClient.invalidateQueries({ queryKey: ['cuentas-bancarias'] })
+      queryClient.invalidateQueries({ queryKey: ['compras-credito-pendientes'] })
+      queryClient.invalidateQueries({ queryKey: ['transacciones'] })
+      
+      // Invalidar el caché de Zustand para el dashboard
+      if (currentWorkspace?.id) {
+        invalidateDashboardCache(currentWorkspace.id)
+      }
+    },
+  })
+}
+
 // ============ COMPRAS CON CRÉDITO ============
 
 export const useCreateCompraCredito = () => {

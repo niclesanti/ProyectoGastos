@@ -273,6 +273,26 @@ export interface CuotaCredito {
   compraCredito: CompraCredito
 }
 
+export interface ResumenTarjetaDTOResponse {
+  id: number
+  mes: number
+  anio: number
+  fechaVencimiento: string
+  montoTotal: number
+  estado: 'PENDIENTE' | 'VENCIDO' | 'PAGADO'
+  tarjetaId: number
+  cuotas: CuotaResumenDTO[]
+}
+
+export interface CuotaResumenDTO {
+  id: number
+  numeroCuota: number
+  montoCuota: number
+  descripcion: string
+  totalCuotas: number
+  motivo: string
+}
+
 // API Response wrapper
 export interface ApiResponse<T> {
   data: T

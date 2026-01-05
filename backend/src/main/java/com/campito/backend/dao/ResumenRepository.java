@@ -46,4 +46,14 @@ public interface ResumenRepository extends JpaRepository<Resumen, Long> {
         @Param("idTarjeta") Long idTarjeta, 
         @Param("estado") EstadoResumen estado
     );
+    
+    /**
+     * Lista resúmenes por tarjeta filtrando por múltiples estados
+     */
+    @Query("SELECT r FROM Resumen r WHERE r.tarjeta.id = :idTarjeta " +
+           "AND r.estado IN :estados ORDER BY r.anio DESC, r.mes DESC")
+    List<Resumen> findByTarjetaIdAndEstadoIn(
+        @Param("idTarjeta") Long idTarjeta,
+        @Param("estados") List<EstadoResumen> estados
+    );
 }

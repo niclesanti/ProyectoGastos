@@ -140,7 +140,9 @@ public class TransaccionServiceTest {
         // Mock motivoTransaccionMapper behavior
         lenient().when(motivoTransaccionMapper.toEntity(any(MotivoDTORequest.class))).thenAnswer(invocation -> {
             MotivoDTORequest dto = invocation.getArgument(0);
-            MotivoTransaccion m = new MotivoTransaccion(dto.motivo());
+            MotivoTransaccion m = MotivoTransaccion.builder()
+                .motivo(dto.motivo())
+                .build();
             return m;
         });
         

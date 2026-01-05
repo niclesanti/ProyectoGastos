@@ -20,15 +20,17 @@ public interface ResumenMapper {
      * Convierte Resumen Entity a ResumenDTOResponse.
      * 
      * Las relaciones @ManyToOne se mapean a sus IDs correspondientes.
-     * El campo cantidadCuotas debe ser establecido manualmente en el servicio.
+     * Los campos cuotas y cantidadCuotas deben ser establecidos manualmente en el servicio.
      * 
      * @param resumen Entidad Resumen
-     * @return DTO de respuesta con datos del resumen
+     * @return DTO de respuesta con datos del resumen (sin cuotas)
      */
     @Mapping(target = "idTarjeta", source = "tarjeta.id")
     @Mapping(target = "numeroTarjeta", source = "tarjeta.numeroTarjeta")
     @Mapping(target = "entidadFinanciera", source = "tarjeta.entidadFinanciera")
     @Mapping(target = "redDePago", source = "tarjeta.redDePago")
     @Mapping(target = "idTransaccionAsociada", source = "transaccionAsociada.id")
+    @Mapping(target = "cuotas", ignore = true)
+    @Mapping(target = "cantidadCuotas", ignore = true)
     ResumenDTOResponse toResponse(Resumen resumen);
 }

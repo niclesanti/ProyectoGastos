@@ -152,7 +152,7 @@ public class ComprasCreditoController {
                 })
     @PostMapping("/pagar-resumen")
     public ResponseEntity<Void> pagarResumenTarjeta(@Valid @RequestBody PagarResumenTarjetaRequest request) {
-        comprasCreditoService.pagarResumenTarjeta(request.idResumen(), request.transaccion());
+        comprasCreditoService.pagarResumenTarjeta(request);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

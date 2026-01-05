@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client'
-import type { CompraCreditoDTORequest, CompraCredito, CompraCreditoDTOResponse } from '@/types'
+import type { CompraCreditoDTORequest, CompraCredito, CompraCreditoDTOResponse, ResumenTarjetaDTOResponse } from '@/types'
 
 export const compraCreditoService = {
   async registrarCompraCredito(compra: CompraCreditoDTORequest): Promise<CompraCredito> {
@@ -14,5 +14,21 @@ export const compraCreditoService = {
 
   async removerCompraCredito(id: number): Promise<void> {
     await apiClient.delete(`/comprascredito/${id}`)
+  },
+
+  async listarResumenesPorTarjeta(idTarjeta: number): Promise<ResumenTarjetaDTOResponse[]> {
+    const { data } = await apiClient.get<ResumenTarjetaDTOResponse[]>(`/comprascredito/resumenes/tarjeta/${idTarjeta}`)
+    return data
+  },
+
+  async pagarResumenTarjeta(request: {
+    idResumen: number
+    fecha: string // formato 'yyyy-MM-dd'
+    monto: number
+    nombreCompletoAuditoria: string
+    idEspacioTrabajo: number
+    idCuentaBancaria?: number
+  }): Promise<void> {
+    await apiClient.post('/comprascredito/pagar-resumen', request)
   },
 }

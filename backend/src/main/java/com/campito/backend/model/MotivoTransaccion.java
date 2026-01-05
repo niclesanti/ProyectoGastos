@@ -24,8 +24,4 @@ public class MotivoTransaccion {
     @JoinColumn(name = "id_espacio_trabajo", nullable = false)
     private EspacioTrabajo espacioTrabajo;
 
-    public MotivoTransaccion(String motivo) {
-        this.motivo = motivo;
-    }
-
 }

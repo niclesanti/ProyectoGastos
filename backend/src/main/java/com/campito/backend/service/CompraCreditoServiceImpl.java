@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.campito.backend.dao.CompraCreditoRepository;
 import com.campito.backend.dao.ContactoTransferenciaRepository;
+import com.campito.backend.dao.CuentaBancariaRepository;
 import com.campito.backend.dao.CuotaCreditoRepository;
 import com.campito.backend.dao.EspacioTrabajoRepository;
 import com.campito.backend.dao.MotivoTransaccionRepository;
@@ -22,6 +23,7 @@ import com.campito.backend.dao.TransaccionRepository;
 import com.campito.backend.dto.CompraCreditoDTORequest;
 import com.campito.backend.dto.CompraCreditoDTOResponse;
 import com.campito.backend.dto.CuotaCreditoDTOResponse;
+import com.campito.backend.dto.PagarResumenTarjetaRequest;
 import com.campito.backend.dto.ResumenDTOResponse;
 import com.campito.backend.dto.TarjetaDTORequest;
 import com.campito.backend.dto.TarjetaDTOResponse;
@@ -35,11 +37,14 @@ import com.campito.backend.model.CompraCredito;
 
 import lombok.RequiredArgsConstructor;
 import com.campito.backend.model.ContactoTransferencia;
+import com.campito.backend.model.CuentaBancaria;
 import com.campito.backend.model.CuotaCredito;
 import com.campito.backend.model.EspacioTrabajo;
+import com.campito.backend.model.EstadoResumen;
 import com.campito.backend.model.MotivoTransaccion;
 import com.campito.backend.model.Resumen;
 import com.campito.backend.model.Tarjeta;
+import com.campito.backend.model.TipoTransaccion;
 import com.campito.backend.model.Transaccion;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -60,6 +65,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     private final EspacioTrabajoRepository espacioRepository;
     private final MotivoTransaccionRepository motivoRepository;
     private final ContactoTransferenciaRepository contactoRepository;
+    private final CuentaBancariaRepository cuentaBancariaRepository;
     private final CuotaCreditoRepository cuotaCreditoRepository;
     private final TarjetaRepository tarjetaRepository;
     private final TransaccionRepository transaccionRepository;
@@ -478,43 +484,123 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      * Marca el resumen como pagado, actualiza todas sus cuotas asociadas,
      * y registra la transacción del pago.
      * 
-     * @param idResumen ID del resumen a pagar
-     * @param transaccion Datos de la transacción del pago
+     * @param request Datos del pago del resumen
+     * @throws EntityNotFoundException si el resumen, cuenta bancaria o transacción no existen
+     * @throws IllegalStateException si el resumen ya está pagado o aún no cerró
+     * @throws IllegalArgumentException si los datos no son válidos
      */
     @Override
     @Transactional
-    public void pagarResumenTarjeta(Long idResumen, TransaccionDTORequest transaccion) {
-        logger.info("Procesando pago total del resumen ID: {} por un monto de {}", 
-            idResumen, transaccion.monto());
+    public void pagarResumenTarjeta(PagarResumenTarjetaRequest request) {
+        logger.info("Procesando pago del resumen ID: {} por un monto de {}", 
+            request.idResumen(), request.monto());
         
-        // 1. Registrar la transacción del pago
-        TransaccionDTOResponse transaccionResponse = transaccionService.registrarTransaccion(transaccion);
-        Transaccion transaccionEntity = transaccionRepository.findById(transaccionResponse.id())
+        // 1. Buscar el resumen y validar su estado
+        Resumen resumen = resumenRepository.findById(request.idResumen())
+            .orElseThrow(() -> new EntityNotFoundException(
+                "Resumen no encontrado con ID: " + request.idResumen()));
+        
+        // Validar que el resumen esté en estado válido para pago
+        if (resumen.getEstado() == EstadoResumen.PAGADO) {
+            throw new IllegalStateException(
+                "El resumen ID " + request.idResumen() + " ya está pagado");
+        }
+        
+        if (resumen.getEstado() == EstadoResumen.ABIERTO) {
+            throw new IllegalStateException(
+                "No se puede pagar un resumen que aún no cerró");
+        }
+        
+        // Validar que el espacio de trabajo coincida
+        if (!resumen.getTarjeta().getEspacioTrabajo().getId().equals(request.idEspacioTrabajo())) {
+            throw new IllegalArgumentException(
+                "El resumen no pertenece al espacio de trabajo especificado");
+        }
+        
+        // Validar el monto
+        if (request.monto() == null || request.monto() <= 0) {
+            throw new IllegalArgumentException("El monto debe ser mayor a cero");
+        }
+        
+        if (!request.monto().equals(resumen.getMontoTotal())) {
+            throw new IllegalArgumentException(
+                "El monto a pagar debe ser igual al total del resumen: $" + resumen.getMontoTotal());
+        }
+        
+        // Validar cuenta bancaria si se especificó
+        if (request.idCuentaBancaria() != null) {
+            CuentaBancaria cuenta = cuentaBancariaRepository.findById(request.idCuentaBancaria())
+                .orElseThrow(() -> new EntityNotFoundException(
+                    "Cuenta bancaria no encontrada con ID: " + request.idCuentaBancaria()));
+            
+            if (!cuenta.getEspacioTrabajo().getId().equals(request.idEspacioTrabajo())) {
+                throw new IllegalArgumentException(
+                    "La cuenta bancaria no pertenece al espacio de trabajo especificado");
+            }
+            
+            if (cuenta.getSaldoActual() < request.monto()) {
+                throw new IllegalStateException(
+                    "Saldo insuficiente en la cuenta. Disponible: $" + cuenta.getSaldoActual());
+            }
+        }
+
+        // 2. Buscar o crear el motivo "Pago de tarjeta" usando Optional.orElseGet()
+        MotivoTransaccion motivo = motivoRepository
+            .findFirstByMotivoAndEspacioTrabajo_Id("Pago de tarjeta", request.idEspacioTrabajo())
+            .orElseGet(() -> {
+                logger.info("Creando motivo 'Pago de tarjeta' para espacio de trabajo ID: {}", 
+                    request.idEspacioTrabajo());
+                MotivoTransaccion nuevoMotivo = MotivoTransaccion.builder()
+                    .motivo("Pago de tarjeta")
+                    .espacioTrabajo(resumen.getTarjeta().getEspacioTrabajo())
+                    .build();
+                return motivoRepository.save(nuevoMotivo);
+            });
+
+        // 3. Registrar la transacción del pago
+        TransaccionDTORequest transaccionDTO = new TransaccionDTORequest(
+            request.fecha(),
+            request.monto(),
+            TipoTransaccion.GASTO,
+            "Pago resumen " + resumen.getMes() + "/" + resumen.getAnio() + 
+                " - " + resumen.getTarjeta().getNumeroTarjeta(),
+            request.nombreCompletoAuditoria(),
+            request.idEspacioTrabajo(),
+            motivo.getId(),
+            null,
+            request.idCuentaBancaria()
+        );
+        
+        TransaccionDTOResponse transaccionResponse = transaccionService.registrarTransaccion(transaccionDTO);
+        Transaccion transaccion = transaccionRepository.findById(transaccionResponse.id())
             .orElseThrow(() -> new EntityNotFoundException(
                 "Transacción no encontrada con ID: " + transaccionResponse.id()));
         
-        // 2. Buscar el resumen
-        Resumen resumen = resumenRepository.findById(idResumen)
-            .orElseThrow(() -> new EntityNotFoundException(
-                "Resumen no encontrado con ID: " + idResumen));
-        
-        // 3. Actualizar el resumen
-        resumen.asociarTransaccion(transaccionEntity);
+        // 4. Actualizar el resumen (asociar transacción y cambiar estado)
+        resumen.asociarTransaccion(transaccion);
         resumenRepository.save(resumen);
         
-        logger.info("Resumen ID: {} marcado como PAGADO", idResumen);
+        logger.info("Resumen ID: {} marcado como PAGADO", request.idResumen());
         
-        // 4. Obtener todas las cuotas asociadas al resumen
+        // 5. Obtener y marcar las cuotas como pagadas
         List<CuotaCredito> cuotasDelResumen = cuotaCreditoRepository
-            .findByResumenAsociado_Id(idResumen);
+            .findByResumenAsociado_Id(request.idResumen());
+        
+        if (cuotasDelResumen.isEmpty()) {
+            logger.warn("No se encontraron cuotas asociadas al resumen ID: {}", request.idResumen());
+        }
         
         logger.info("Encontradas {} cuotas asociadas al resumen", cuotasDelResumen.size());
         
-        // 5. Marcar cada cuota como pagada y actualizar la compra correspondiente
+        // 6. Marcar cada cuota como pagada y actualizar la compra correspondiente
         for (CuotaCredito cuota : cuotasDelResumen) {
+            if (cuota.isPagada()) {
+                logger.warn("La cuota ID: {} ya estaba marcada como pagada", cuota.getId());
+                continue;
+            }
+            
             cuota.pagarCuota();
             
-            // Actualizar el contador de cuotas pagadas en la compra
             CompraCredito compra = cuota.getCompraCredito();
             compra.pagarCuota();
             compraCreditoRepository.save(compra);
@@ -523,11 +609,10 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
                 cuota.getNumeroCuota(), compra.getId());
         }
         
-        // 6. Guardar todas las cuotas actualizadas
         cuotaCreditoRepository.saveAll(cuotasDelResumen);
         
-        logger.info("Pago del resumen ID: {} procesado exitosamente. Total: ${}",
-            idResumen, resumen.getMontoTotal());
+        logger.info("Pago del resumen ID: {} procesado exitosamente. Total: ${}", 
+            request.idResumen(), resumen.getMontoTotal());
     }
 
     /**
@@ -539,15 +624,61 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     @Override
     @Transactional(readOnly = true)
     public List<ResumenDTOResponse> listarResumenesPorTarjeta(Long idTarjeta) {
-        logger.info("Listando resúmenes para tarjeta ID: {}", idTarjeta);
+        logger.info("Listando resúmenes pendientes de pago para tarjeta ID: {}", idTarjeta);
         
-        List<Resumen> resumenes = resumenRepository.findByTarjetaId(idTarjeta);
+        // Solo devolver resúmenes con estado CERRADO o PAGADO_PARCIAL (excluir PAGADO y ABIERTO)
+        List<Resumen> resumenes = resumenRepository.findByTarjetaIdAndEstadoIn(
+            idTarjeta, 
+            List.of(EstadoResumen.CERRADO, EstadoResumen.PAGADO_PARCIAL)
+        );
         
-        logger.info("Se encontraron {} resúmenes", resumenes.size());
+        logger.info("Se encontraron {} resúmenes pendientes de pago", resumenes.size());
         
         return resumenes.stream()
-            .map(resumenMapper::toResponse)
+            .map(this::mapearResumenConCuotas)
             .collect(Collectors.toList());
+    }
+    
+    /**
+     * Método privado auxiliar para mapear un Resumen a ResumenDTOResponse incluyendo sus cuotas.
+     * 
+     * @param resumen Entidad Resumen
+     * @return ResumenDTOResponse con cuotas cargadas
+     */
+    private ResumenDTOResponse mapearResumenConCuotas(Resumen resumen) {
+        // Obtener las cuotas asociadas al resumen
+        List<CuotaCredito> cuotas = cuotaCreditoRepository.findByResumenAsociado_Id(resumen.getId());
+        
+        // Mapear las cuotas a CuotaResumenDTO
+        List<com.campito.backend.dto.CuotaResumenDTO> cuotasDTO = cuotas.stream()
+            .map(cuota -> new com.campito.backend.dto.CuotaResumenDTO(
+                cuota.getId(),
+                cuota.getNumeroCuota(),
+                cuota.getMontoCuota(),
+                cuota.getCompraCredito().getDescripcion() != null 
+                    ? cuota.getCompraCredito().getDescripcion() 
+                    : "Compra",
+                cuota.getCompraCredito().getCantidadCuotas(),
+                cuota.getCompraCredito().getMotivo().getMotivo()
+            ))
+            .collect(Collectors.toList());
+        
+        // Construir el ResumenDTOResponse directamente desde la entidad
+        return new ResumenDTOResponse(
+            resumen.getId(),
+            resumen.getAnio(),
+            resumen.getMes(),
+            resumen.getFechaVencimiento(),
+            resumen.getEstado(),
+            resumen.getMontoTotal(),
+            resumen.getTarjeta().getId(),
+            resumen.getTarjeta().getNumeroTarjeta(),
+            resumen.getTarjeta().getEntidadFinanciera(),
+            resumen.getTarjeta().getRedDePago(),
+            resumen.getTransaccionAsociada() != null ? resumen.getTransaccionAsociada().getId() : null,
+            cuotasDTO.size(),
+            cuotasDTO
+        );
     }
 
     /**

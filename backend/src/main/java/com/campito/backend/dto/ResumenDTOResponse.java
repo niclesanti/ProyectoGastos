@@ -1,6 +1,7 @@
 package com.campito.backend.dto;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import com.campito.backend.model.EstadoResumen;
 
@@ -16,7 +17,8 @@ public record ResumenDTOResponse(
     String entidadFinanciera,
     String redDePago,
     Long idTransaccionAsociada,
-    Integer cantidadCuotas
+    Integer cantidadCuotas,
+    List<CuotaResumenDTO> cuotas
 ) {
 
 }
