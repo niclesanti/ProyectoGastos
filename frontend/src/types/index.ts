@@ -206,7 +206,7 @@ export interface DashboardInfoDTO {
 export interface DashboardStatsDTO {
   balanceTotal: number
   gastosMensuales: number
-  resumenTarjeta: number
+  resumenMensual: number
   deudaTotalPendiente: number
   flujoMensual: IngresosGastosMesDTO[]
   distribucionGastos: DistribucionGastoDTO[]

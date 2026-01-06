@@ -14,10 +14,13 @@ interface StatsCardProps {
   icon: React.ReactNode
   trend?: 'up' | 'down'
   isLoading?: boolean
+  highlightNegative?: boolean
 }
 
-export function StatsCard({ title, value, change, description, icon, trend, isLoading }: StatsCardProps) {
+export function StatsCard({ title, value, change, description, icon, trend, isLoading, highlightNegative }: StatsCardProps) {
   const formattedValue = typeof value === 'number' ? formatCurrency(value) : value
+  const isNegative = typeof value === 'number' && value < 0 && highlightNegative
+  const valueClass = isNegative ? 'text-rose-300' : 'text-white'
 
   return (
     <Card className="relative">
@@ -35,7 +38,7 @@ export function StatsCard({ title, value, change, description, icon, trend, isLo
             <>
               <p className="text-sm font-medium text-muted-foreground mb-2">{title}</p>
               <div className="flex items-baseline gap-2">
-                <h3 className="text-2xl font-bold">{formattedValue}</h3>
+                <h3 className={`text-2xl font-bold ${valueClass}`}>{formattedValue}</h3>
                 {change !== undefined && (
                   <Badge variant={trend === 'up' ? 'success' : 'warning'} className="text-xs">
                     {trend === 'up' ? (
@@ -77,6 +80,7 @@ export function DashboardStats() {
         description="Saldo disponible"
         icon={<Wallet className="h-4 w-4" />}
         isLoading={isLoading}
+        highlightNegative
       />
       <StatsCard
         title="Gastos mensuales"
@@ -86,9 +90,9 @@ export function DashboardStats() {
         isLoading={isLoading}
       />
       <StatsCard
-        title="Próximo vencimiento"
-        value={stats?.resumenTarjeta || 0}
-        description="01 de enero"
+        title="Resumen mensual"
+        value={stats?.resumenMensual || 0}
+        description="Suma próximos resúmenes"
         icon={<CreditCard className="h-4 w-4" />}
         isLoading={isLoading}
       />

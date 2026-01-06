@@ -139,7 +139,7 @@ export function SpendingByCategory() {
                 style={{ backgroundColor: item.fill }}
               />
               <div className="flex flex-col">
-                <span className="text-sm font-medium capitalize">
+                <span className="text-sm font-medium normal-case">
                   {chartConfig[item.category as keyof typeof chartConfig]?.label}
                 </span>
                 <span className="text-xs text-muted-foreground">{Number(item.value).toFixed(2)}%</span>

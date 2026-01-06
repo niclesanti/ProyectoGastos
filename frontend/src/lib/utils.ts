@@ -10,7 +10,7 @@ export function formatCurrency(amount: number): string {
     style: 'currency',
     currency: 'ARS',
     minimumFractionDigits: 2,
-  }).format(Math.abs(amount))
+  }).format(amount)
   // Eliminar espacio después del símbolo $ para formato más compacto
   return formatted.replace('$ ', '$')
 }

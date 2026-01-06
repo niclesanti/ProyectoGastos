@@ -6,7 +6,7 @@ public record DashboardStatsDTO(
     // KPIs
     Float balanceTotal,
     Float gastosMensuales,
-    Float resumenTarjeta,
+    Float resumenMensual,
     Float deudaTotalPendiente,
     
     // Gráficos
@@ -14,4 +14,4 @@ public record DashboardStatsDTO(
     List<DistribucionGastoDTO> distribucionGastos
 ) {
 
-}
+} 

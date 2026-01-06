@@ -4,7 +4,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.YearMonth;
 import java.util.List;
+
+import com.campito.backend.dao.TarjetaRepository;
+import com.campito.backend.model.Tarjeta;
+import com.campito.backend.model.CuotaCredito;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +66,7 @@ public class TransaccionServiceImpl implements TransaccionService {
     private final DashboardRepository dashboardRepository;
     private final CuentaBancariaRepository cuentaBancariaRepository;
     private final CuotaCreditoRepository cuotaCreditoRepository;
+    private final TarjetaRepository tarjetaRepository;
     private final CuentaBancariaService cuentaBancariaService;
     private final TransaccionMapper transaccionMapper;
     private final ContactoTransferenciaMapper contactoTransferenciaMapper;
@@ -457,14 +463,10 @@ public class TransaccionServiceImpl implements TransaccionService {
             int anioActual = now.getYear();
             Float gastosMensuales = transaccionRepository.calcularGastosMensuales(idEspacio, anioActual, mesActual);
 
-            // 3. Resumen tarjeta (cuotas impagadas que vencen hasta fin de mes)
-            LocalDate finMes = now.withDayOfMonth(now.lengthOfMonth());
-            Float resumenTarjeta = cuotaCreditoRepository.calcularResumenTarjeta(idEspacio, finMes);
-
-            // 4. Deuda total pendiente (todas las cuotas impagadas)
+            // 3. Deuda total pendiente (todas las cuotas impagadas)
             Float deudaTotalPendiente = cuotaCreditoRepository.calcularDeudaTotalPendiente(idEspacio);
 
-            // 5. Flujo mensual (últimos 12 meses)
+            // 4. Flujo mensual (últimos 12 meses)
             LocalDate fechaLimite = now.minusMonths(12);
             List<IngresosGastosMesDTO> flujoMensual = dashboardRepository.findIngresosVsGastos(idEspacio, fechaLimite);
             
@@ -489,10 +491,34 @@ public class TransaccionServiceImpl implements TransaccionService {
             // 6. Distribución de gastos por motivo (últimos 12 meses)
             List<DistribucionGastoDTO> distribucionGastos = dashboardRepository.findDistribucionGastos(idEspacio, fechaLimite);
 
+            // 7. Resumen mensual (suma de las cuotas que entrarán en los próximos resúmenes por tarjeta)
+            float resumenMensual = 0.0f;
+            List<Tarjeta> tarjetas = tarjetaRepository.findByEspacioTrabajo_Id(idEspacio);
+            for (Tarjeta tarjeta : tarjetas) {
+                int diaCierre = tarjeta.getDiaCierre();
+
+                YearMonth ym = YearMonth.from(now);
+                int diaAjustadoCierre = Math.min(diaCierre, ym.lengthOfMonth());
+                LocalDate fechaCierre = ym.atDay(diaAjustadoCierre);
+                // Queremos el próximo cierre estrictamente en el futuro (si hoy es el día de cierre, tomar el siguiente mes)
+                if (!fechaCierre.isAfter(now)) {
+                    YearMonth siguiente = ym.plusMonths(1);
+                    diaAjustadoCierre = Math.min(diaCierre, siguiente.lengthOfMonth());
+                    fechaCierre = siguiente.atDay(diaAjustadoCierre);
+                }
+
+                LocalDate fechaInicio = fechaCierre.plusDays(1);
+                LocalDate fechaFin = calcularFechaVencimiento(fechaCierre, tarjeta.getDiaVencimientoPago());
+
+                List<CuotaCredito> cuotasPendientes = cuotaCreditoRepository.findByTarjetaSinResumenEnRango(tarjeta.getId(), fechaInicio, fechaFin);
+                float monto = cuotasPendientes.stream().map(CuotaCredito::getMontoCuota).reduce(0.0f, Float::sum);
+                resumenMensual += monto;
+            }
+
             DashboardStatsDTO stats = new DashboardStatsDTO(
                 balanceTotal,
                 gastosMensuales,
-                resumenTarjeta,
+                resumenMensual,
                 deudaTotalPendiente,
                 flujoMensualCompleto,
                 distribucionGastos
@@ -504,6 +530,16 @@ public class TransaccionServiceImpl implements TransaccionService {
             logger.error("Error inesperado al obtener estadisticas del dashboard para el espacio ID {}: {}", idEspacio, e.getMessage(), e);
             throw e;
         }
+    }
+
+    /**
+     * Calcula la fecha de vencimiento del pago del resumen (misma lógica del scheduler)
+     */
+    private LocalDate calcularFechaVencimiento(LocalDate fechaCierre, int diaVencimiento) {
+        YearMonth mesActual = YearMonth.from(fechaCierre);
+        YearMonth mesSiguiente = mesActual.plusMonths(1);
+        int diaAjustado = Math.min(diaVencimiento, mesSiguiente.lengthOfMonth());
+        return mesSiguiente.atDay(diaAjustado);
     }
 
 }
