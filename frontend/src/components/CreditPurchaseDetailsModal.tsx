@@ -94,16 +94,16 @@ export function CreditPurchaseDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Detalles compra con crédito</DialogTitle>
-          <DialogDescription className="text-xs">
+      <DialogContent className="max-w-lg sm:max-w-xl lg:max-w-2xl max-h-[90vh] flex flex-col p-4 sm:p-6">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="text-lg sm:text-xl">Detalles compra con crédito</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
             Resumen completo de la compra en cuotas
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="h-[calc(90vh-180px)]">
-          <div className="space-y-4 pr-4">
+        <ScrollArea className="flex-1 pr-4 overflow-y-auto">
+          <div className="space-y-4 pb-4">
             {/* Hero Section - Monto y Estado */}
             <div className="flex items-center justify-between p-4 rounded-lg bg-zinc-900/50 border border-zinc-800">
               <div>

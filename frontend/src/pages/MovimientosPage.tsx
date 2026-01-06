@@ -145,20 +145,23 @@ const meses = [
   { value: '12', label: 'Diciembre' },
 ]
 
+const currentYear = new Date().getFullYear()
 const anos = [
   { value: 'todos', label: 'Todos los años' },
-  { value: '2030', label: '2030' },
-  { value: '2029', label: '2029' },
-  { value: '2028', label: '2028' },
-  { value: '2027', label: '2027' },
-  { value: '2026', label: '2026' },
-  { value: '2025', label: '2025' },
-  { value: '2024', label: '2024' },
+  ...Array.from({ length: 7 }, (_, i) => {
+    const y = (currentYear + 3 - i).toString()
+    return { value: y, label: y }
+  })
 ]
 
 export function MovimientosPage() {
   const espacioActual = useAppStore((state) => state.currentWorkspace)
   
+  // Defaults dinámicos para mes y año
+  const today = new Date()
+  const currentMonthDefault = (today.getMonth() + 1).toString()
+  const currentYearDefault = today.getFullYear().toString()
+
   // Hooks de TanStack Query
   const buscarTransaccionesMutation = useBuscarTransacciones()
   const removerTransaccionMutation = useRemoverTransaccion()
@@ -178,8 +181,8 @@ export function MovimientosPage() {
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null)
   
   // Filtros
-  const [mesSeleccionado, setMesSeleccionado] = useState('12')
-  const [anoSeleccionado, setAnoSeleccionado] = useState('2025')
+  const [mesSeleccionado, setMesSeleccionado] = useState(currentMonthDefault)
+  const [anoSeleccionado, setAnoSeleccionado] = useState(currentYearDefault)
   const [motivoSeleccionado, setMotivoSeleccionado] = useState('todos')
   const [contactoSeleccionado, setContactoSeleccionado] = useState('todos')
   
@@ -293,8 +296,8 @@ export function MovimientosPage() {
 
   // Limpiar filtros
   const clearFilters = () => {
-    setMesSeleccionado('12')
-    setAnoSeleccionado('2025')
+    setMesSeleccionado(currentMonthDefault)
+    setAnoSeleccionado(currentYearDefault)
     setMotivoSeleccionado('todos')
     setContactoSeleccionado('todos')
   }
