@@ -92,9 +92,9 @@ export function MonthlyCashflow() {
     const balance = ingresos - gastos
 
     return (
-      <div className="rounded-lg border bg-background p-3 shadow-md">
-        <p className="font-semibold mb-2">{payload[0].payload.month}</p>
-        <div className="space-y-1">
+      <div className="rounded-lg border bg-background p-2 sm:p-3 shadow-md max-w-[280px]">
+        <p className="font-semibold mb-1 sm:mb-2 text-xs sm:text-sm">{payload[0].payload.month}</p>
+        <div className="space-y-0.5 sm:space-y-1">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(var(--chart-2))' }} />
             <span className="text-sm text-muted-foreground">Ingresos:</span>
@@ -120,42 +120,42 @@ export function MonthlyCashflow() {
   return (
     <Card className="col-span-1 lg:col-span-2">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div>
-            <h2 className="text-xl font-semibold">Flujo de caja mensual</h2>
-            <p className="text-sm text-muted-foreground">Ingresos vs gastos</p>
+            <h2 className="text-lg sm:text-xl font-semibold">Flujo de caja mensual</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">Ingresos vs gastos</p>
           </div>
-          <Tabs value={range} onValueChange={(value) => setRange(value as any)} className="w-auto">
-            <TabsList>
-              <TabsTrigger value="3months">Últimos 3 meses</TabsTrigger>
-              <TabsTrigger value="6months">Últimos 6 meses</TabsTrigger>
-              <TabsTrigger value="12months">Último año</TabsTrigger>
+          <Tabs value={range} onValueChange={(value) => setRange(value as any)} className="w-full sm:w-auto">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="3months" className="text-xs sm:text-sm px-2 sm:px-4">3m</TabsTrigger>
+              <TabsTrigger value="6months" className="text-xs sm:text-sm px-2 sm:px-4">6m</TabsTrigger>
+              <TabsTrigger value="12months" className="text-xs sm:text-sm px-2 sm:px-4">12m</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex items-center justify-center min-h-[350px]">
+          <div className="flex items-center justify-center h-[250px] sm:h-[300px] lg:h-[350px]">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <ChartContainer config={chartConfig} className="min-h-[350px] w-full">
-            <BarChart accessibilityLayer data={chartData} barGap={4} barCategoryGap="20%">
+          <ChartContainer config={chartConfig} className="h-[200px] sm:h-[280px] lg:h-[350px] w-full">
+            <BarChart accessibilityLayer data={chartData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
               <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
               <XAxis
                 dataKey="month"
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
               />
               <YAxis
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
                 tickFormatter={formatYAxis}
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
               />
               <ChartTooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.1)' }} />
               <ChartLegend content={<ChartLegendContent />} />

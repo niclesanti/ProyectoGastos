@@ -294,17 +294,17 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Compra con crédito</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="text-lg sm:text-xl">Compra con crédito</DialogTitle>
+          <DialogDescription className="text-sm">
             Anotar que hiciste una compra con tarjeta de crédito.
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-4">
+        <ScrollArea className="max-h-[55vh] sm:max-h-[60vh] pr-4 sm:pr-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-3 sm:space-y-4">
               {/* Fecha */}
               <FormField
                 control={form.control}
@@ -632,7 +632,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
           </Form>
         </ScrollArea>
 
-        <DialogFooter className="mt-4">
+        <DialogFooter className="mt-4 gap-3">
           <Button
             type="button"
             variant="outline"

@@ -17,10 +17,10 @@ const columns: ColumnDef<CuentaBancaria>[] = [
   },
   {
     accessorKey: "entidadFinanciera",
-    header: "Entidad",
+    header: ({ column }) => <div className="hidden md:table-cell">Entidad</div>,
     enableHiding: true,
     cell: ({ row }) => {
-      return <div className="text-muted-foreground">{row.getValue("entidadFinanciera")}</div>
+      return <div className="text-muted-foreground text-sm hidden md:table-cell">{row.getValue("entidadFinanciera")}</div>
     },
   },
   {

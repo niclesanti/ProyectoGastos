@@ -122,9 +122,9 @@ export function DataTable<TData, TValue>({
   })
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        {title && <h2 className="text-xl font-semibold">{title}</h2>}
+    <div className="space-y-3 sm:space-y-4 w-full max-w-full overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        {title && <h2 className="text-base sm:text-lg lg:text-xl font-semibold flex-1">{title}</h2>}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className={title ? '' : 'ml-auto'}>
@@ -157,7 +157,7 @@ export function DataTable<TData, TValue>({
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader className="bg-sidebar">
               {table.getHeaderGroups().map((headerGroup) => (

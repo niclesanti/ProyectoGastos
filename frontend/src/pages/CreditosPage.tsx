@@ -254,16 +254,16 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
           Agregar tarjeta
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Agregar tarjeta de crédito</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="text-lg sm:text-xl">Agregar tarjeta de crédito</DialogTitle>
+          <DialogDescription className="text-sm">
             Registra una nueva tarjeta para controlar cierres y vencimientos.
           </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 py-3 sm:py-4">
             {/* Últimos 4 dígitos */}
             <FormField
               control={form.control}
@@ -432,7 +432,7 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
               </p>
             </div>
 
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-2">
               <Button
                 type="button"
                 variant="outline"
@@ -441,10 +441,11 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
                   form.reset()
                 }}
                 disabled={form.formState.isSubmitting}
+                className="w-full sm:w-auto"
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={form.formState.isSubmitting} className="w-full sm:w-auto">
                 {form.formState.isSubmitting ? 'Guardando...' : 'Guardar Tarjeta'}
               </Button>
             </div>
@@ -468,12 +469,12 @@ export function CreditosPage() {
   }
 
   return (
-    <div className="space-y-6 pt-6">
+    <div className="space-y-4 sm:space-y-6 pt-4 sm:pt-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Tarjetas de crédito</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Tarjetas de crédito</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Gestiona tus tarjetas y controla cierres y vencimientos
           </p>
         </div>
@@ -486,7 +487,7 @@ export function CreditosPage() {
           <p className="text-muted-foreground">Cargando tarjetas...</p>
         </div>
       ) : tarjetas.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {tarjetas.map((card) => (
             <CreditCardComponent key={card.id} card={card} />
           ))}

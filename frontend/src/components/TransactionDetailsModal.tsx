@@ -77,10 +77,10 @@ export function TransactionDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Detalles de transacción</DialogTitle>
-          <DialogDescription className="text-xs">
+      <DialogContent className="max-w-lg sm:max-w-xl lg:max-w-2xl max-h-[90vh] flex flex-col p-4 sm:p-6">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="text-lg sm:text-xl">Detalles de transacción</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
             Resumen completo del movimiento registrado
           </DialogDescription>
         </DialogHeader>

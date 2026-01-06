@@ -365,17 +365,17 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Registrar una transacción</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="text-lg sm:text-xl">Registrar una transacción</DialogTitle>
+          <DialogDescription className="text-sm">
             Anotar una nueva salida o ingreso de dinero con todos sus detalles.
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-6">
+        <ScrollArea className="max-h-[55vh] sm:max-h-[60vh] pr-4 sm:pr-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-3 sm:space-y-4">
               {/* Tipo */}
               <FormField
                 control={form.control}
@@ -778,11 +778,12 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
           </Form>
         </ScrollArea>
 
-        <DialogFooter className="mt-4">
+        <DialogFooter className="mt-3 sm:mt-4 flex-col sm:flex-row gap-2">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
+            className="w-full sm:w-auto"
           >
             Cancelar
           </Button>
@@ -790,6 +791,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
             type="submit" 
             onClick={form.handleSubmit(onSubmit, handleFormError)}
             disabled={form.formState.isSubmitting || createTransaccionMutation.isPending}
+            className="w-full sm:w-auto"
           >
             {createTransaccionMutation.isPending ? 'Guardando...' : 'Guardar transacción'}
           </Button>

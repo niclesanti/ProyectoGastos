@@ -17,21 +17,23 @@ export function DashboardPage() {
 
   // Dashboard normal con datos
   return (
-    <div className="grid gap-6 pt-6">
-      <DashboardStats />
-      
-      <div className="grid gap-6 lg:grid-cols-3">
-        <MonthlyCashflow />
-        <SpendingByCategory />
-      </div>
+    <div className="overflow-x-hidden w-full max-w-full">
+      <div className="grid gap-4 pt-4 md:gap-6 md:pt-6">
+        <DashboardStats />
+        
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
+          <MonthlyCashflow />
+          <SpendingByCategory />
+        </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <BankAccounts />
-        <UpcomingPayments />
-      </div>
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
+          <BankAccounts />
+          <UpcomingPayments />
+        </div>
 
-      <div className="grid gap-6">
-        <RecentTransactions />
+        <div className="grid gap-4 md:gap-6">
+          <RecentTransactions />
+        </div>
       </div>
     </div>
   )

@@ -78,7 +78,7 @@ export function RecentTransactions() {
       id: "drag",
       header: "",
       cell: () => (
-        <div className="cursor-grab active:cursor-grabbing">
+        <div className="cursor-grab active:cursor-grabbing hidden sm:block">
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
       ),
@@ -94,14 +94,14 @@ export function RecentTransactions() {
         return (
           <Badge
             variant={tipo === 'INGRESO' ? 'success' : 'destructive'}
-            className="flex w-fit items-center gap-1"
+            className="flex w-fit items-center gap-1 text-xs"
           >
             {tipo === 'INGRESO' ? (
               <ArrowUpRight className="h-3 w-3" />
             ) : (
               <ArrowDownRight className="h-3 w-3" />
             )}
-            {tipo === 'INGRESO' ? 'Ingreso' : 'Gasto'}
+            <span className="hidden sm:inline">{tipo === 'INGRESO' ? 'Ingreso' : 'Gasto'}</span>
           </Badge>
         )
       },
@@ -112,34 +112,34 @@ export function RecentTransactions() {
       enableHiding: true,
       cell: ({ row }) => {
         const motivoNombre = row.getValue("nombreMotivo") as string || 'Sin motivo'
-        return <div className="font-medium">{motivoNombre}</div>
+        return <div className="font-medium text-sm max-w-[120px] sm:max-w-none truncate">{motivoNombre}</div>
       },
     },
     {
       accessorKey: "nombreCuentaBancaria",
-      header: "Cuenta",
+      header: ({ column }) => <div className="hidden lg:table-cell">Cuenta</div>,
       enableHiding: true,
       cell: ({ row }) => {
         const cuentaNombre = row.getValue("nombreCuentaBancaria") as string || 'Sin cuenta'
-        return <div className="text-muted-foreground text-sm">{cuentaNombre}</div>
+        return <div className="text-muted-foreground text-sm hidden lg:table-cell">{cuentaNombre}</div>
       },
     },
     {
       accessorKey: "nombreContacto",
-      header: "Contacto",
+      header: ({ column }) => <div className="hidden lg:table-cell">Contacto</div>,
       enableHiding: true,
       cell: ({ row }) => {
         const contactoNombre = row.getValue("nombreContacto") as string || '-'
-        return <div className="text-muted-foreground text-sm">{contactoNombre}</div>
+        return <div className="text-muted-foreground text-sm hidden lg:table-cell">{contactoNombre}</div>
       },
     },
     {
       accessorKey: "fecha",
-      header: "Fecha",
+      header: ({ column }) => <div className="hidden sm:table-cell">Fecha</div>,
       enableHiding: true,
       cell: ({ row }) => {
         const fechaFormateada = formatFecha(row.getValue("fecha"))
-        return <div className="text-muted-foreground text-sm">{fechaFormateada}</div>
+        return <div className="text-muted-foreground text-sm hidden sm:table-cell">{fechaFormateada}</div>
       },
     },
     {
@@ -152,7 +152,7 @@ export function RecentTransactions() {
         
         return (
           <div
-            className={`text-right font-mono font-semibold tabular-nums ${
+            className={`text-right font-mono font-semibold tabular-nums text-sm ${
               tipo === 'INGRESO' ? 'text-emerald-400' : 'text-rose-400'
             }`}
           >

@@ -71,7 +71,7 @@ export function UpcomingPayments() {
   const columns: ColumnDef<CompraCreditoDTOResponse>[] = [
     {
       accessorKey: "cantidadCuotas",
-      header: "Cuotas/Pagadas",
+      header: "Cuotas",
       enableHiding: true,
       cell: ({ row }) => {
         const pagadas = row.original.cuotasPagadas
@@ -79,9 +79,9 @@ export function UpcomingPayments() {
         const porcentaje = Math.round((pagadas / total) * 100)
         
         return (
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{total}/{pagadas}</span>
-            <Badge variant={pagadas === total ? "success" : "secondary"} className="text-xs">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-medium text-xs sm:text-sm">{total}/{pagadas}</span>
+            <Badge variant={pagadas === total ? "success" : "secondary"} className="text-[10px] hidden sm:inline-flex">
               {porcentaje}%
             </Badge>
           </div>
@@ -93,16 +93,16 @@ export function UpcomingPayments() {
       header: "Motivo",
       enableHiding: true,
       cell: ({ row }) => {
-        return <div>{row.getValue("nombreMotivo")}</div>
+        return <div className="text-sm max-w-[120px] sm:max-w-none truncate">{row.getValue("nombreMotivo")}</div>
       },
     },
     {
       accessorKey: "nombreComercio",
-      header: "Comercio",
+      header: ({ column }) => <div className="hidden md:table-cell">Comercio</div>,
       enableHiding: true,
       cell: ({ row }) => {
         const comercio = row.getValue("nombreComercio") as string | undefined
-        return <div className="text-muted-foreground">{comercio || '-'}</div>
+        return <div className="text-muted-foreground text-sm hidden md:table-cell">{comercio || '-'}</div>
       },
     },
     {

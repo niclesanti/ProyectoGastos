@@ -66,24 +66,24 @@ export function SpendingByCategory() {
   return (
     <Card className="flex flex-col">
       <CardHeader>
-        <h2 className="text-xl font-semibold">Gastos por categoría</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-lg sm:text-xl font-semibold">Gastos por categoría</h2>
+        <p className="text-xs sm:text-sm text-muted-foreground">
           Total {formatCurrency(totalGastos)} este mes
         </p>
       </CardHeader>
-      <CardContent className="flex-1 pb-6">
+      <CardContent className="flex-1 pb-4 sm:pb-6">
         {isLoading ? (
-          <div className="flex items-center justify-center min-h-[250px]">
+          <div className="flex items-center justify-center min-h-[150px] sm:min-h-[200px]">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : chartDataWithColors.length === 0 ? (
-          <div className="flex items-center justify-center min-h-[250px] text-muted-foreground">
+          <div className="flex items-center justify-center min-h-[150px] sm:min-h-[200px] text-muted-foreground">
             No hay datos de gastos por categoría
           </div>
         ) : (
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square max-h-[250px]"
+          className="mx-auto aspect-square max-h-[180px] sm:max-h-[240px]"
         >
           <PieChart>
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
@@ -131,7 +131,7 @@ export function SpendingByCategory() {
         </ChartContainer>
         )}
         {!isLoading && chartDataWithColors.length > 0 && (
-          <div className="mt-6 grid grid-cols-2 gap-4 px-2">
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 px-2">
           {chartDataWithColors.map((item) => (
             <div key={item.category} className="flex items-center gap-2">
               <div

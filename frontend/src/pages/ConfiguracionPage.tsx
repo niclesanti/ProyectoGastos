@@ -238,21 +238,22 @@ export function ConfiguracionPage() {
   }
 
   return (
-    <div className="space-y-6 pt-6">
+    <div className="space-y-4 sm:space-y-6 pt-4 sm:pt-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Configuración</h2>
-        <p className="text-muted-foreground">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Configuración</h2>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Gestiona tu espacio de trabajo y preferencias
         </p>
       </div>
 
       <Tabs defaultValue="workspace" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="workspace" className="gap-2">
-            <Users className="h-4 w-4" />
+        <TabsList className="grid w-full grid-cols-4 text-xs sm:text-sm">
+          <TabsTrigger value="workspace" className="gap-1 sm:gap-2 px-2 sm:px-4">
+            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Espacio de trabajo</span>
+            <span className="sm:hidden">Espacio</span>
           </TabsTrigger>
-          <TabsTrigger value="financial" className="gap-2" disabled>
+          <TabsTrigger value="financial" className="gap-1 sm:gap-2 px-2 sm:px-4" disabled>
             <Landmark className="h-4 w-4" />
             <span className="hidden sm:inline">Preferencias</span>
           </TabsTrigger>
@@ -285,7 +286,7 @@ export function ConfiguracionPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Nombre del espacio</FormLabel>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <FormControl>
                             <Input
                               placeholder="Mi Espacio de Trabajo"
@@ -296,11 +297,13 @@ export function ConfiguracionPage() {
                               }}
                               disabled={createWorkspaceMutation.isPending}
                               maxLength={50}
+                              className="w-full"
                             />
                           </FormControl>
                           <Button
                             type="submit"
                             disabled={createWorkspaceMutation.isPending || !field.value?.trim()}
+                            className="w-full sm:w-auto"
                           >
                             {createWorkspaceMutation.isPending ? 'Guardando...' : 'Guardar'}
                           </Button>
@@ -317,7 +320,7 @@ export function ConfiguracionPage() {
           {/* Gestión de Miembros */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <CardTitle>Miembros del equipo</CardTitle>
                   <CardDescription>
@@ -331,10 +334,10 @@ export function ConfiguracionPage() {
                       Invitar miembros
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Compartir espacio de trabajo</DialogTitle>
-                      <DialogDescription>
+                  <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+                    <DialogHeader className="space-y-2">
+                      <DialogTitle className="text-lg sm:text-xl">Compartir espacio de trabajo</DialogTitle>
+                      <DialogDescription className="text-sm">
                         Comparte "{espacioActual?.nombre}" con otra persona por correo electrónico.
                       </DialogDescription>
                     </DialogHeader>
@@ -366,7 +369,7 @@ export function ConfiguracionPage() {
                             </FormItem>
                           )}
                         />
-                        <DialogFooter>
+                        <DialogFooter className="flex-col sm:flex-row gap-2">
                           <Button
                             type="button"
                             variant="outline"
@@ -375,12 +378,14 @@ export function ConfiguracionPage() {
                               shareWorkspaceForm.reset()
                             }}
                             disabled={shareWorkspaceMutation.isPending}
+                            className="w-full sm:w-auto"
                           >
                             Cancelar
                           </Button>
                           <Button
                             type="submit"
                             disabled={shareWorkspaceMutation.isPending}
+                            className="w-full sm:w-auto"
                           >
                             {shareWorkspaceMutation.isPending ? 'Compartiendo...' : 'Compartir Espacio'}
                           </Button>

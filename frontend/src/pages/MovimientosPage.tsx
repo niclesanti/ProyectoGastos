@@ -401,24 +401,24 @@ export function MovimientosPage() {
     {
       accessorKey: 'motivo',
       header: 'Motivo',
-      cell: ({ row }) => <div className="font-medium">{row.getValue('motivo')}</div>,
+      cell: ({ row }) => <div className="font-medium hidden md:block md:table-cell">{row.getValue('motivo')}</div>,
     },
     {
       accessorKey: 'cuenta',
-      header: 'Cuenta',
-      cell: ({ row }) => <div className="text-muted-foreground">{row.getValue('cuenta')}</div>,
+      header: ({ column }) => <div className="hidden lg:table-cell">Cuenta</div>,
+      cell: ({ row }) => <div className="text-muted-foreground hidden lg:block lg:table-cell">{row.getValue('cuenta')}</div>,
     },
     {
       accessorKey: 'contacto',
-      header: 'Contacto',
-      cell: ({ row }) => <div>{row.getValue('contacto')}</div>,
+      header: ({ column }) => <div className="hidden lg:table-cell">Contacto</div>,
+      cell: ({ row }) => <div className="hidden lg:block lg:table-cell">{row.getValue('contacto')}</div>,
     },
     {
       accessorKey: 'fecha',
-      header: 'Fecha',
+      header: ({ column }) => <div className="hidden sm:table-cell">Fecha</div>,
       cell: ({ row }) => {
         const fecha = parseISO(row.getValue('fecha'))
-        return <div className="text-muted-foreground">{format(fecha, 'dd/MM/yyyy', { locale: es })}</div>
+        return <div className="text-muted-foreground hidden sm:block sm:table-cell">{format(fecha, 'dd/MM/yyyy', { locale: es })}</div>
       },
     },
     {
@@ -487,30 +487,30 @@ export function MovimientosPage() {
   })
 
   return (
-    <div className="space-y-6 pt-6">
+    <div className="space-y-4 sm:space-y-6 pt-4 sm:pt-6">
       {/* Header con resumen dinámico */}
-      <div className="space-y-2 mb-8">
-        <h2 className="text-3xl font-bold tracking-tight">Movimientos</h2>
-        <p className="text-muted-foreground">
+      <div className="space-y-2 mb-4 sm:mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Movimientos</h2>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Explora y filtra tu historial financiero
         </p>
         
         {/* Summary Bar */}
-        <div className="flex items-center gap-4 pt-2">
-          <span className="text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 pt-2">
+          <span className="text-xs sm:text-sm text-muted-foreground">
             Mostrando <span className="font-semibold text-foreground">{cantidadResultados}</span> resultados
           </span>
-          <Separator orientation="vertical" className="h-4" />
+          <Separator orientation="vertical" className="hidden sm:block h-4" />
           <div className="flex items-center gap-1">
-            <span className="text-sm text-muted-foreground">Ingresos:</span>
-            <span className="text-sm font-semibold text-emerald-400/90">
+            <span className="text-xs sm:text-sm text-muted-foreground">Ingresos:</span>
+            <span className="text-xs sm:text-sm font-semibold text-emerald-400/90">
               +{formatCurrency(totalIngresos)}
             </span>
           </div>
-          <Separator orientation="vertical" className="h-4" />
+          <Separator orientation="vertical" className="hidden sm:block h-4" />
           <div className="flex items-center gap-1">
-            <span className="text-sm text-muted-foreground">Gastos:</span>
-            <span className="text-sm font-semibold text-rose-400/90">
+            <span className="text-xs sm:text-sm text-muted-foreground">Gastos:</span>
+            <span className="text-xs sm:text-sm font-semibold text-rose-400/90">
               -{formatCurrency(totalGastos)}
             </span>
           </div>
@@ -518,10 +518,10 @@ export function MovimientosPage() {
       </div>
 
       {/* Smart Toolbar - Filtros */}
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 rounded-lg border bg-card p-3 sm:p-4">
         {/* Selector de Mes */}
         <Select value={mesSeleccionado} onValueChange={setMesSeleccionado} disabled={anoSeleccionado === 'todos'}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filtrar por mes..." />
           </SelectTrigger>
           <SelectContent>
@@ -535,7 +535,7 @@ export function MovimientosPage() {
 
         {/* Selector de Año */}
         <Select value={anoSeleccionado} onValueChange={handleAnoChange}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="Filtrar por año..." />
           </SelectTrigger>
           <SelectContent>
@@ -660,6 +660,7 @@ export function MovimientosPage() {
           onClick={handleBuscar}
           disabled={buscarTransaccionesMutation.isPending || !espacioActual}
           size="sm"
+          className="w-full sm:w-auto"
         >
           <Search className="mr-2 h-4 w-4" />
           {buscarTransaccionesMutation.isPending ? 'Buscando...' : 'Buscar'}

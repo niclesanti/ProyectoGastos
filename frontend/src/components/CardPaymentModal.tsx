@@ -303,17 +303,17 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>Pagar resumen tarjeta</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="text-lg sm:text-xl">Pagar resumen tarjeta</DialogTitle>
+          <DialogDescription className="text-sm">
             Selecciona el resumen pendiente a pagar. Puedes ver detalles de qué cuotas incluye el resumen.
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[65vh] pr-4">
+        <ScrollArea className="max-h-[60vh] sm:max-h-[65vh] pr-4 sm:pr-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-3 sm:space-y-4">
               {/* Tarjeta */}
               <FormField
                 control={form.control}
@@ -648,7 +648,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
           </Form>
         </ScrollArea>
 
-        <DialogFooter className="mt-4">
+        <DialogFooter className="mt-4 gap-3">
           <Button
             type="button"
             variant="outline"

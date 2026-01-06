@@ -126,16 +126,16 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Movimiento entre cuentas</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="text-lg sm:text-xl">Movimiento entre cuentas</DialogTitle>
+          <DialogDescription className="text-sm">
             Anotar que realizaste un movimiento de dinero entre dos cuentas bancarias registradas en el sistema.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-3 sm:space-y-4">
             {/* Cuenta de origen */}
             <FormField
               control={form.control}
@@ -233,11 +233,12 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
           </form>
         </Form>
 
-        <DialogFooter className="mt-4">
+        <DialogFooter className="mt-3 sm:mt-4 flex-col sm:flex-row gap-2">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
+            className="w-full sm:w-auto"
           >
             Cancelar
           </Button>
@@ -245,6 +246,7 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
             type="submit" 
             onClick={form.handleSubmit(onSubmit, handleFormError)}
             disabled={form.formState.isSubmitting || transferenciaMutation.isPending}
+            className="w-full sm:w-auto"
           >
             {transferenciaMutation.isPending ? 'Realizando...' : 'Realizar movimiento'}
           </Button>
