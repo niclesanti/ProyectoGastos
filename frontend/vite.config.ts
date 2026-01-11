@@ -31,4 +31,16 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    // Optimización para PWA
+    manifest: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+        },
+      },
+    },
+  },
 })
