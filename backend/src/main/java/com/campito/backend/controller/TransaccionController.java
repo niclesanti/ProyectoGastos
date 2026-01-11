@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.campito.backend.dto.ContactoDTORequest;
 import com.campito.backend.dto.ContactoDTOResponse;
-import com.campito.backend.dto.DashboardStatsDTO;
 import com.campito.backend.dto.MotivoDTORequest;
 import com.campito.backend.dto.MotivoDTOResponse;
 import com.campito.backend.dto.TransaccionBusquedaDTO;
@@ -142,16 +141,4 @@ public class TransaccionController {
         return new ResponseEntity<>(transacciones, HttpStatus.OK);
     }
 
-    @Operation(summary = "Obtener estadísticas consolidadas del dashboard",
-                description = "Obtiene todas las estadísticas del dashboard (KPIs + charts) en una sola llamada.",
-                responses = {
-                    @ApiResponse(responseCode = "200", description = "Estadísticas del dashboard obtenidas correctamente"),
-                    @ApiResponse(responseCode = "404", description = "Espacio de trabajo no encontrado"),
-                    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-                })
-    @GetMapping("/dashboard-stats/{idEspacio}")
-    public ResponseEntity<DashboardStatsDTO> obtenerDashboardStats(@PathVariable Long idEspacio) {
-        DashboardStatsDTO dashboardStats = transaccionService.obtenerDashboardStats(idEspacio);
-        return new ResponseEntity<>(dashboardStats, HttpStatus.OK);
-    }
 }

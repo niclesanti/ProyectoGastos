@@ -40,7 +40,7 @@ export const transaccionService = {
   },
 
   async obtenerDashboardStats(idEspacio: number): Promise<DashboardStatsDTO> {
-    const { data } = await apiClient.get<DashboardStatsDTO>(`/transaccion/dashboard-stats/${idEspacio}`)
+    const { data } = await apiClient.get<DashboardStatsDTO>(`/dashboard/stats/${idEspacio}`)
     return data
   },
 }
