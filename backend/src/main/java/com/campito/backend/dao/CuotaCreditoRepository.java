@@ -6,10 +6,13 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import com.campito.backend.model.CuotaCredito;
 
+@Repository
 public interface CuotaCreditoRepository extends JpaRepository<CuotaCredito, Long> {
+    
     List<CuotaCredito> findByCompraCredito_Id(Long idCompraCredito);
     
     List<CuotaCredito> findByCompraCredito_IdAndPagada(Long idCompraCredito, boolean pagada);

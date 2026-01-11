@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Optional;
 
 import com.campito.backend.dao.TarjetaRepository;
 import com.campito.backend.model.Tarjeta;
@@ -22,6 +23,7 @@ import com.campito.backend.dao.CuentaBancariaRepository;
 import com.campito.backend.dao.CuotaCreditoRepository;
 import com.campito.backend.dao.DashboardRepository;
 import com.campito.backend.dao.EspacioTrabajoRepository;
+import com.campito.backend.dao.GastosIngresosMensualesRepository;
 import com.campito.backend.dao.MotivoTransaccionRepository;
 import com.campito.backend.dao.TransaccionRepository;
 import com.campito.backend.dto.ContactoDTORequest;
@@ -40,6 +42,7 @@ import com.campito.backend.mapper.TransaccionMapper;
 import com.campito.backend.model.ContactoTransferencia;
 import com.campito.backend.model.CuentaBancaria;
 import com.campito.backend.model.EspacioTrabajo;
+import com.campito.backend.model.GastosIngresosMensuales;
 import com.campito.backend.model.MotivoTransaccion;
 import com.campito.backend.model.TipoTransaccion;
 import com.campito.backend.model.Transaccion;
@@ -67,6 +70,7 @@ public class TransaccionServiceImpl implements TransaccionService {
     private final CuentaBancariaRepository cuentaBancariaRepository;
     private final CuotaCreditoRepository cuotaCreditoRepository;
     private final TarjetaRepository tarjetaRepository;
+    private final GastosIngresosMensualesRepository gastosIngresosMensualesRepository;
     private final CuentaBancariaService cuentaBancariaService;
     private final TransaccionMapper transaccionMapper;
     private final ContactoTransferenciaMapper contactoTransferenciaMapper;
@@ -111,6 +115,8 @@ public class TransaccionServiceImpl implements TransaccionService {
             });
 
             Transaccion transaccion = transaccionMapper.toEntity(transaccionDTO);
+
+            gastosIgresosMesAnotar(transaccion.getTipo(), transaccion.getMonto(), espacio.getId());
 
             if (transaccionDTO.idContacto() != null) {
                 ContactoTransferencia contacto = contactoRepository.findById(transaccionDTO.idContacto()).orElseThrow(() -> {
@@ -192,6 +198,8 @@ public class TransaccionServiceImpl implements TransaccionService {
                 cuentaBancariaRepository.save(cuenta);
                 logger.info("Saldo de cuenta bancaria ID {} actualizado a {} tras remocion de transaccion ID {}", cuenta.getId(), cuenta.getSaldoActual(), id);
             }
+
+            gastosIngresosMesDelete(transaccion.getTipo(), transaccion.getMonto(), espacio.getId());
 
             transaccionRepository.delete(transaccion);
             espacioRepository.save(espacio);
@@ -532,6 +540,12 @@ public class TransaccionServiceImpl implements TransaccionService {
         }
     }
 
+    /*
+    ===========================================================================
+        MÉTODOS AUXILIARES PRIVADOS
+    ===========================================================================
+    */
+
     /**
      * Calcula la fecha de vencimiento del pago del resumen (misma lógica del scheduler)
      */
@@ -542,4 +556,90 @@ public class TransaccionServiceImpl implements TransaccionService {
         return mesSiguiente.atDay(diaAjustado);
     }
 
+    /**
+     * Método auxiliar para anotar gastos e ingresos por mes
+     */
+    @Transactional
+    private void gastosIgresosMesAnotar(TipoTransaccion tipo, Float monto, Long idEspacioTrabajo) {
+        if (tipo == null || monto == null || idEspacioTrabajo == null) {
+            logger.warn("Argumentos inválidos para anotar gastos/ingresos: tipo={}, monto={}, espacioId={}", tipo, monto, idEspacioTrabajo);
+            throw new IllegalArgumentException("Tipo, monto y idEspacioTrabajo no pueden ser nulos");
+        }
+
+        ZoneId buenosAiresZone = ZoneId.of("America/Argentina/Buenos_Aires");
+        ZonedDateTime nowInBuenosAires = ZonedDateTime.now(buenosAiresZone);
+        Integer anio = nowInBuenosAires.getYear();
+        Integer mes = nowInBuenosAires.getMonthValue();
+
+        Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(idEspacioTrabajo, anio, mes);
+
+        GastosIngresosMensuales registro = opt.orElseGet(() -> {
+            EspacioTrabajo espacio = espacioRepository.findById(idEspacioTrabajo).orElseThrow(() -> {
+                String msg = "Espacio de trabajo con ID " + idEspacioTrabajo + " no encontrado";
+                logger.warn(msg);
+                return new EntityNotFoundException(msg);
+            });
+            return GastosIngresosMensuales.builder()
+                    .anio(anio)
+                    .mes(mes)
+                    .gastos(0f)
+                    .ingresos(0f)
+                    .espacioTrabajo(espacio)
+                    .build();
+        });
+
+        if (tipo.equals(TipoTransaccion.GASTO)) {
+            registro.actualizarGastos(monto);
+        } else {
+            registro.actualizarIngresos(monto);
+        }
+
+        gastosIngresosMensualesRepository.save(registro);
+        logger.info("Gastos/Ingresos mensuales anotados: espacioId={}, anio={}, mes={}, gastos={}, ingresos={}",
+                idEspacioTrabajo, anio, mes, registro.getGastos(), registro.getIngresos());
+    }
+
+    /**
+     * Método auxiliar para eliminar gastos e ingresos por mes porque se eliminó una transacción
+     */
+    @Transactional
+    private void gastosIngresosMesDelete(TipoTransaccion tipo, Float monto, Long idEspacioTrabajo) {
+        if (tipo == null || monto == null || idEspacioTrabajo == null) {
+            logger.warn("Argumentos inválidos para anotar gastos/ingresos: tipo={}, monto={}, espacioId={}", tipo, monto, idEspacioTrabajo);
+            throw new IllegalArgumentException("Tipo, monto y idEspacioTrabajo no pueden ser nulos");
+        }
+
+        ZoneId buenosAiresZone = ZoneId.of("America/Argentina/Buenos_Aires");
+        ZonedDateTime nowInBuenosAires = ZonedDateTime.now(buenosAiresZone);
+        Integer anio = nowInBuenosAires.getYear();
+        Integer mes = nowInBuenosAires.getMonthValue();
+
+        Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(idEspacioTrabajo, anio, mes);
+
+        GastosIngresosMensuales registro = opt.orElseThrow(() -> {
+            String msg = "Registro de GastosIngresosMensuales no encontrado para espacioId=" + idEspacioTrabajo + ", anio=" + anio + ", mes=" + mes;
+            logger.warn(msg);
+            return new EntityNotFoundException(msg);
+        });
+
+        if (tipo.equals(TipoTransaccion.GASTO)) {
+            if (registro.getGastos() < monto) {
+                String msg = "No se pueden eliminar gastos mensuales: el monto a eliminar es mayor que los gastos registrados.";
+                logger.warn(msg);
+                throw new IllegalArgumentException(msg);
+            }
+            registro.eliminarGastos(monto);
+        } else {
+            if (registro.getIngresos() < monto) {
+                String msg = "No se pueden eliminar ingresos mensuales: el monto a eliminar es mayor que los ingresos registrados.";
+                logger.warn(msg);
+                throw new IllegalArgumentException(msg);
+            }
+            registro.eliminarIngresos(monto);
+        }
+
+        gastosIngresosMensualesRepository.save(registro);
+        logger.info("Gastos/Ingresos mensuales anotados: espacioId={}, anio={}, mes={}, gastos={}, ingresos={}",
+                idEspacioTrabajo, anio, mes, registro.getGastos(), registro.getIngresos());
+    }
 }
