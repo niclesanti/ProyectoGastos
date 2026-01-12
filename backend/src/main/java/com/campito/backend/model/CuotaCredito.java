@@ -37,14 +37,11 @@ public class CuotaCredito {
     private CompraCredito compraCredito;
 
     @ManyToOne
-    @JoinColumn(name = "transaccion_id")
-    private Transaccion transaccionAsociada;
+    @JoinColumn(name = "resumen_id")
+    private Resumen resumenAsociado;
 
     public void pagarCuota() {
         this.pagada = true;
     }
 
-    public void asociarTransaccion(Transaccion transaccion) {
-        this.transaccionAsociada = transaccion;
-    }
 }

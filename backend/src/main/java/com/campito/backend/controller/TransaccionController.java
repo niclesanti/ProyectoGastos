@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.campito.backend.dto.ContactoDTORequest;
 import com.campito.backend.dto.ContactoDTOResponse;
-import com.campito.backend.dto.DashboardInfoDTO;
 import com.campito.backend.dto.MotivoDTORequest;
 import com.campito.backend.dto.MotivoDTOResponse;
 import com.campito.backend.dto.TransaccionBusquedaDTO;
@@ -31,7 +30,7 @@ import org.springframework.http.ResponseEntity;
 
 
 @RestController
-@RequestMapping("/transaccion")
+@RequestMapping("/api/transaccion")
 @Tag(name = "Transaccion", description = "Operaciones para la gestión de transacciones")
 @RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
 public class TransaccionController {
@@ -142,16 +141,4 @@ public class TransaccionController {
         return new ResponseEntity<>(transacciones, HttpStatus.OK);
     }
 
-    @Operation(summary = "Obtener información del dashboard",
-                description = "Obtiene la información necesaria para el dashboard de un espacio de trabajo.",
-                responses = {
-                    @ApiResponse(responseCode = "200", description = "Información del dashboard obtenida correctamente"),
-                    @ApiResponse(responseCode = "404", description = "Espacio de trabajo no encontrado"),
-                    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-                })
-    @GetMapping("/dashboardinfo/{idEspacio}")
-    public ResponseEntity<DashboardInfoDTO> obtenerDashboardInfo(@PathVariable Long idEspacio) {
-        DashboardInfoDTO dashboardInfo = transaccionService.obtenerDashboardInfo(idEspacio);
-        return new ResponseEntity<>(dashboardInfo, HttpStatus.OK);
-    }
 }

@@ -11,7 +11,9 @@ import com.campito.backend.dao.EspacioTrabajoRepository;
 import com.campito.backend.dao.UsuarioRepository;
 import com.campito.backend.dto.EspacioTrabajoDTORequest;
 import com.campito.backend.dto.EspacioTrabajoDTOResponse;
+import com.campito.backend.dto.UsuarioDTOResponse;
 import com.campito.backend.mapper.EspacioTrabajoMapper;
+import com.campito.backend.mapper.UsuarioMapper;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.Usuario;
 
@@ -33,6 +35,7 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
     private final EspacioTrabajoRepository espacioRepository;
     private final UsuarioRepository usuarioRepository;
     private final EspacioTrabajoMapper espacioTrabajoMapper;
+    private final UsuarioMapper usuarioMapper;
 
     /**
      * Registra un nuevo espacio de trabajo.
@@ -137,6 +140,38 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
                 .toList();
         } catch (Exception e) {
             logger.error("Error al listar espacios de trabajo para el usuario ID: {}. Causa: {}", idUsuario, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Obtiene la lista de miembros (usuarios participantes) de un espacio de trabajo.
+     * 
+     * @param idEspacioTrabajo ID del espacio de trabajo.
+     * @return Lista de usuarios en formato DTO.
+     * @throws EntityNotFoundException si el espacio de trabajo no se encuentra.
+     * @throws Exception para cualquier otro error inesperado.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<UsuarioDTOResponse> obtenerMiembrosEspacioTrabajo(Long idEspacioTrabajo) {
+        logger.info("Intentando obtener miembros del espacio de trabajo ID: {}", idEspacioTrabajo);
+        try {
+            EspacioTrabajo espacioTrabajo = espacioRepository.findById(idEspacioTrabajo)
+                .orElseThrow(() -> {
+                    String mensaje = "Espacio de trabajo con ID " + idEspacioTrabajo + " no encontrado";
+                    logger.warn(mensaje);
+                    return new EntityNotFoundException(mensaje);
+                });
+            
+            List<Usuario> miembros = espacioTrabajo.getUsuariosParticipantes();
+            logger.info("Encontrados {} miembros en el espacio de trabajo ID: {}.", miembros.size(), idEspacioTrabajo);
+            
+            return miembros.stream()
+                .map(usuarioMapper::toResponse)
+                .toList();
+        } catch (Exception e) {
+            logger.error("Error al obtener miembros del espacio de trabajo ID: {}. Causa: {}", idEspacioTrabajo, e.getMessage(), e);
             throw e;
         }
     }

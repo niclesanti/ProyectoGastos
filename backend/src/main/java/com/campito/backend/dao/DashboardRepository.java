@@ -9,26 +9,10 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.campito.backend.dto.DistribucionGastoDTO;
-import com.campito.backend.dto.IngresosGastosMesDTO;
-import com.campito.backend.dto.SaldoAcumuladoMesDTO;
 import com.campito.backend.model.Transaccion;
 
 @Repository
 public interface DashboardRepository extends JpaRepository<Transaccion, Long> {
-
-    @Query(value = """
-            SELECT
-                TO_CHAR(t.fecha, 'YYYY-MM') as mes,
-                SUM(CASE WHEN t.tipo = 'INGRESO' THEN t.monto ELSE 0 END) as ingresos,
-                SUM(CASE WHEN t.tipo = 'GASTO' THEN t.monto ELSE 0 END) as gastos
-            FROM transacciones t
-            WHERE t.espacio_trabajo_id = :idEspacio
-              AND t.fecha >= :fechaLimite
-            GROUP BY mes
-            ORDER BY mes DESC
-            """, nativeQuery = true)
-    List<IngresosGastosMesDTO> findIngresosVsGastos(@Param("idEspacio") Long idEspacio,
-            @Param("fechaLimite") LocalDate fechaLimite);
 
     @Query(value = """
             SELECT
@@ -45,16 +29,4 @@ public interface DashboardRepository extends JpaRepository<Transaccion, Long> {
     List<DistribucionGastoDTO> findDistribucionGastos(@Param("idEspacio") Long idEspacio,
             @Param("fechaLimite") LocalDate fechaLimite);
 
-    @Query(value = """
-            SELECT
-                TO_CHAR(t.fecha, 'YYYY-MM') AS mes,
-                SUM(CASE WHEN t.tipo = 'INGRESO' THEN t.monto ELSE -t.monto END) AS saldo_acumulado
-            FROM transacciones t
-            WHERE t.espacio_trabajo_id = :idEspacio
-              AND t.fecha >= :fechaLimite
-            GROUP BY mes
-            ORDER BY mes DESC
-            """, nativeQuery = true)
-    List<SaldoAcumuladoMesDTO> findSaldosAcumulados(@Param("idEspacio") Long idEspacio,
-            @Param("fechaLimite") LocalDate fechaLimite);
 }
