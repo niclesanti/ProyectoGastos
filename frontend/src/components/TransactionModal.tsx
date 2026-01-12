@@ -486,11 +486,17 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {motivos.map((m) => (
-                            <SelectItem key={m.id} value={m.id.toString()}>
-                              {m.motivo}
+                          {motivos.length === 0 ? (
+                            <SelectItem value="empty" disabled>
+                              No hay motivos disponibles - Crear uno nuevo
                             </SelectItem>
-                          ))}
+                          ) : (
+                            motivos.map((m) => (
+                              <SelectItem key={m.id} value={m.id.toString()}>
+                                {m.motivo}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                       <Button 

@@ -1,30 +1,97 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/contexts/AuthContext"
 
 export function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth()
   const navigate = useNavigate()
+  const [isAuthenticating, setIsAuthenticating] = useState(() => {
+    // Verificar si hay un proceso de autenticación en curso
+    return sessionStorage.getItem('isAuthenticating') === 'true'
+  })
 
-  // Si el usuario ya está autenticado, redirigir al dashboard
+  // Si el usuario ya está autenticado, redirigir al dashboard y limpiar el flag
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
+      sessionStorage.removeItem('isAuthenticating')
       navigate('/', { replace: true })
     }
   }, [isAuthenticated, isLoading, navigate])
 
+  // Limpiar el flag si hay un error o se cancela
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && isAuthenticating) {
+      // Si no está cargando, no está autenticado pero estábamos autenticando,
+      // podría haber un error, esperar un poco antes de limpiar
+      const timer = setTimeout(() => {
+        const stillAuthenticating = sessionStorage.getItem('isAuthenticating') === 'true'
+        if (stillAuthenticating && !isAuthenticated) {
+          sessionStorage.removeItem('isAuthenticating')
+          setIsAuthenticating(false)
+        }
+      }, 5000) // Esperar 5 segundos antes de limpiar por si acaso
+      
+      return () => clearTimeout(timer)
+    }
+  }, [isLoading, isAuthenticated, isAuthenticating])
+
   const handleGoogleLogin = () => {
+    // Guardar en sessionStorage para persistir durante el redirect
+    sessionStorage.setItem('isAuthenticating', 'true')
+    setIsAuthenticating(true)
     login()
   }
 
-  if (isLoading) {
+  // Skeleton Screen mientras se autentica o carga
+  if (isLoading || isAuthenticating) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Cargando...</p>
+      <div className="min-h-screen flex flex-col bg-background">
+        {/* Header Skeleton */}
+        <div className="border-b border-zinc-800/50 bg-zinc-950/50 backdrop-blur-sm">
+          <div className="flex items-center justify-between px-4 py-3">
+            <Skeleton className="h-8 w-32 bg-zinc-800/50" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-8 w-8 rounded-full bg-zinc-800/50" />
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Skeleton */}
+        <div className="flex flex-1">
+          {/* Sidebar Skeleton */}
+          <div className="hidden lg:flex w-64 border-r border-zinc-800/50 bg-zinc-950/30 flex-col p-4 space-y-4">
+            <Skeleton className="h-10 w-full bg-zinc-800/50" />
+            <Skeleton className="h-10 w-full bg-zinc-800/50" />
+            <Skeleton className="h-10 w-full bg-zinc-800/50" />
+            <Skeleton className="h-10 w-full bg-zinc-800/50" />
+            <div className="flex-1" />
+            <Skeleton className="h-10 w-full bg-zinc-800/50" />
+          </div>
+
+          {/* Dashboard Content Skeleton */}
+          <div className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
+            {/* Cards Row */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Skeleton className="h-32 bg-zinc-900/50 border border-zinc-800/50" />
+              <Skeleton className="h-32 bg-zinc-900/50 border border-zinc-800/50" />
+              <Skeleton className="h-32 bg-zinc-900/50 border border-zinc-800/50" />
+              <Skeleton className="h-32 bg-zinc-900/50 border border-zinc-800/50" />
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Skeleton className="h-80 bg-zinc-900/50 border border-zinc-800/50" />
+              <Skeleton className="h-80 bg-zinc-900/50 border border-zinc-800/50" />
+            </div>
+
+            {/* Table Skeleton */}
+            <div className="space-y-4">
+              <Skeleton className="h-96 bg-zinc-900/50 border border-zinc-800/50" />
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -39,6 +106,11 @@ export function LoginPage() {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#27272a_1px,transparent_1px),linear-gradient(to_bottom,#27272a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_110%)] opacity-20" />
       
       <div className="relative z-10 w-full max-w-sm">
+        {/* Subtle Glow Effect behind Card */}
+        <div className="absolute inset-0 -z-10 blur-3xl opacity-5">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500" />
+        </div>
+        
         <Card className="backdrop-blur-sm bg-card/95 border-zinc-800/50 shadow-2xl">
           <CardHeader className="space-y-4 flex flex-col items-center text-center pb-4">
             <div className="w-12 h-12 flex items-center justify-center">
@@ -87,7 +159,10 @@ export function LoginPage() {
               Continuar con Google
             </Button>
             <p className="text-[10px] text-zinc-500 text-center leading-relaxed px-2">
-              Tu información está protegida por encriptación de grado bancario
+              Acceso seguro mediante protocolos estándar de Google.
+            </p>
+            <p className="text-[10px] text-zinc-500 text-center leading-relaxed px-2">
+              Tus datos son privados. No compartimos tu información con terceros.
             </p>
           </CardContent>
         </Card>
@@ -105,6 +180,10 @@ export function LoginPage() {
         <span className="text-zinc-700">•</span>
         <a href="#" className="hover:text-zinc-300 transition-colors">
           Soporte
+        </a>
+        <span className="text-zinc-700">•</span>
+        <a href="#" className="hover:text-zinc-300 transition-colors">
+          v2.0.0
         </a>
       </footer>
     </div>
