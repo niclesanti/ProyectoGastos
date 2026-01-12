@@ -1,5 +1,6 @@
 package com.campito.backend.service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -65,7 +66,7 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
             EspacioTrabajo espacioTrabajo = espacioTrabajoMapper.toEntity(espacioTrabajoDTO);
             espacioTrabajo.setSaldo(0f);
             espacioTrabajo.setUsuarioAdmin(usuario);
-            espacioTrabajo.setUsuariosParticipantes(new java.util.ArrayList<>());
+            espacioTrabajo.setUsuariosParticipantes(new ArrayList<>());
             espacioTrabajo.getUsuariosParticipantes().add(usuario);
             espacioRepository.save(espacioTrabajo);
             logger.info("Espacio de trabajo '{}' registrado exitosamente.", espacioTrabajo.getNombre());
@@ -88,12 +89,13 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
     @Override
     @Transactional
     public void compartirEspacioTrabajo(String email, Long idEspacioTrabajo, Long idUsuarioAdmin) {
+        
+        if(email == null || idEspacioTrabajo == null || idUsuarioAdmin == null) {
+            logger.warn("Se recibieron parametros nulos para compartir. Email: {}, EspacioID: {}, AdminID: {}", email, idEspacioTrabajo, idUsuarioAdmin);
+            throw new IllegalArgumentException("El email, el ID del espacio de trabajo y el ID del usuario administrador del espacio no pueden ser nulos");
+        }
         logger.info("Intentando compartir espacio de trabajo ID: {} con email: {}", idEspacioTrabajo, email);
         try {
-            if(email == null || idEspacioTrabajo == null || idUsuarioAdmin == null) {
-                logger.warn("Se recibieron parametros nulos para compartir. Email: {}, EspacioID: {}, AdminID: {}", email, idEspacioTrabajo, idUsuarioAdmin);
-                throw new IllegalArgumentException("El email, el ID del espacio de trabajo y el ID del usuario administrador del espacio no pueden ser nulos");
-            }
 
             EspacioTrabajo espacioTrabajo = espacioRepository.findById(idEspacioTrabajo).orElseThrow(() -> {
                 String mensaje = "Espacio de trabajo con ID " + idEspacioTrabajo + " no encontrado";
@@ -127,10 +129,16 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
      * 
      * @param idUsuario ID del usuario cuyos espacios se desean listar.
      * @return Lista de espacios de trabajo en formato DTO.
+     * @throws IllegalArgumentException si el ID del usuario es nulo.
      * @throws Exception para cualquier error inesperado.
      */
     @Override
     public List<EspacioTrabajoDTOResponse> listarEspaciosTrabajoPorUsuario(Long idUsuario) {
+        
+        if(idUsuario == null) {
+            logger.warn("Se recibieron parametros nulos para listar espacios de trabajo por usuario.");
+            throw new IllegalArgumentException("El ID del usuario no puede ser nulo");
+        }
         logger.info("Intentando listar espacios de trabajo para el usuario ID: {}", idUsuario);
         try {
             List<EspacioTrabajo> espacios = espacioRepository.findByUsuariosParticipantes_Id(idUsuario);
@@ -150,11 +158,17 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
      * @param idEspacioTrabajo ID del espacio de trabajo.
      * @return Lista de usuarios en formato DTO.
      * @throws EntityNotFoundException si el espacio de trabajo no se encuentra.
+     * @throws IllegalArgumentException si el ID del espacio de trabajo es nulo.
      * @throws Exception para cualquier otro error inesperado.
      */
     @Override
     @Transactional(readOnly = true)
     public List<UsuarioDTOResponse> obtenerMiembrosEspacioTrabajo(Long idEspacioTrabajo) {
+        
+        if(idEspacioTrabajo == null) {
+            logger.warn("Se recibieron parametros nulos para obtener miembros del espacio de trabajo.");
+            throw new IllegalArgumentException("El ID del espacio de trabajo no puede ser nulo");
+        }
         logger.info("Intentando obtener miembros del espacio de trabajo ID: {}", idEspacioTrabajo);
         try {
             EspacioTrabajo espacioTrabajo = espacioRepository.findById(idEspacioTrabajo)
