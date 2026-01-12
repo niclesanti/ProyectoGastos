@@ -155,51 +155,8 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     }
 
     /**
-     * Metodo privado que crea las cuotas asociadas a una compra a crédito.
-     * @param compraCredito
-     */
-    private void crearCuotas(CompraCredito compraCredito) {
-        Tarjeta tarjeta = compraCredito.getTarjeta();
-
-        if (compraCredito.getCantidadCuotas() <= 0) {
-            logger.warn("Intento de crear cuotas para una compra con 0 o menos cuotas. Compra ID: {}", compraCredito.getId());
-            return;
-        }
-
-        Float montoCuota = compraCredito.getMontoTotal() / compraCredito.getCantidadCuotas();
-        
-        LocalDate fechaCompra = compraCredito.getFechaCompra();
-        Integer diaCierre = tarjeta.getDiaCierre();
-        Integer diaVencimiento = tarjeta.getDiaVencimientoPago();
-
-        LocalDate primerVencimiento;
-
-        // Si la compra se realiza después del día de cierre de la tarjeta en el mes de la compra
-        if (fechaCompra.getDayOfMonth() > diaCierre) {
-            // La cuota entrará en el resumen del mes siguiente, y vencerá el mes subsiguiente.
-            // Ejemplo: Cierre día 25. Compra día 28 de Julio. Entra en resumen que cierra 25 de Agosto. Vence en Septiembre.
-            primerVencimiento = fechaCompra.plusMonths(2).withDayOfMonth(diaVencimiento);
-        } else {
-            // La cuota entrará en el resumen de este mes, y vencerá el mes siguiente.
-            // Ejemplo: Cierre día 25. Compra día 20 de Julio. Entra en resumen que cierra 25 de Julio. Vence en Agosto.
-            primerVencimiento = fechaCompra.plusMonths(1).withDayOfMonth(diaVencimiento);
-        }
-
-        for (int i = 0; i < compraCredito.getCantidadCuotas(); i++) {
-            CuotaCredito cuota = CuotaCredito.builder()
-                .compraCredito(compraCredito)
-                .numeroCuota(i + 1)
-                .pagada(false)
-                .montoCuota(montoCuota)
-                .fechaVencimiento(primerVencimiento.plusMonths(i))
-                .build();
-            cuotaCreditoRepository.save(cuota);
-        }
-        logger.info("Se crearon {} cuotas para la compra a crédito ID {}", compraCredito.getCantidadCuotas(), compraCredito.getId());
-    }
-
-    /**
      * Metodo que registra una nueva tarjeta en un espacio de trabajo.
+     * 
      * @param tarjetaDTO Datos de la tarjeta a registrar.
      * @return Respuesta con los detalles de la tarjeta registrada
     */
@@ -638,7 +595,77 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
             .map(this::mapearResumenConCuotas)
             .collect(Collectors.toList());
     }
+
+    /**
+     * Lista todos los resúmenes de un espacio de trabajo.
+     * 
+     * @param idEspacioTrabajo ID del espacio de trabajo
+     * @return Lista de resúmenes ordenados por fecha descendente
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<ResumenDTOResponse> listarResumenesPorEspacioTrabajo(Long idEspacioTrabajo) {
+        logger.info("Listando resúmenes para espacio de trabajo ID: {}", idEspacioTrabajo);
+        
+        List<Resumen> resumenes = resumenRepository.findByEspacioTrabajoId(idEspacioTrabajo);
+        
+        logger.info("Se encontraron {} resúmenes", resumenes.size());
+        
+        return resumenes.stream()
+            .map(resumenMapper::toResponse)
+            .collect(Collectors.toList());
+    }
+
+    /*
+    ===========================================================================
+        MÉTODOS AUXILIARES PRIVADOS
+    ===========================================================================
+    */
     
+    /**
+     * Metodo privado que crea las cuotas asociadas a una compra a crédito.
+     * @param compraCredito
+     */
+    private void crearCuotas(CompraCredito compraCredito) {
+        Tarjeta tarjeta = compraCredito.getTarjeta();
+
+        if (compraCredito.getCantidadCuotas() <= 0) {
+            logger.warn("Intento de crear cuotas para una compra con 0 o menos cuotas. Compra ID: {}", compraCredito.getId());
+            return;
+        }
+
+        Float montoCuota = compraCredito.getMontoTotal() / compraCredito.getCantidadCuotas();
+        
+        LocalDate fechaCompra = compraCredito.getFechaCompra();
+        Integer diaCierre = tarjeta.getDiaCierre();
+        Integer diaVencimiento = tarjeta.getDiaVencimientoPago();
+
+        LocalDate primerVencimiento;
+
+        // Si la compra se realiza después del día de cierre de la tarjeta en el mes de la compra
+        if (fechaCompra.getDayOfMonth() > diaCierre) {
+            // La cuota entrará en el resumen del mes siguiente, y vencerá el mes subsiguiente.
+            // Ejemplo: Cierre día 25. Compra día 28 de Julio. Entra en resumen que cierra 25 de Agosto. Vence en Septiembre.
+            primerVencimiento = fechaCompra.plusMonths(2).withDayOfMonth(diaVencimiento);
+        } else {
+            // La cuota entrará en el resumen de este mes, y vencerá el mes siguiente.
+            // Ejemplo: Cierre día 25. Compra día 20 de Julio. Entra en resumen que cierra 25 de Julio. Vence en Agosto.
+            primerVencimiento = fechaCompra.plusMonths(1).withDayOfMonth(diaVencimiento);
+        }
+
+        for (int i = 0; i < compraCredito.getCantidadCuotas(); i++) {
+            CuotaCredito cuota = CuotaCredito.builder()
+                .compraCredito(compraCredito)
+                .numeroCuota(i + 1)
+                .pagada(false)
+                .montoCuota(montoCuota)
+                .fechaVencimiento(primerVencimiento.plusMonths(i))
+                .build();
+            cuotaCreditoRepository.save(cuota);
+        }
+        logger.info("Se crearon {} cuotas para la compra a crédito ID {}", compraCredito.getCantidadCuotas(), compraCredito.getId());
+    }
+
     /**
      * Método privado auxiliar para mapear un Resumen a ResumenDTOResponse incluyendo sus cuotas.
      * 
@@ -679,26 +706,6 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
             cuotasDTO.size(),
             cuotasDTO
         );
-    }
-
-    /**
-     * Lista todos los resúmenes de un espacio de trabajo.
-     * 
-     * @param idEspacioTrabajo ID del espacio de trabajo
-     * @return Lista de resúmenes ordenados por fecha descendente
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public List<ResumenDTOResponse> listarResumenesPorEspacioTrabajo(Long idEspacioTrabajo) {
-        logger.info("Listando resúmenes para espacio de trabajo ID: {}", idEspacioTrabajo);
-        
-        List<Resumen> resumenes = resumenRepository.findByEspacioTrabajoId(idEspacioTrabajo);
-        
-        logger.info("Se encontraron {} resúmenes", resumenes.size());
-        
-        return resumenes.stream()
-            .map(resumenMapper::toResponse)
-            .collect(Collectors.toList());
     }
 
     /**
