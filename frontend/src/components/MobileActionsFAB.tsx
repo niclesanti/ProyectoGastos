@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Plus, TrendingDown, ArrowRightLeft, CreditCard, Receipt } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -57,6 +57,14 @@ export function MobileActionsFAB() {
   const [accountTransferModalOpen, setAccountTransferModalOpen] = useState(false)
   const [creditPurchaseModalOpen, setCreditPurchaseModalOpen] = useState(false)
   const [cardPaymentModalOpen, setCardPaymentModalOpen] = useState(false)
+  const triggerButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Remover el foco del botón trigger cuando se abre el drawer para evitar conflictos con aria-hidden
+  useEffect(() => {
+    if (drawerOpen && triggerButtonRef.current) {
+      triggerButtonRef.current.blur()
+    }
+  }, [drawerOpen])
 
   const handleActionClick = (actionId: string) => {
     setDrawerOpen(false)
@@ -90,6 +98,7 @@ export function MobileActionsFAB() {
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DrawerTrigger asChild>
           <Button
+            ref={triggerButtonRef}
             size="icon"
             className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg md:hidden z-50 bg-white text-black hover:bg-gray-100 hover:text-black"
             aria-label="Nuevo registro"

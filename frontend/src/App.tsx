@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
@@ -9,29 +9,40 @@ import { ConfiguracionPage } from '@/pages/ConfiguracionPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { Toaster } from 'sonner'
 
+const router = createBrowserRouter(
+  [
+    { path: '/login', element: <LoginPage /> },
+    {
+      path: '/',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <DashboardPage /> },
+        { path: 'movimientos', element: <MovimientosPage /> },
+        { path: 'creditos', element: <CreditosPage /> },
+        { path: 'configuracion', element: <ConfiguracionPage /> },
+      ],
+    },
+  ],
+  // TypeScript types for FutureConfig in this version may not include the newer flags yet,
+  // cast to `any` to apply the runtime flags without changing behavior.
+  ({
+    future: {
+      v7_startTransition: true,
+      v7_relativeSplatPath: true,
+    },
+  } as any)
+)
+
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<DashboardPage />} />
-            <Route path="movimientos" element={<MovimientosPage />} />
-            <Route path="creditos" element={<CreditosPage />} />
-            <Route path="configuracion" element={<ConfiguracionPage />} />
-          </Route>
-        </Routes>
-        <Toaster richColors position="top-right" />
-      </AuthProvider>
-    </Router>
+    <AuthProvider>
+      <RouterProvider router={router} />
+      <Toaster richColors position="top-right" />
+    </AuthProvider>
   )
 }
 

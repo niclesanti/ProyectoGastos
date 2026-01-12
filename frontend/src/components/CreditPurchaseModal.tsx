@@ -360,11 +360,17 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {tarjetas.map((t) => (
-                          <SelectItem key={t.id} value={t.id.toString()}>
-                            {t.redDePago} - {t.numeroTarjeta} - {t.entidadFinanciera}
+                        {tarjetas.length === 0 ? (
+                          <SelectItem value="empty" disabled>
+                            No hay tarjetas disponibles - Crear una nueva
                           </SelectItem>
-                        ))}
+                        ) : (
+                          tarjetas.map((t) => (
+                            <SelectItem key={t.id} value={t.id.toString()}>
+                              {t.redDePago} - {t.numeroTarjeta} - {t.entidadFinanciera}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -444,11 +450,17 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {motivos.map((m) => (
-                            <SelectItem key={m.id} value={m.id.toString()}>
-                              {m.motivo}
+                          {motivos.length === 0 ? (
+                            <SelectItem value="empty" disabled>
+                              No hay motivos disponibles - Crear uno nuevo
                             </SelectItem>
-                          ))}
+                          ) : (
+                            motivos.map((m) => (
+                              <SelectItem key={m.id} value={m.id.toString()}>
+                                {m.motivo}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                       <Button

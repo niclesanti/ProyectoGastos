@@ -154,15 +154,21 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {cuentas.map((c) => (
-                        <SelectItem 
-                          key={c.id} 
-                          value={c.id.toString()}
-                          disabled={c.id.toString() === form.watch('cuentaDestino')}
-                        >
-                          {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toFixed(2)})
+                      {cuentas.length === 0 ? (
+                        <SelectItem value="empty" disabled>
+                          No hay cuentas disponibles - Crear una nueva
                         </SelectItem>
-                      ))}
+                      ) : (
+                        cuentas.map((c) => (
+                          <SelectItem 
+                            key={c.id} 
+                            value={c.id.toString()}
+                            disabled={c.id.toString() === form.watch('cuentaDestino')}
+                          >
+                            {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toFixed(2)})
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -188,15 +194,21 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {cuentas.map((c) => (
-                        <SelectItem 
-                          key={c.id} 
-                          value={c.id.toString()}
-                          disabled={c.id.toString() === form.watch('cuentaOrigen')}
-                        >
-                          {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toFixed(2)})
+                      {cuentas.length === 0 ? (
+                        <SelectItem value="empty" disabled>
+                          No hay cuentas disponibles - Crear una nueva
                         </SelectItem>
-                      ))}
+                      ) : (
+                        cuentas.map((c) => (
+                          <SelectItem 
+                            key={c.id} 
+                            value={c.id.toString()}
+                            disabled={c.id.toString() === form.watch('cuentaOrigen')}
+                          >
+                            {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toFixed(2)})
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

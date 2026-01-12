@@ -332,11 +332,17 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {tarjetas.map((t) => (
-                          <SelectItem key={t.id} value={t.id.toString()}>
-                            {t.redDePago} - {t.numeroTarjeta} - {t.entidadFinanciera}
+                        {tarjetas.length === 0 ? (
+                          <SelectItem value="empty" disabled>
+                            No hay tarjetas disponibles - Crear una nueva
                           </SelectItem>
-                        ))}
+                        ) : (
+                          tarjetas.map((t) => (
+                            <SelectItem key={t.id} value={t.id.toString()}>
+                              {t.redDePago} - {t.numeroTarjeta} - {t.entidadFinanciera}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
