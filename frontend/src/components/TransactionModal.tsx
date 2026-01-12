@@ -40,6 +40,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs'
 import { Calendar } from '@/components/ui/calendar'
 import {
   Popover,
@@ -179,7 +184,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionFormSchema),
     defaultValues: {
-      tipo: '',
+      tipo: 'gasto', // Por defecto Gasto
       fecha: new Date(), // Fecha actual por defecto
       monto: '',
       motivo: '',
@@ -193,7 +198,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
   useEffect(() => {
     if (open) {
       form.reset({
-        tipo: '',
+        tipo: 'gasto', // Por defecto Gasto
         fecha: new Date(),
         monto: '',
         motivo: '',
@@ -382,18 +387,23 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                 name="tipo"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Seleccionar tipo de transacción..." />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="gasto">Gasto</SelectItem>
-                        <SelectItem value="ingreso">Ingreso</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Tipo de transacción</FormLabel>
+                    <FormControl>
+                      <Tabs 
+                        value={field.value} 
+                        onValueChange={field.onChange}
+                        className="w-full"
+                      >
+                        <TabsList className="grid w-full grid-cols-2 h-9">
+                          <TabsTrigger value="gasto" className="text-sm">
+                            Gasto
+                          </TabsTrigger>
+                          <TabsTrigger value="ingreso" className="text-sm">
+                            Ingreso
+                          </TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -672,7 +682,10 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Contacto emisor/destinatario <span className="text-zinc-500 text-xs font-normal">(opcional)</span>
+                      {form.watch('tipo') === 'gasto' 
+                        ? 'Comercio / Destinatario' 
+                        : 'Contacto origen / Emisor'
+                      } <span className="text-zinc-500 text-xs font-normal">(opcional)</span>
                     </FormLabel>
                     <div className="flex gap-2">
                       <Select 
