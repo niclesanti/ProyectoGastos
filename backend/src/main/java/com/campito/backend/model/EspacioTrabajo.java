@@ -33,4 +33,19 @@ public class EspacioTrabajo {
     @JoinTable(name = "espacios_trabajo_usuarios", joinColumns = @JoinColumn(name = "espacio_trabajo_id"), inverseJoinColumns = @JoinColumn(name = "usuario_id"))
     private List<Usuario> usuariosParticipantes;
 
+    public void actualizarSaldoNuevaTransaccion(Float monto, TipoTransaccion tipo) {
+        if (tipo.equals(TipoTransaccion.INGRESO)) {
+            this.saldo += monto;
+        } else {
+            this.saldo -= monto;
+        }
+    }
+
+    public void actualizarSaldoEliminarTransaccion(Float monto, TipoTransaccion tipo) {
+        if (tipo.equals(TipoTransaccion.INGRESO)) {
+            this.saldo -= monto;
+        } else {
+            this.saldo += monto;
+        }
+    }
 }

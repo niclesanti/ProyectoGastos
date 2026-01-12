@@ -37,4 +37,19 @@ public class CuentaBancaria {
     @JoinColumn(name = "id_espacio_trabajo", nullable = false)
     private EspacioTrabajo espacioTrabajo;
 
+    public void actualizarSaldoNuevaTransaccion(Float monto, TipoTransaccion tipo) {
+        if (tipo.equals(TipoTransaccion.INGRESO)) {
+            this.saldoActual += monto;
+        } else {
+            this.saldoActual -= monto;
+        }
+    }
+
+    public void actualizarSaldoEliminarTransaccion(Float monto, TipoTransaccion tipo) {
+        if (tipo.equals(TipoTransaccion.INGRESO)) {
+            this.saldoActual -= monto;
+        } else {
+            this.saldoActual += monto;
+        }
+    }
 }
