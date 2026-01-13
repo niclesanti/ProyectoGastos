@@ -39,31 +39,20 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
      * Crea una nueva cuenta bancaria.
      * 
      * @param cuentaBancariaDTO Datos de la cuenta bancaria a crear.
-     * @throws IllegalArgumentException si la cuenta bancaria es nula o faltan datos requeridos.
+     * @throws IllegalArgumentException si la cuenta bancaria es nula.
      * @throws EntityNotFoundException si el espacio de trabajo no se encuentra.
      * @throws Exception para cualquier otro error inesperado.
      */
     @Override
     @Transactional
     public void crearCuentaBancaria(CuentaBancariaDTORequest cuentaBancariaDTO) {
+
         if (cuentaBancariaDTO == null) {
             logger.warn("Intento de crear una CuentaBancariaDTO nula.");
             throw new IllegalArgumentException("La cuenta bancaria no puede ser nula");
         }
         logger.info("Creando cuenta bancaria '{}' para entidad '{}'", cuentaBancariaDTO.nombre(), cuentaBancariaDTO.entidadFinanciera());
         try {
-            if(cuentaBancariaDTO.idEspacioTrabajo() == null) {
-                logger.warn("El idEspacioTrabajo de la cuenta bancaria no puede ser nulo.");
-                throw new IllegalArgumentException("El id del espacio de trabajo es requerido para crear la cuenta bancaria");
-            }
-            if(cuentaBancariaDTO.nombre() == null || cuentaBancariaDTO.nombre().isEmpty()) {
-                logger.warn("El nombre de la cuenta bancaria no puede ser nulo o vacío.");
-                throw new IllegalArgumentException("El nombre de la cuenta bancaria es requerido");
-            }
-            if(cuentaBancariaDTO.entidadFinanciera() == null || cuentaBancariaDTO.entidadFinanciera().isEmpty()) {
-                logger.warn("La entidad financiera de la cuenta bancaria no puede ser nula o vacía.");
-                throw new IllegalArgumentException("La entidad financiera de la cuenta bancaria es requerida");
-            }
 
             EspacioTrabajo espacioTrabajo = espacioTrabajoRepository.findById(cuentaBancariaDTO.idEspacioTrabajo())
                 .orElseThrow(() -> {
@@ -97,11 +86,13 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
     @Override
     @Transactional
     public CuentaBancaria actualizarCuentaBancaria(Long id, TipoTransaccion tipo, Float monto) {
-        if (id == null || monto == null) {
-            logger.warn("Intento de actualizar cuenta bancaria con parametros nulos. ID: {}, Monto: {}", id, monto);
-            throw new IllegalArgumentException("El ID y el monto no pueden ser nulos");
+
+        if (id == null || monto == null || tipo == null) {
+            logger.warn("Intento de actualizar cuenta bancaria con parametros nulos.");
+            throw new IllegalArgumentException("El ID, el tipo y el monto no pueden ser nulos");
         }
         logger.info("Actualizando saldo de cuenta bancaria ID: {} a monto: {}", id, monto);
+        
         try {
             CuentaBancaria cuenta = cuentaBancariaRepository.findById(id)
                 .orElseThrow(() -> {
@@ -110,15 +101,13 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
                     return new EntityNotFoundException(mensaje);
                 });
 
-            if (tipo == TipoTransaccion.GASTO) {
-                if (cuenta.getSaldoActual() < monto) {
-                    logger.warn("Saldo insuficiente en la cuenta bancaria ID: {} para realizar la actualización de monto: {}", id, monto);
-                    throw new IllegalArgumentException("Saldo insuficiente en la cuenta bancaria");
-                }
-                cuenta.setSaldoActual(cuenta.getSaldoActual() - monto);
-            } else {
-                cuenta.setSaldoActual(cuenta.getSaldoActual() + monto);
+            if (tipo.equals(TipoTransaccion.GASTO) && cuenta.getSaldoActual() < monto) {
+                logger.warn("Saldo insuficiente en la cuenta bancaria ID: {} para realizar la actualización de monto: {}", id, monto);
+                throw new IllegalArgumentException("Saldo insuficiente en la cuenta bancaria");
+                
             }
+
+            cuenta.actualizarSaldoNuevaTransaccion(monto, tipo);
 
             cuentaBancariaRepository.save(cuenta);
             logger.info("Saldo de cuenta bancaria ID: {} actualizado a {}.", id, cuenta.getSaldoActual());
@@ -139,11 +128,13 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
      */
     @Override
     public List<CuentaBancariaDTOResponse> listarCuentasBancarias(Long idEspacioTrabajo) {
+
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de listar cuentas bancarias con idEspacioTrabajo nulo.");
             throw new IllegalArgumentException("El id del espacio de trabajo no puede ser nulo");
         }
         logger.info("Listando cuentas bancarias para el espacio de trabajo ID: {}", idEspacioTrabajo);
+
         try {
             List<CuentaBancariaDTOResponse> cuentas = cuentaBancariaRepository.findByEspacioTrabajo_Id(idEspacioTrabajo).stream()
                 .map(cuentaBancariaMapper::toResponse)
@@ -168,6 +159,7 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
      */
     @Override
     public void transaccionEntreCuentas(Long idCuentaOrigen, Long idCuentaDestino, Float monto) {
+        
         if(idCuentaOrigen == null || idCuentaDestino == null || monto == null) {
             logger.warn("Intento de realizar transacción entre cuentas con parámetros nulos. Origen: {}, Destino: {}, Monto: {}", idCuentaOrigen, idCuentaDestino, monto);
             throw new IllegalArgumentException("Los IDs de las cuentas y el monto no pueden ser nulos");
