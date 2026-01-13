@@ -45,10 +45,10 @@ public class ResumenScheduler {
      * Cron: segundo minuto hora día mes día_semana
      * TEMPORAL PARA TESTING: Ejecuta cada minuto
      */
-    @Scheduled(cron = "0 * * * * *", zone = "America/Argentina/Buenos_Aires")
+    @Scheduled(cron = "0 0 0 * * *", zone = "America/Argentina/Buenos_Aires")
     @Transactional
     public void cerrarResumenesDiarios() {
-        // CORRECCIÓN: Procesar el cierre de AYER, no de HOY
+
         LocalDate ayer = LocalDate.now().minusDays(1);
         int diaACerrar = ayer.getDayOfMonth();
         

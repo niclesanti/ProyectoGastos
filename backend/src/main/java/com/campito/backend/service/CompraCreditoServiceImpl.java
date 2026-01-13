@@ -23,6 +23,7 @@ import com.campito.backend.dao.TransaccionRepository;
 import com.campito.backend.dto.CompraCreditoDTORequest;
 import com.campito.backend.dto.CompraCreditoDTOResponse;
 import com.campito.backend.dto.CuotaCreditoDTOResponse;
+import com.campito.backend.dto.CuotaResumenDTO;
 import com.campito.backend.dto.PagarResumenTarjetaRequest;
 import com.campito.backend.dto.ResumenDTOResponse;
 import com.campito.backend.dto.TarjetaDTORequest;
@@ -83,10 +84,13 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      * 
      * @param compraCreditoDTO Datos de la compra a crédito a registrar.
      * @return Respuesta con los detalles de la compra registrada.
+     * @throws EntityNotFoundException si el espacio de trabajo, motivo, comercio o tarjeta no existen.
+     * @throws IllegalArgumentException si compraCreditoDTO es nulo.
      */
     @Override
     @Transactional
     public CompraCreditoDTOResponse registrarCompraCredito(CompraCreditoDTORequest compraCreditoDTO) {
+
         if (compraCreditoDTO == null) {
             logger.warn("Intento de registrar una compraCreditoDTO nula.");
             throw new IllegalArgumentException("La compra credito no puede ser nula");
@@ -94,19 +98,6 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         logger.info("Iniciando registro de compraCredito por monto {} con cantidad de cuotas {} en espacio ID {}", compraCreditoDTO.montoTotal(), compraCreditoDTO.cantidadCuotas(), compraCreditoDTO.espacioTrabajoId());
 
         try {
-            if (compraCreditoDTO.espacioTrabajoId() == null) {
-                logger.warn("ID de espacio de trabajo nulo al registrar compra credito.");
-                throw new IllegalArgumentException("El espacio de trabajo de la compra credito no puede ser nulo");
-            }
-            if (compraCreditoDTO.motivoId() == null) {
-                logger.warn("ID de motivo nulo al registrar compra credito.");
-                throw new IllegalArgumentException("El motivo de la compra credito no puede ser nulo");
-            }
-            if (compraCreditoDTO.tarjetaId() == null) {
-                logger.warn("ID de tarjeta nulo al registrar compra credito.");
-                throw new IllegalArgumentException("La tarjeta de la compra credito no puede ser nulo");
-            }
-
             EspacioTrabajo espacio = espacioRepository.findById(compraCreditoDTO.espacioTrabajoId()).orElseThrow(() -> {
                 String msg = "Espacio de trabajo con ID " + compraCreditoDTO.espacioTrabajoId() + " no encontrado";
                 logger.warn(msg);
@@ -158,22 +149,21 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      * Metodo que registra una nueva tarjeta en un espacio de trabajo.
      * 
      * @param tarjetaDTO Datos de la tarjeta a registrar.
-     * @return Respuesta con los detalles de la tarjeta registrada
+     * @return Respuesta con los detalles de la tarjeta registrada.
+     * @throws EntityNotFoundException si el espacio de trabajo no existe.
+     * @throws IllegalArgumentException si tarjetaDTO es nulo.
     */
     @Override
     @Transactional
     public TarjetaDTOResponse registrarTarjeta(TarjetaDTORequest tarjetaDTO) {
+
         if(tarjetaDTO == null) {
             logger.warn("Intento de registrar una tarjeta nula.");
             throw new IllegalArgumentException("La tarjeta no puede ser nula");
         }
         logger.info("Iniciando registro de tarjeta {} en espacio ID {}", tarjetaDTO.numeroTarjeta(), tarjetaDTO.espacioTrabajoId());
-        try {
-            if(tarjetaDTO.espacioTrabajoId() == null) {
-                logger.warn("ID de espacio de trabajo nulo al registrar tarjeta.");
-                throw new IllegalArgumentException("El espacio de trabajo de la tarjeta no puede ser nulo");
-            }
 
+        try {
             EspacioTrabajo espacio = espacioRepository.findById(tarjetaDTO.espacioTrabajoId()).orElseThrow(() -> {
                 String msg = "Espacio de trabajo con ID " + tarjetaDTO.espacioTrabajoId() + " no encontrado";
                 logger.warn(msg);
@@ -205,6 +195,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     @Override
     @Transactional
     public void removerCompraCredito(Long id) {
+
         if (id == null) {
             logger.warn("Intento de remover una compra crédito con ID nulo.");
             throw new IllegalArgumentException("El ID de la compra crédito no puede ser nulo");
@@ -245,10 +236,12 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      * 
      * @param idEspacioTrabajo ID del espacio de trabajo
      * @return Lista de compras a crédito con cuotas pendientes
+     * @throws IllegalArgumentException si el ID del espacio de trabajo es nulo
      */
     @Override
     @Transactional(readOnly = true)
     public List<CompraCreditoDTOResponse> listarComprasCreditoDebeCuotas(Long idEspacioTrabajo) {
+
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de listar compras crédito con ID de espacio nulo.");
             throw new IllegalArgumentException("El ID del espacio de trabajo no puede ser nulo");
@@ -279,10 +272,12 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      * 
      * @param idEspacioTrabajo ID del espacio de trabajo
      * @return Lista de todas las compras a crédito
+     * @throws IllegalArgumentException si el ID del espacio de trabajo es nulo
      */
     @Override
     @Transactional(readOnly = true)
     public List<CompraCreditoDTOResponse> BuscarComprasCredito(Long idEspacioTrabajo) {
+
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de buscar compras crédito con ID de espacio nulo.");
             throw new IllegalArgumentException("El ID del espacio de trabajo no puede ser nulo");
@@ -319,6 +314,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     @Override
     @Transactional
     public void removerTarjeta(Long id) {
+
         if (id == null) {
             logger.warn("Intento de remover una tarjeta con ID nulo.");
             throw new IllegalArgumentException("El ID de la tarjeta no puede ser nulo");
@@ -353,10 +349,12 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      * 
      * @param idEspacioTrabajo ID del espacio de trabajo
      * @return Lista de tarjetas
+     * @throws IllegalArgumentException si el ID del espacio de trabajo es nulo
      */
     @Override
     @Transactional(readOnly = true)
     public List<TarjetaDTOResponse> listarTarjetas(Long idEspacioTrabajo) {
+
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de listar tarjetas con ID de espacio nulo.");
             throw new IllegalArgumentException("El ID del espacio de trabajo no puede ser nulo");
@@ -388,10 +386,13 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      * 
      * @param idTarjeta ID de la tarjeta
      * @return Lista de cuotas del período
+     * @throws IllegalArgumentException si el ID de la tarjeta es nulo
+     * @throws EntityNotFoundException si la tarjeta no existe
      */
     @Override
     @Transactional(readOnly = true)
     public List<CuotaCreditoDTOResponse> listarCuotasPorTarjeta(Long idTarjeta) {
+
         if (idTarjeta == null) {
             logger.warn("Intento de listar cuotas con ID de tarjeta nulo.");
             throw new IllegalArgumentException("El ID de la tarjeta no puede ser nulo");
@@ -449,151 +450,170 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     @Override
     @Transactional
     public void pagarResumenTarjeta(PagarResumenTarjetaRequest request) {
+        
+        if (request == null) {
+            logger.warn("Intento de pagar resumen con request nulo.");
+            throw new IllegalArgumentException("El request no puede ser nulo");
+        }
         logger.info("Procesando pago del resumen ID: {} por un monto de {}", 
             request.idResumen(), request.monto());
         
-        // 1. Buscar el resumen y validar su estado
-        Resumen resumen = resumenRepository.findById(request.idResumen())
-            .orElseThrow(() -> new EntityNotFoundException(
-                "Resumen no encontrado con ID: " + request.idResumen()));
-        
-        // Validar que el resumen esté en estado válido para pago
-        if (resumen.getEstado() == EstadoResumen.PAGADO) {
-            throw new IllegalStateException(
-                "El resumen ID " + request.idResumen() + " ya está pagado");
-        }
-        
-        if (resumen.getEstado() == EstadoResumen.ABIERTO) {
-            throw new IllegalStateException(
-                "No se puede pagar un resumen que aún no cerró");
-        }
-        
-        // Validar que el espacio de trabajo coincida
-        if (!resumen.getTarjeta().getEspacioTrabajo().getId().equals(request.idEspacioTrabajo())) {
-            throw new IllegalArgumentException(
-                "El resumen no pertenece al espacio de trabajo especificado");
-        }
-        
-        // Validar el monto
-        if (request.monto() == null || request.monto() <= 0) {
-            throw new IllegalArgumentException("El monto debe ser mayor a cero");
-        }
-        
-        if (!request.monto().equals(resumen.getMontoTotal())) {
-            throw new IllegalArgumentException(
-                "El monto a pagar debe ser igual al total del resumen: $" + resumen.getMontoTotal());
-        }
-        
-        // Validar cuenta bancaria si se especificó
-        if (request.idCuentaBancaria() != null) {
-            CuentaBancaria cuenta = cuentaBancariaRepository.findById(request.idCuentaBancaria())
+        try {
+            // 1. Buscar el resumen y validar su estado
+            Resumen resumen = resumenRepository.findById(request.idResumen())
                 .orElseThrow(() -> new EntityNotFoundException(
-                    "Cuenta bancaria no encontrada con ID: " + request.idCuentaBancaria()));
+                    "Resumen no encontrado con ID: " + request.idResumen()));
             
-            if (!cuenta.getEspacioTrabajo().getId().equals(request.idEspacioTrabajo())) {
-                throw new IllegalArgumentException(
-                    "La cuenta bancaria no pertenece al espacio de trabajo especificado");
-            }
-            
-            if (cuenta.getSaldoActual() < request.monto()) {
+            // Validar que el resumen esté en estado válido para pago
+            if (resumen.getEstado().equals(EstadoResumen.PAGADO)) {
                 throw new IllegalStateException(
-                    "Saldo insuficiente en la cuenta. Disponible: $" + cuenta.getSaldoActual());
-            }
-        }
-
-        // 2. Buscar o crear el motivo "Pago de tarjeta" usando Optional.orElseGet()
-        MotivoTransaccion motivo = motivoRepository
-            .findFirstByMotivoAndEspacioTrabajo_Id("Pago de tarjeta", request.idEspacioTrabajo())
-            .orElseGet(() -> {
-                logger.info("Creando motivo 'Pago de tarjeta' para espacio de trabajo ID: {}", 
-                    request.idEspacioTrabajo());
-                MotivoTransaccion nuevoMotivo = MotivoTransaccion.builder()
-                    .motivo("Pago de tarjeta")
-                    .espacioTrabajo(resumen.getTarjeta().getEspacioTrabajo())
-                    .build();
-                return motivoRepository.save(nuevoMotivo);
-            });
-
-        // 3. Registrar la transacción del pago
-        TransaccionDTORequest transaccionDTO = new TransaccionDTORequest(
-            request.fecha(),
-            request.monto(),
-            TipoTransaccion.GASTO,
-            "Pago resumen " + resumen.getMes() + "/" + resumen.getAnio() + 
-                " - " + resumen.getTarjeta().getNumeroTarjeta(),
-            request.nombreCompletoAuditoria(),
-            request.idEspacioTrabajo(),
-            motivo.getId(),
-            null,
-            request.idCuentaBancaria()
-        );
-        
-        TransaccionDTOResponse transaccionResponse = transaccionService.registrarTransaccion(transaccionDTO);
-        Transaccion transaccion = transaccionRepository.findById(transaccionResponse.id())
-            .orElseThrow(() -> new EntityNotFoundException(
-                "Transacción no encontrada con ID: " + transaccionResponse.id()));
-        
-        // 4. Actualizar el resumen (asociar transacción y cambiar estado)
-        resumen.asociarTransaccion(transaccion);
-        resumenRepository.save(resumen);
-        
-        logger.info("Resumen ID: {} marcado como PAGADO", request.idResumen());
-        
-        // 5. Obtener y marcar las cuotas como pagadas
-        List<CuotaCredito> cuotasDelResumen = cuotaCreditoRepository
-            .findByResumenAsociado_Id(request.idResumen());
-        
-        if (cuotasDelResumen.isEmpty()) {
-            logger.warn("No se encontraron cuotas asociadas al resumen ID: {}", request.idResumen());
-        }
-        
-        logger.info("Encontradas {} cuotas asociadas al resumen", cuotasDelResumen.size());
-        
-        // 6. Marcar cada cuota como pagada y actualizar la compra correspondiente
-        for (CuotaCredito cuota : cuotasDelResumen) {
-            if (cuota.isPagada()) {
-                logger.warn("La cuota ID: {} ya estaba marcada como pagada", cuota.getId());
-                continue;
+                    "El resumen ID " + request.idResumen() + " ya está pagado");
             }
             
-            cuota.pagarCuota();
+            if (resumen.getEstado().equals(EstadoResumen.ABIERTO)) {
+                throw new IllegalStateException(
+                    "No se puede pagar un resumen que aún no cerró");
+            }
             
-            CompraCredito compra = cuota.getCompraCredito();
-            compra.pagarCuota();
-            compraCreditoRepository.save(compra);
+            // Validar que el espacio de trabajo coincida
+            if (!resumen.getTarjeta().getEspacioTrabajo().getId().equals(request.idEspacioTrabajo())) {
+                throw new IllegalArgumentException(
+                    "El resumen no pertenece al espacio de trabajo especificado");
+            }
             
-            logger.debug("Cuota {} de CompraCredito {} marcada como pagada", 
-                cuota.getNumeroCuota(), compra.getId());
+            if (!request.monto().equals(resumen.getMontoTotal())) {
+                throw new IllegalArgumentException(
+                    "El monto a pagar debe ser igual al total del resumen: $" + resumen.getMontoTotal());
+            }
+            
+            // Validar cuenta bancaria si se especificó
+            if (request.idCuentaBancaria() != null) {
+                CuentaBancaria cuenta = cuentaBancariaRepository.findById(request.idCuentaBancaria())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                        "Cuenta bancaria no encontrada con ID: " + request.idCuentaBancaria()));
+                
+                if (!cuenta.getEspacioTrabajo().getId().equals(request.idEspacioTrabajo())) {
+                    throw new IllegalArgumentException(
+                        "La cuenta bancaria no pertenece al espacio de trabajo especificado");
+                }
+                
+                if (cuenta.getSaldoActual() < request.monto()) {
+                    throw new IllegalStateException(
+                        "Saldo insuficiente en la cuenta. Disponible: $" + cuenta.getSaldoActual());
+                }
+            }
+
+            // 2. Buscar o crear el motivo "Pago de tarjeta" usando Optional.orElseGet()
+            MotivoTransaccion motivo = motivoRepository
+                .findFirstByMotivoAndEspacioTrabajo_Id("Pago de tarjeta", request.idEspacioTrabajo())
+                .orElseGet(() -> {
+                    logger.info("Creando motivo 'Pago de tarjeta' para espacio de trabajo ID: {}", 
+                        request.idEspacioTrabajo());
+                    MotivoTransaccion nuevoMotivo = MotivoTransaccion.builder()
+                        .motivo("Pago de tarjeta")
+                        .espacioTrabajo(resumen.getTarjeta().getEspacioTrabajo())
+                        .build();
+                    return motivoRepository.save(nuevoMotivo);
+                });
+
+            // 3. Registrar la transacción del pago
+            TransaccionDTORequest transaccionDTO = new TransaccionDTORequest(
+                request.fecha(),
+                request.monto(),
+                TipoTransaccion.GASTO,
+                "Pago resumen " + resumen.getMes() + "/" + resumen.getAnio() + 
+                    " - " + resumen.getTarjeta().getNumeroTarjeta(),
+                request.nombreCompletoAuditoria(),
+                request.idEspacioTrabajo(),
+                motivo.getId(),
+                null,
+                request.idCuentaBancaria()
+            );
+            
+            TransaccionDTOResponse transaccionResponse = transaccionService.registrarTransaccion(transaccionDTO);
+            Transaccion transaccion = transaccionRepository.findById(transaccionResponse.id())
+                .orElseThrow(() -> new EntityNotFoundException(
+                    "Transacción no encontrada con ID: " + transaccionResponse.id()));
+            
+            // 4. Actualizar el resumen (asociar transacción y cambiar estado)
+            resumen.asociarTransaccion(transaccion);
+            resumenRepository.save(resumen);
+            
+            logger.info("Resumen ID: {} marcado como PAGADO", request.idResumen());
+            
+            // 5. Obtener y marcar las cuotas como pagadas
+            List<CuotaCredito> cuotasDelResumen = cuotaCreditoRepository
+                .findByResumenAsociado_Id(request.idResumen());
+            
+            if (cuotasDelResumen.isEmpty()) {
+                logger.warn("No se encontraron cuotas asociadas al resumen ID: {}", request.idResumen());
+            }
+            
+            logger.info("Encontradas {} cuotas asociadas al resumen", cuotasDelResumen.size());
+            
+            // 6. Marcar cada cuota como pagada y actualizar la compra correspondiente
+            for (CuotaCredito cuota : cuotasDelResumen) {
+                if (cuota.isPagada()) {
+                    logger.warn("La cuota ID: {} ya estaba marcada como pagada", cuota.getId());
+                    continue;
+                }
+                
+                cuota.pagarCuota();
+                
+                CompraCredito compra = cuota.getCompraCredito();
+                compra.pagarCuota();
+                compraCreditoRepository.save(compra);
+                
+                logger.debug("Cuota {} de CompraCredito {} marcada como pagada", 
+                    cuota.getNumeroCuota(), compra.getId());
+            }
+            
+            cuotaCreditoRepository.saveAll(cuotasDelResumen);
+            
+            logger.info("Pago del resumen ID: {} procesado exitosamente. Total: ${}", 
+                request.idResumen(), resumen.getMontoTotal());
+        } catch (Exception e) {
+            logger.error("Error inesperado al pagar resumen ID: {}: {}", 
+                request.idResumen(), e.getMessage(), e);
+            throw e;
         }
-        
-        cuotaCreditoRepository.saveAll(cuotasDelResumen);
-        
-        logger.info("Pago del resumen ID: {} procesado exitosamente. Total: ${}", 
-            request.idResumen(), resumen.getMontoTotal());
     }
 
     /**
-     * Lista todos los resúmenes de una tarjeta específica.
+     * Lista todos los resúmenes pendientes de pago de una tarjeta específica.
      * 
      * @param idTarjeta ID de la tarjeta
      * @return Lista de resúmenes ordenados por fecha descendente
+     * @throws IllegalArgumentException si el ID de la tarjeta es nulo
      */
     @Override
     @Transactional(readOnly = true)
     public List<ResumenDTOResponse> listarResumenesPorTarjeta(Long idTarjeta) {
+
+        if (idTarjeta == null) {
+            logger.warn("Intento de listar resúmenes con ID de tarjeta nulo.");
+            throw new IllegalArgumentException("El ID de la tarjeta no puede ser nulo");
+        }
         logger.info("Listando resúmenes pendientes de pago para tarjeta ID: {}", idTarjeta);
         
-        // Solo devolver resúmenes con estado CERRADO o PAGADO_PARCIAL (excluir PAGADO y ABIERTO)
-        List<Resumen> resumenes = resumenRepository.findByTarjetaIdAndEstadoIn(
-            idTarjeta, 
-            List.of(EstadoResumen.CERRADO, EstadoResumen.PAGADO_PARCIAL)
-        );
+        try {
+            // Solo devolver resúmenes con estado CERRADO o PAGADO_PARCIAL (excluir PAGADO y ABIERTO)
+            List<Resumen> resumenes = resumenRepository.findByTarjetaIdAndEstadoIn(
+                idTarjeta, 
+                List.of(EstadoResumen.CERRADO, EstadoResumen.PAGADO_PARCIAL)
+            );
+            
+            logger.info("Se encontraron {} resúmenes pendientes de pago", resumenes.size());
+            
+            return resumenes.stream()
+                .map(this::mapearResumenConCuotas)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            logger.error("Error inesperado al listar resúmenes para tarjeta ID {}: {}", 
+                idTarjeta, e.getMessage(), e);
+            throw e;
+        }
         
-        logger.info("Se encontraron {} resúmenes pendientes de pago", resumenes.size());
-        
-        return resumenes.stream()
-            .map(this::mapearResumenConCuotas)
-            .collect(Collectors.toList());
     }
 
     /**
@@ -601,19 +621,32 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      * 
      * @param idEspacioTrabajo ID del espacio de trabajo
      * @return Lista de resúmenes ordenados por fecha descendente
+     * @throws IllegalArgumentException si el ID del espacio de trabajo es nulo
      */
     @Override
     @Transactional(readOnly = true)
     public List<ResumenDTOResponse> listarResumenesPorEspacioTrabajo(Long idEspacioTrabajo) {
+
+        if (idEspacioTrabajo == null) {
+            logger.warn("Intento de listar tarjetas con ID de espacio nulo.");
+            throw new IllegalArgumentException("El ID del espacio de trabajo no puede ser nulo");
+        }
         logger.info("Listando resúmenes para espacio de trabajo ID: {}", idEspacioTrabajo);
         
-        List<Resumen> resumenes = resumenRepository.findByEspacioTrabajoId(idEspacioTrabajo);
+        try {
+            List<Resumen> resumenes = resumenRepository.findByEspacioTrabajoId(idEspacioTrabajo);
         
-        logger.info("Se encontraron {} resúmenes", resumenes.size());
+            logger.info("Se encontraron {} resúmenes", resumenes.size());
+            
+            return resumenes.stream()
+                .map(resumenMapper::toResponse)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            logger.error("Error inesperado al listar resúmenes para espacio de trabajo ID {}: {}", 
+                idEspacioTrabajo, e.getMessage(), e);
+            throw e;
+        }
         
-        return resumenes.stream()
-            .map(resumenMapper::toResponse)
-            .collect(Collectors.toList());
     }
 
     /*
@@ -677,8 +710,8 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         List<CuotaCredito> cuotas = cuotaCreditoRepository.findByResumenAsociado_Id(resumen.getId());
         
         // Mapear las cuotas a CuotaResumenDTO
-        List<com.campito.backend.dto.CuotaResumenDTO> cuotasDTO = cuotas.stream()
-            .map(cuota -> new com.campito.backend.dto.CuotaResumenDTO(
+        List<CuotaResumenDTO> cuotasDTO = cuotas.stream()
+            .map(cuota -> new CuotaResumenDTO(
                 cuota.getId(),
                 cuota.getNumeroCuota(),
                 cuota.getMontoCuota(),
