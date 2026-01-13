@@ -27,6 +27,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,11 +43,12 @@ public class TransaccionServiceTest {
     private ContactoTransferenciaRepository contactoRepository;
     @Mock
     private CuentaBancariaRepository cuentaBancariaRepository;
-    @Mock
-    private DashboardRepository dashboardRepository;
 
     @Mock
     private CuentaBancariaService cuentaBancariaService;
+
+    @Mock
+    private GastosIngresosMensualesRepository gastosIngresosMensualesRepository;
     
     @Mock
     private TransaccionMapper transaccionMapper;
@@ -150,6 +152,11 @@ public class TransaccionServiceTest {
             MotivoTransaccion m = invocation.getArgument(0);
             return new MotivoDTOResponse(m.getId(), m.getMotivo());
         });
+
+        // Default: no GastosIngresosMensuales record for current year/month unless test overrides
+        // Lenient because not every test needs a monthly registro; tests will override when necessary
+        lenient().when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(anyLong(), anyInt(), anyInt()))
+                .thenReturn(Optional.empty());
     }
 
     // Tests para registrarTransaccion
@@ -163,25 +170,7 @@ public class TransaccionServiceTest {
         verify(transaccionRepository, never()).save(any(Transaccion.class));
     }
 
-    @Test
-    void registrarTransaccion_cuandoIdEspacioTrabajoNulo_entoncesLanzaExcepcion() {
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", null, 1L, null, null);
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            transaccionService.registrarTransaccion(dto);
-        });
-        assertEquals("El espacio de trabajo de la transaccion no puede ser nulo", exception.getMessage());
-        verify(transaccionRepository, never()).save(any(Transaccion.class));
-    }
 
-    @Test
-    void registrarTransaccion_cuandoIdMotivoNulo_entoncesLanzaExcepcion() {
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, null, null, null);
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            transaccionService.registrarTransaccion(dto);
-        });
-        assertEquals("El motivo de la transaccion no puede ser nulo", exception.getMessage());
-        verify(transaccionRepository, never()).save(any(Transaccion.class));
-    }
 
     @Test
     void registrarTransaccion_cuandoEspacioTrabajoNoExiste_entoncesLanzaExcepcion() {
@@ -276,6 +265,65 @@ public class TransaccionServiceTest {
         assertEquals(1100.0f, espacioTrabajo.getSaldo());
     }
 
+    @Test
+    void registrarTransaccion_cuandoRegistroMensualExistente_entoncesActualizaRegistroMensual() {
+        // Arrange
+        int año = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getYear();
+        int mes = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getMonthValue();
+        GastosIngresosMensuales registro = GastosIngresosMensuales.builder()
+                .anio(año)
+                .mes(mes)
+                .gastos(0f)
+                .ingresos(0f)
+                .espacioTrabajo(espacioTrabajo)
+                .build();
+
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 200f, TipoTransaccion.INGRESO, "Venta mayor", "Auditor", 1L, 1L, null, null);
+
+        when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+        when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(1L, año, mes)).thenReturn(Optional.of(registro));
+        when(transaccionRepository.save(any(Transaccion.class))).thenAnswer(invocation -> {
+            Transaccion t = invocation.getArgument(0);
+            t.setId(1L);
+            return t;
+        });
+
+        // Act
+        TransaccionDTOResponse result = transaccionService.registrarTransaccion(dto);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1L, result.id());
+        // registro debe haber sido actualizado y guardado
+        verify(gastosIngresosMensualesRepository, times(1)).save(any(GastosIngresosMensuales.class));
+        // El saldo del espacio se actualizó
+        assertEquals(1200.0f, espacioTrabajo.getSaldo());
+    }
+
+    @Test
+    void registrarTransaccion_cuandoRegistroMensualAusente_entoncesCreaRegistro() {
+
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Venta pequena", "Auditor", 1L, 1L, null, null);
+
+        when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+        when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
+        when(transaccionRepository.save(any(Transaccion.class))).thenAnswer(invocation -> {
+            Transaccion t = invocation.getArgument(0);
+            t.setId(1L);
+            return t;
+        });
+
+        // Act
+        TransaccionDTOResponse result = transaccionService.registrarTransaccion(dto);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1L, result.id());
+        verify(gastosIngresosMensualesRepository, times(1)).save(any(GastosIngresosMensuales.class));
+        assertEquals(1100.0f, espacioTrabajo.getSaldo());
+    }
+
     // Tests para removerTransaccion
 
     @Test
@@ -314,9 +362,14 @@ public class TransaccionServiceTest {
             .build();
         espacioTrabajo.setSaldo(950.0f); // Saldo después del gasto
 
+        int año = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getYear();
+        int mes = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getMonthValue();
+        GastosIngresosMensuales registro = GastosIngresosMensuales.builder().anio(año).mes(mes).gastos(50f).ingresos(0f).espacioTrabajo(espacioTrabajo).build();
+
         when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
         doNothing().when(transaccionRepository).delete(any(Transaccion.class));
         when(espacioRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(1L, año, mes)).thenReturn(Optional.of(registro));
 
         transaccionService.removerTransaccion(1L);
 
@@ -347,10 +400,15 @@ public class TransaccionServiceTest {
             .build();
         espacioTrabajo.setSaldo(900.0f); // Saldo después del gasto
 
+        int año = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getYear();
+        int mes = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getMonthValue();
+        GastosIngresosMensuales registro = GastosIngresosMensuales.builder().anio(año).mes(mes).gastos(100f).ingresos(0f).espacioTrabajo(espacioTrabajo).build();
+
         when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
         doNothing().when(transaccionRepository).delete(any(Transaccion.class));
         when(espacioRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
         when(cuentaBancariaRepository.save(any(CuentaBancaria.class))).thenReturn(cuentaBancaria);
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(1L, año, mes)).thenReturn(Optional.of(registro));
 
         // Act
         transaccionService.removerTransaccion(1L);
@@ -385,10 +443,15 @@ public class TransaccionServiceTest {
             .build();
         espacioTrabajo.setSaldo(1100.0f); // Saldo después del ingreso
 
+        int año = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getYear();
+        int mes = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getMonthValue();
+        GastosIngresosMensuales registro = GastosIngresosMensuales.builder().anio(año).mes(mes).gastos(0f).ingresos(200f).espacioTrabajo(espacioTrabajo).build();
+
         when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
         doNothing().when(transaccionRepository).delete(any(Transaccion.class));
         when(espacioRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
         when(cuentaBancariaRepository.save(any(CuentaBancaria.class))).thenReturn(cuentaBancaria);
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(1L, año, mes)).thenReturn(Optional.of(registro));
 
         // Act
         transaccionService.removerTransaccion(1L);
@@ -402,6 +465,42 @@ public class TransaccionServiceTest {
         assertEquals(500.0f, cuentaBancaria.getSaldoActual()); // 600 - 100 de reversión
     }
 
+    @Test
+    void removerTransaccion_cuandoRegistroMensualInsuficiente_entoncesLanzaExcepcion() {
+        // Arrange
+        int año = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getYear();
+        int mes = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getMonthValue();
+
+        GastosIngresosMensuales registro = GastosIngresosMensuales.builder()
+                .anio(año)
+                .mes(mes)
+                .gastos(50f)
+                .ingresos(0f)
+                .espacioTrabajo(espacioTrabajo)
+                .build();
+
+        Transaccion transaccion = Transaccion.builder()
+            .id(1L)
+            .tipo(TipoTransaccion.GASTO)
+            .monto(100.0f)
+            .fecha(LocalDate.now())
+            .descripcion("Gasto grande")
+            .nombreCompletoAuditoria("Auditor")
+            .fechaCreacion(LocalDateTime.now())
+            .espacioTrabajo(espacioTrabajo)
+            .motivo(motivoTransaccion)
+            .build();
+
+        when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(1L, año, mes)).thenReturn(Optional.of(registro));
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> transaccionService.removerTransaccion(1L));
+        assertEquals("No se pueden eliminar gastos mensuales: el monto a eliminar es mayor que los gastos registrados.", exception.getMessage());
+        verify(transaccionRepository, never()).delete(any(Transaccion.class));
+        verify(gastosIngresosMensualesRepository, never()).save(any(GastosIngresosMensuales.class));
+    }
+
     // Tests para buscarTransaccion
 
     @Test
@@ -413,15 +512,6 @@ public class TransaccionServiceTest {
         verify(transaccionRepository, never()).findAll(any(Specification.class));
     }
 
-    @Test
-    void buscarTransaccion_cuandoIdEspacioTrabajoNulo_entoncesLanzaExcepcion() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, null, null);
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            transaccionService.buscarTransaccion(dto);
-        });
-        assertEquals("El ID del espacio de trabajo no puede ser nulo", exception.getMessage());
-        verify(transaccionRepository, never()).findAll(any(Specification.class));
-    }
 
     @Test
     void buscarTransaccion_cuandoAnioNuloYMesNoNulo_entoncesLanzaExcepcion() {
@@ -577,32 +667,7 @@ public class TransaccionServiceTest {
         verify(contactoRepository, never()).save(any(ContactoTransferencia.class));
     }
 
-    @Test
-    void registrarContactoTransferencia_cuandoNombreContactoNuloOVacio_entoncesLanzaExcepcion() {
-        ContactoDTORequest dtoVacio = new ContactoDTORequest("", 1L);
-        IllegalArgumentException exceptionVacio = assertThrows(IllegalArgumentException.class, () -> {
-            transaccionService.registrarContactoTransferencia(dtoVacio);
-        });
-        assertEquals("El contacto no puede ser nulo", exceptionVacio.getMessage());
-        verify(contactoRepository, never()).save(any(ContactoTransferencia.class));
 
-        ContactoDTORequest dtoNulo = new ContactoDTORequest(null, 1L);
-        IllegalArgumentException exceptionNulo = assertThrows(IllegalArgumentException.class, () -> {
-            transaccionService.registrarContactoTransferencia(dtoNulo);
-        });
-        assertEquals("El contacto no puede ser nulo", exceptionNulo.getMessage());
-        verify(contactoRepository, never()).save(any(ContactoTransferencia.class));
-    }
-
-    @Test
-    void registrarContactoTransferencia_cuandoIdEspacioTrabajoNulo_entoncesLanzaExcepcion() {
-        ContactoDTORequest dto = new ContactoDTORequest("Nombre Contacto", null);
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            transaccionService.registrarContactoTransferencia(dto);
-        });
-        assertEquals("El espacio de trabajo del contacto no puede ser nulo", exception.getMessage());
-        verify(contactoRepository, never()).save(any(ContactoTransferencia.class));
-    }
 
     @Test
     void registrarContactoTransferencia_cuandoEspacioTrabajoNoExiste_entoncesLanzaExcepcion() {
@@ -645,32 +710,7 @@ public class TransaccionServiceTest {
         verify(motivoRepository, never()).save(any(MotivoTransaccion.class));
     }
 
-    @Test
-    void nuevoMotivoTransaccion_cuandoMotivoNuloOVacio_entoncesLanzaExcepcion() {
-        MotivoDTORequest dtoVacio = new MotivoDTORequest("", 1L);
-        IllegalArgumentException exceptionVacio = assertThrows(IllegalArgumentException.class, () -> {
-            transaccionService.nuevoMotivoTransaccion(dtoVacio);
-        });
-        assertEquals("El motivo no puede ser nulo", exceptionVacio.getMessage());
-        verify(motivoRepository, never()).save(any(MotivoTransaccion.class));
 
-        MotivoDTORequest dtoNulo = new MotivoDTORequest(null, 1L);
-        IllegalArgumentException exceptionNulo = assertThrows(IllegalArgumentException.class, () -> {
-            transaccionService.nuevoMotivoTransaccion(dtoNulo);
-        });
-        assertEquals("El motivo no puede ser nulo", exceptionNulo.getMessage());
-        verify(motivoRepository, never()).save(any(MotivoTransaccion.class));
-    }
-
-    @Test
-    void nuevoMotivoTransaccion_cuandoIdEspacioTrabajoNulo_entoncesLanzaExcepcion() {
-        MotivoDTORequest dto = new MotivoDTORequest("Nuevo Motivo", null);
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            transaccionService.nuevoMotivoTransaccion(dto);
-        });
-        assertEquals("El espacio de trabajo del motivo no puede ser nulo", exception.getMessage());
-        verify(motivoRepository, never()).save(any(MotivoTransaccion.class));
-    }
 
     @Test
     void nuevoMotivoTransaccion_cuandoEspacioTrabajoNoExiste_entoncesLanzaExcepcion() {

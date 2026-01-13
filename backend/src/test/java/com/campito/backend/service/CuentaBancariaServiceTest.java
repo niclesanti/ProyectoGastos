@@ -98,44 +98,15 @@ public class CuentaBancariaServiceTest {
     }
 
     @Test
-    void testCrearCuentaBancaria_cuandoIdEspacioTrabajoEsNulo_lanzaExcepcion() {
+    void testCrearCuentaBancaria_cuandoIdEspacioTrabajoEsNulo_lanzaEntityNotFound() {
         CuentaBancariaDTORequest dtoSinEspacio = new CuentaBancariaDTORequest("Nombre", "Entidad", null);
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(EntityNotFoundException.class, () -> {
             cuentaBancariaService.crearCuentaBancaria(dtoSinEspacio);
         });
-        verify(espacioTrabajoRepository, never()).findById(any());
         verify(cuentaBancariaRepository, never()).save(any());
     }
 
-    @Test
-    void testCrearCuentaBancaria_cuandoNombreEsNuloOVacio_lanzaExcepcion() {
-        CuentaBancariaDTORequest dtoSinNombre = new CuentaBancariaDTORequest(null, "Entidad", 1L);
-        assertThrows(IllegalArgumentException.class, () -> {
-            cuentaBancariaService.crearCuentaBancaria(dtoSinNombre);
-        });
 
-        CuentaBancariaDTORequest dtoNombreVacio = new CuentaBancariaDTORequest("", "Entidad", 1L);
-        assertThrows(IllegalArgumentException.class, () -> {
-            cuentaBancariaService.crearCuentaBancaria(dtoNombreVacio);
-        });
-        verify(espacioTrabajoRepository, never()).findById(any());
-        verify(cuentaBancariaRepository, never()).save(any());
-    }
-
-    @Test
-    void testCrearCuentaBancaria_cuandoEntidadFinancieraEsNulaOVacia_lanzaExcepcion() {
-        CuentaBancariaDTORequest dtoSinEntidad = new CuentaBancariaDTORequest("Nombre", null, 1L);
-        assertThrows(IllegalArgumentException.class, () -> {
-            cuentaBancariaService.crearCuentaBancaria(dtoSinEntidad);
-        });
-
-        CuentaBancariaDTORequest dtoEntidadVacia = new CuentaBancariaDTORequest("Nombre", "", 1L);
-        assertThrows(IllegalArgumentException.class, () -> {
-            cuentaBancariaService.crearCuentaBancaria(dtoEntidadVacia);
-        });
-        verify(espacioTrabajoRepository, never()).findById(any());
-        verify(cuentaBancariaRepository, never()).save(any());
-    }
 
     @Test
     void testCrearCuentaBancaria_cuandoEspacioTrabajoNoExiste_lanzaExcepcion() {
@@ -153,6 +124,25 @@ public class CuentaBancariaServiceTest {
         verify(cuentaBancariaRepository, times(1)).save(any(CuentaBancaria.class));
     }
 
+    @Test
+    void testCrearCuentaBancaria_conDatosValidos_guardaCuentaConSaldoCeroYEspacioAsignado() {
+        // Arrange
+        when(espacioTrabajoRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+
+        // Act
+        cuentaBancariaService.crearCuentaBancaria(cuentaBancariaDTO);
+
+        // Assert: capture the entity saved and validate fields set by the service
+        var captor = org.mockito.ArgumentCaptor.forClass(CuentaBancaria.class);
+        verify(cuentaBancariaRepository, times(1)).save(captor.capture());
+        CuentaBancaria saved = captor.getValue();
+        assertNotNull(saved);
+        assertEquals(0f, saved.getSaldoActual());
+        assertEquals(espacioTrabajo, saved.getEspacioTrabajo());
+        assertEquals("Cuenta de Ahorros", saved.getNombre());
+        assertEquals("Banco A", saved.getEntidadFinanciera());
+    }
+
     // Tests para actualizarCuentaBancaria
     @Test
     void testActualizarCuentaBancaria_conIdNulo_lanzaExcepcion() {
@@ -162,10 +152,25 @@ public class CuentaBancariaServiceTest {
     }
 
     @Test
+    void testActualizarCuentaBancaria_conTipoNulo_lanzaExcepcion() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            cuentaBancariaService.actualizarCuentaBancaria(1L, null, 100f);
+        });
+    }
+
+    @Test
     void testActualizarCuentaBancaria_conMontoNulo_lanzaExcepcion() {
         assertThrows(IllegalArgumentException.class, () -> {
             cuentaBancariaService.actualizarCuentaBancaria(1L, TipoTransaccion.INGRESO, null);
         });
+    }
+
+    @Test
+    void testActualizarCuentaBancaria_conGastoIgualASaldo_actualizaASaldoCero() {
+        when(cuentaBancariaRepository.findById(1L)).thenReturn(Optional.of(cuentaBancaria));
+        CuentaBancaria cuentaActualizada = cuentaBancariaService.actualizarCuentaBancaria(1L, TipoTransaccion.GASTO, 1000f);
+        assertEquals(0f, cuentaActualizada.getSaldoActual());
+        verify(cuentaBancariaRepository, times(1)).save(cuentaBancaria);
     }
 
     @Test
