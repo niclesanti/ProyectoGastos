@@ -13,12 +13,15 @@ import com.campito.backend.service.DashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/dashboard")
 @Tag(name = "Dashboard", description = "Operaciones para obtener estadísticas del dashboard")
 @RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
+@Validated
 public class DashboardController {
 
     private final DashboardService dashboardService;
@@ -31,7 +34,9 @@ public class DashboardController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/stats/{idEspacio}")
-    public ResponseEntity<DashboardStatsDTO> obtenerDashboardStats(@PathVariable Long idEspacio) {
+    public ResponseEntity<DashboardStatsDTO> obtenerDashboardStats(
+        @PathVariable @NotNull(message = "El id del espacio es obligatorio") Long idEspacio) {
+        
         DashboardStatsDTO dashboardStats = dashboardService.obtenerDashboardStats(idEspacio);
         return new ResponseEntity<>(dashboardStats, HttpStatus.OK);
     }

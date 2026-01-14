@@ -26,6 +26,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -45,7 +46,11 @@ public class EspacioTrabajoController {
     @ApiResponse(responseCode = "400", description = "Error al registrar el espacio de trabajo")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @PostMapping("/registrar")
-    public ResponseEntity<Void> registrarEspacioTrabajo(@Valid @RequestBody EspacioTrabajoDTORequest espacioTrabajoDTO) {
+    public ResponseEntity<Void> registrarEspacioTrabajo(
+        @Valid 
+        @NotNull(message = "El espacio de trabajo es obligatorio") 
+        @RequestBody EspacioTrabajoDTORequest espacioTrabajoDTO) {
+        
         espacioTrabajoService.registrarEspacioTrabajo(espacioTrabajoDTO);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
@@ -68,8 +73,9 @@ public class EspacioTrabajoController {
                 message = "El email solo puede contener letras, números, @, punto, guiones y barra baja"
             )
             String email,
-            @PathVariable Long idEspacioTrabajo,
-            @PathVariable Long idUsuarioAdmin) {
+            @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo,
+            @PathVariable @NotNull(message = "El id del usuario admin es obligatorio") Long idUsuarioAdmin) {
+            
         espacioTrabajoService.compartirEspacioTrabajo(email, idEspacioTrabajo, idUsuarioAdmin);
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -82,7 +88,9 @@ public class EspacioTrabajoController {
     @ApiResponse(responseCode = "400", description = "Error al listar los espacios de trabajo")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @GetMapping("/listar/{idUsuario}")
-    public ResponseEntity<List<EspacioTrabajoDTOResponse>> listarEspaciosTrabajoPorUsuario(@PathVariable Long idUsuario) {
+    public ResponseEntity<List<EspacioTrabajoDTOResponse>> listarEspaciosTrabajoPorUsuario(
+        @PathVariable @NotNull(message = "El id del usuario es obligatorio") Long idUsuario) {
+        
         List<EspacioTrabajoDTOResponse> espacios = espacioTrabajoService.listarEspaciosTrabajoPorUsuario(idUsuario);
         return new ResponseEntity<>(espacios, HttpStatus.OK);
     }
@@ -95,7 +103,9 @@ public class EspacioTrabajoController {
     @ApiResponse(responseCode = "400", description = "Error al obtener los miembros del espacio de trabajo")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @GetMapping("/miembros/{idEspacioTrabajo}")
-    public ResponseEntity<List<UsuarioDTOResponse>> obtenerMiembrosEspacioTrabajo(@PathVariable Long idEspacioTrabajo) {
+    public ResponseEntity<List<UsuarioDTOResponse>> obtenerMiembrosEspacioTrabajo(
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo) {
+        
         List<UsuarioDTOResponse> miembros = espacioTrabajoService.obtenerMiembrosEspacioTrabajo(idEspacioTrabajo);
         return new ResponseEntity<>(miembros, HttpStatus.OK);
     }

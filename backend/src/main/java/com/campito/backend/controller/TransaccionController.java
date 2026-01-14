@@ -22,6 +22,8 @@ import com.campito.backend.service.TransaccionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.validation.annotation.Validated;
 import lombok.RequiredArgsConstructor;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.http.HttpStatus;
@@ -33,6 +35,7 @@ import org.springframework.http.ResponseEntity;
 @RequestMapping("/api/transaccion")
 @Tag(name = "Transaccion", description = "Operaciones para la gestión de transacciones")
 @RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
+@Validated
 public class TransaccionController {
 
     private final TransaccionService transaccionService;
@@ -45,7 +48,11 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/registrar")
-    public ResponseEntity<TransaccionDTOResponse> registrarTransaccion(@Valid @RequestBody TransaccionDTORequest transaccionDTO) {
+    public ResponseEntity<TransaccionDTOResponse> registrarTransaccion(
+        @Valid 
+        @NotNull(message = "El cuerpo de la transacción es obligatorio") 
+        @RequestBody TransaccionDTORequest transaccionDTO) {
+        
         TransaccionDTOResponse nuevaTransaccion = transaccionService.registrarTransaccion(transaccionDTO);
         return new ResponseEntity<>(nuevaTransaccion, HttpStatus.CREATED);
     }
@@ -58,7 +65,9 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @DeleteMapping("/remover/{id}")
-    public ResponseEntity<Void> removerTransaccion(@PathVariable Long id) {
+    public ResponseEntity<Void> removerTransaccion(
+        @PathVariable @NotNull(message = "El id de la transacción es obligatorio") Long id) {
+        
         transaccionService.removerTransaccion(id);
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -71,7 +80,11 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/buscar")
-    public ResponseEntity<List<TransaccionDTOResponse>> buscarTransaccion(@Valid @RequestBody TransaccionBusquedaDTO datosBusqueda) {
+    public ResponseEntity<List<TransaccionDTOResponse>> buscarTransaccion(
+        @Valid 
+        @NotNull(message = "Los criterios de búsqueda son obligatorios") 
+        @RequestBody TransaccionBusquedaDTO datosBusqueda) {
+        
         List<TransaccionDTOResponse> transacciones = transaccionService.buscarTransaccion(datosBusqueda);
         return new ResponseEntity<>(transacciones, HttpStatus.OK);
     }
@@ -84,7 +97,11 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/contacto/registrar")
-    public ResponseEntity<ContactoDTOResponse> registrarContactoTransferencia(@Valid @RequestBody ContactoDTORequest contactoDTO) {
+    public ResponseEntity<ContactoDTOResponse> registrarContactoTransferencia(
+        @Valid 
+        @NotNull(message = "El contacto es obligatorio") 
+        @RequestBody ContactoDTORequest contactoDTO) {
+        
         ContactoDTOResponse nuevoContacto = transaccionService.registrarContactoTransferencia(contactoDTO);
         return new ResponseEntity<>(nuevoContacto, HttpStatus.CREATED);
     }
@@ -97,7 +114,9 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/contacto/listar/{idEspacioTrabajo}")
-    public ResponseEntity<List<ContactoDTOResponse>> listarContactos(@PathVariable Long idEspacioTrabajo) {
+    public ResponseEntity<List<ContactoDTOResponse>> listarContactos(
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo) {
+        
         List<ContactoDTOResponse> contactos = transaccionService.listarContactos(idEspacioTrabajo);
         return new ResponseEntity<>(contactos, HttpStatus.OK);
     }
@@ -110,7 +129,11 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/motivo/registrar")
-    public ResponseEntity<MotivoDTOResponse> nuevoMotivoTransaccion(@Valid @RequestBody MotivoDTORequest motivoDTO) {
+    public ResponseEntity<MotivoDTOResponse> nuevoMotivoTransaccion(
+        @Valid 
+        @NotNull(message = "El motivo es obligatorio") 
+        @RequestBody MotivoDTORequest motivoDTO) {
+        
         MotivoDTOResponse nuevoMotivo = transaccionService.nuevoMotivoTransaccion(motivoDTO);
         return new ResponseEntity<>(nuevoMotivo, HttpStatus.CREATED);
     }
@@ -123,7 +146,9 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/motivo/listar/{idEspacioTrabajo}")
-    public ResponseEntity<List<MotivoDTOResponse>> listarMotivos(@PathVariable Long idEspacioTrabajo) {
+    public ResponseEntity<List<MotivoDTOResponse>> listarMotivos(
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo) {
+        
         List<MotivoDTOResponse> motivos = transaccionService.listarMotivos(idEspacioTrabajo);
         return new ResponseEntity<>(motivos, HttpStatus.OK);
     }
@@ -136,7 +161,9 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/buscarRecientes/{idEspacio}")
-    public ResponseEntity<List<TransaccionDTOResponse>> buscarTransaccionesRecientes(@PathVariable Long idEspacio) {
+    public ResponseEntity<List<TransaccionDTOResponse>> buscarTransaccionesRecientes(
+        @PathVariable @NotNull(message = "El id del espacio es obligatorio") Long idEspacio) {
+        
         List<TransaccionDTOResponse> transacciones = transaccionService.buscarTransaccionesRecientes(idEspacio);
         return new ResponseEntity<>(transacciones, HttpStatus.OK);
     }

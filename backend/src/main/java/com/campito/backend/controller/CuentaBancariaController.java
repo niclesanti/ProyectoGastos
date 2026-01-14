@@ -43,7 +43,11 @@ public class CuentaBancariaController {
     @ApiResponse(responseCode = "400", description = "Error al crear la cuenta bancaria")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @PostMapping("/crear")
-    public ResponseEntity<Void> crearCuentaBancaria(@Valid @RequestBody CuentaBancariaDTORequest cuentaBancariaDTO) {
+    public ResponseEntity<Void> crearCuentaBancaria(
+        @Valid 
+        @NotNull(message = "La cuenta bancaria es obligatoria") 
+        @RequestBody CuentaBancariaDTORequest cuentaBancariaDTO) {
+        
         cuentaBancariaService.crearCuentaBancaria(cuentaBancariaDTO);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
@@ -56,7 +60,9 @@ public class CuentaBancariaController {
     @ApiResponse(responseCode = "400", description = "Error al listar las cuentas bancarias")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @GetMapping("/listar/{idEspacioTrabajo}")
-    public ResponseEntity<List<CuentaBancariaDTOResponse>> listarCuentasBancarias(@PathVariable Long idEspacioTrabajo) {
+    public ResponseEntity<List<CuentaBancariaDTOResponse>> listarCuentasBancarias(
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo) {
+        
         List<CuentaBancariaDTOResponse> cuentas = cuentaBancariaService.listarCuentasBancarias(idEspacioTrabajo);
         return new ResponseEntity<>(cuentas, HttpStatus.OK);
     }
@@ -75,6 +81,7 @@ public class CuentaBancariaController {
             @PathVariable @NotNull(message = "El monto es obligatorio") 
             @DecimalMin(value = "0.01", message = "El monto debe ser mayor a 0")
             @ValidMonto Float monto) {
+            
         cuentaBancariaService.transaccionEntreCuentas(idCuentaOrigen, idCuentaDestino, monto);
         return new ResponseEntity<>(HttpStatus.OK);
     }

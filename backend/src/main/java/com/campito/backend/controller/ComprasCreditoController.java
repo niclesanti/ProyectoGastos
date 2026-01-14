@@ -24,6 +24,8 @@ import com.campito.backend.service.CompraCreditoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -31,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/comprascredito")
 @Tag(name = "ComprasCredito", description = "Operaciones para la gestión de compras con crédito")
 @RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
+@Validated
 public class ComprasCreditoController {
 
     private final CompraCreditoService comprasCreditoService;
@@ -43,7 +46,11 @@ public class ComprasCreditoController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/registrar")
-    public ResponseEntity<CompraCreditoDTOResponse> registrarCompraCredito(@Valid @RequestBody CompraCreditoDTORequest comprasCreditoDTO) {
+    public ResponseEntity<CompraCreditoDTOResponse> registrarCompraCredito(
+        @Valid 
+        @NotNull(message = "La compra a crédito es obligatoria") 
+        @RequestBody CompraCreditoDTORequest comprasCreditoDTO) {
+        
         CompraCreditoDTOResponse nuevaCompra = comprasCreditoService.registrarCompraCredito(comprasCreditoDTO);
         return new ResponseEntity<>(nuevaCompra, HttpStatus.CREATED);
     }
@@ -56,7 +63,11 @@ public class ComprasCreditoController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/registrarTarjeta")
-    public ResponseEntity<TarjetaDTOResponse> registrarTarjeta(@Valid @RequestBody TarjetaDTORequest tarjetaDTO) {
+    public ResponseEntity<TarjetaDTOResponse> registrarTarjeta(
+        @Valid 
+        @NotNull(message = "La tarjeta es obligatoria") 
+        @RequestBody TarjetaDTORequest tarjetaDTO) {
+        
         TarjetaDTOResponse nuevaTarjeta = comprasCreditoService.registrarTarjeta(tarjetaDTO);
         return new ResponseEntity<>(nuevaTarjeta, HttpStatus.CREATED);
     }
@@ -70,7 +81,9 @@ public class ComprasCreditoController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> removerCompraCredito(@PathVariable Long id) {
+    public ResponseEntity<Void> removerCompraCredito(
+        @PathVariable @NotNull(message = "El id de la compra a crédito es obligatorio") Long id) {
+        
         comprasCreditoService.removerCompraCredito(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -83,7 +96,9 @@ public class ComprasCreditoController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/pendientes/{idEspacioTrabajo}")
-    public ResponseEntity<List<CompraCreditoDTOResponse>> listarComprasCreditoDebeCuotas(@PathVariable Long idEspacioTrabajo) {
+    public ResponseEntity<List<CompraCreditoDTOResponse>> listarComprasCreditoDebeCuotas(
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo) {
+        
         List<CompraCreditoDTOResponse> compras = comprasCreditoService.listarComprasCreditoDebeCuotas(idEspacioTrabajo);
         return new ResponseEntity<>(compras, HttpStatus.OK);
     }
@@ -96,7 +111,9 @@ public class ComprasCreditoController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/buscar/{idEspacioTrabajo}")
-    public ResponseEntity<List<CompraCreditoDTOResponse>> buscarComprasCredito(@PathVariable Long idEspacioTrabajo) {
+    public ResponseEntity<List<CompraCreditoDTOResponse>> buscarComprasCredito(
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo) {
+        
         List<CompraCreditoDTOResponse> compras = comprasCreditoService.BuscarComprasCredito(idEspacioTrabajo);
         return new ResponseEntity<>(compras, HttpStatus.OK);
     }
@@ -110,7 +127,9 @@ public class ComprasCreditoController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @DeleteMapping("/tarjeta/{id}")
-    public ResponseEntity<Void> removerTarjeta(@PathVariable Long id) {
+    public ResponseEntity<Void> removerTarjeta(
+        @PathVariable @NotNull(message = "El id de la tarjeta es obligatorio") Long id) {
+        
         comprasCreditoService.removerTarjeta(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -123,7 +142,9 @@ public class ComprasCreditoController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/tarjetas/{idEspacioTrabajo}")
-    public ResponseEntity<List<TarjetaDTOResponse>> listarTarjetas(@PathVariable Long idEspacioTrabajo) {
+    public ResponseEntity<List<TarjetaDTOResponse>> listarTarjetas(
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo) {
+        
         List<TarjetaDTOResponse> tarjetas = comprasCreditoService.listarTarjetas(idEspacioTrabajo);
         return new ResponseEntity<>(tarjetas, HttpStatus.OK);
     }
@@ -137,7 +158,9 @@ public class ComprasCreditoController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/cuotas/{idTarjeta}")
-    public ResponseEntity<List<CuotaCreditoDTOResponse>> listarCuotasPorTarjeta(@PathVariable Long idTarjeta) {
+    public ResponseEntity<List<CuotaCreditoDTOResponse>> listarCuotasPorTarjeta(
+        @PathVariable @NotNull(message = "El id de la tarjeta es obligatorio") Long idTarjeta) {
+        
         List<CuotaCreditoDTOResponse> cuotas = comprasCreditoService.listarCuotasPorTarjeta(idTarjeta);
         return new ResponseEntity<>(cuotas, HttpStatus.OK);
     }
@@ -151,7 +174,11 @@ public class ComprasCreditoController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/pagar-resumen")
-    public ResponseEntity<Void> pagarResumenTarjeta(@Valid @RequestBody PagarResumenTarjetaRequest request) {
+    public ResponseEntity<Void> pagarResumenTarjeta(
+        @Valid 
+        @NotNull(message = "El pago del resumen es obligatorio") 
+        @RequestBody PagarResumenTarjetaRequest request) {
+        
         comprasCreditoService.pagarResumenTarjeta(request);
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -164,7 +191,9 @@ public class ComprasCreditoController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/resumenes/tarjeta/{idTarjeta}")
-    public ResponseEntity<List<ResumenDTOResponse>> listarResumenesPorTarjeta(@PathVariable Long idTarjeta) {
+    public ResponseEntity<List<ResumenDTOResponse>> listarResumenesPorTarjeta(
+        @PathVariable @NotNull(message = "El id de la tarjeta es obligatorio") Long idTarjeta) {
+        
         List<ResumenDTOResponse> resumenes = comprasCreditoService.listarResumenesPorTarjeta(idTarjeta);
         return new ResponseEntity<>(resumenes, HttpStatus.OK);
     }
@@ -177,7 +206,9 @@ public class ComprasCreditoController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/resumenes/espacio/{idEspacioTrabajo}")
-    public ResponseEntity<List<ResumenDTOResponse>> listarResumenesPorEspacioTrabajo(@PathVariable Long idEspacioTrabajo) {
+    public ResponseEntity<List<ResumenDTOResponse>> listarResumenesPorEspacioTrabajo(
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo) {
+        
         List<ResumenDTOResponse> resumenes = comprasCreditoService.listarResumenesPorEspacioTrabajo(idEspacioTrabajo);
         return new ResponseEntity<>(resumenes, HttpStatus.OK);
     }
