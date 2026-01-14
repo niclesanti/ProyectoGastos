@@ -55,129 +55,132 @@ public class DashboardServiceImpl implements DashboardService {
      * 
      * @param idEspacio ID del espacio de trabajo.
      * @return DTO con todas las estadísticas del dashboard (KPIs + charts).
+     * @throws EntityNotFoundException si el espacio de trabajo no se encuentra.
+     * @throws IllegalArgumentException si el ID del espacio es nulo.
      */
     @Override
     public DashboardStatsDTO obtenerDashboardStats(Long idEspacio) {
-        logger.info("Obteniendo estadisticas consolidadas del dashboard para el espacio ID: {}", idEspacio);
-        try {
-            // 1. Balance total del espacio
-            EspacioTrabajo espacio = espacioRepository.findById(idEspacio).orElseThrow(() -> {
-                String msg = "Espacio de trabajo con ID " + idEspacio + " no encontrado";
-                logger.warn(msg);
-                return new EntityNotFoundException(msg);
-            });
-            Float balanceTotal = espacio.getSaldo();
 
-            // 2. Gastos del mes actual
-            ZoneId buenosAiresZone = ZoneId.of("America/Argentina/Buenos_Aires");
-            ZonedDateTime nowInBuenosAires = ZonedDateTime.now(buenosAiresZone);
-            Integer anioActual = nowInBuenosAires.getYear();
-            Integer mesActual = nowInBuenosAires.getMonthValue();
-
-            Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(idEspacio, anioActual, mesActual);
-
-            GastosIngresosMensuales registro = opt.orElseGet(() -> {
-                return GastosIngresosMensuales.builder()
-                        .anio(anioActual)
-                        .mes(mesActual)
-                        .gastos(0f)
-                        .ingresos(0f)
-                        .espacioTrabajo(espacio)
-                        .build();
-            });
-
-            Float gastosMensuales = registro.getGastos();
-
-            // 3. Deuda total pendiente (todas las cuotas impagadas)
-            Float deudaTotalPendiente = cuotaCreditoRepository.calcularDeudaTotalPendiente(idEspacio);
-
-            // 4. Flujo mensual (últimos 12 meses)
-            LocalDate now = LocalDate.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
-            
-            // Generar lista de los últimos 12 meses (del más antiguo al más reciente)
-            List<String> ultimosMeses = new ArrayList<>();
-            for (int i = 11; i >= 0; i--) {
-                ultimosMeses.add(now.minusMonths(i).format(formatter));
-            }
-            
-            // Obtener los registros existentes de GastosIngresosMensuales
-            List<GastosIngresosMensuales> registrosMensuales = gastosIngresosMensualesRepository
-                .findByEspacioTrabajoAndMeses(idEspacio, ultimosMeses);
-            
-            // Crear un mapa para acceso rápido por mes
-            Map<String, GastosIngresosMensuales> mapRegistros = new HashMap<>();
-            for (GastosIngresosMensuales reg : registrosMensuales) {
-                String mesKey = String.format("%d-%02d", reg.getAnio(), reg.getMes());
-                mapRegistros.put(mesKey, reg);
-            }
-            
-            // Construir la lista completa con todos los meses (rellenar con ceros los faltantes)
-            List<IngresosGastosMesDTO> flujoMensualCompleto = new ArrayList<>();
-            for (String mes : ultimosMeses) {
-                GastosIngresosMensuales reg = mapRegistros.get(mes);
-                if (reg != null) {
-                    flujoMensualCompleto.add(new IngresosGastosMesDTOImpl(
-                        mes,
-                        BigDecimal.valueOf(reg.getIngresos()),
-                        BigDecimal.valueOf(reg.getGastos())
-                    ));
-                } else {
-                    // Mes sin datos: ingresos y gastos en cero
-                    flujoMensualCompleto.add(new IngresosGastosMesDTOImpl(
-                        mes,
-                        BigDecimal.ZERO,
-                        BigDecimal.ZERO
-                    ));
-                }
-            }
-            
-            logger.debug("Flujo mensual calculado con {} registros encontrados de {} meses solicitados", 
-                registrosMensuales.size(), ultimosMeses.size());
-
-            // 5. Distribución de gastos por motivo (últimos 12 meses)
-            LocalDate fechaLimite = now.minusMonths(12);
-            List<DistribucionGastoDTO> distribucionGastos = dashboardRepository.findDistribucionGastos(idEspacio, fechaLimite);
-
-            // 6. Resumen mensual (suma de las cuotas que entrarán en los próximos resúmenes por tarjeta)
-            float resumenMensual = 0.0f;
-            List<Tarjeta> tarjetas = tarjetaRepository.findByEspacioTrabajo_Id(idEspacio);
-            for (Tarjeta tarjeta : tarjetas) {
-                int diaCierre = tarjeta.getDiaCierre();
-
-                YearMonth ym = YearMonth.from(now);
-                int diaAjustadoCierre = Math.min(diaCierre, ym.lengthOfMonth());
-                LocalDate fechaCierre = ym.atDay(diaAjustadoCierre);
-                // Queremos el próximo cierre estrictamente en el futuro (si hoy es el día de cierre, tomar el siguiente mes)
-                if (!fechaCierre.isAfter(now)) {
-                    YearMonth siguiente = ym.plusMonths(1);
-                    diaAjustadoCierre = Math.min(diaCierre, siguiente.lengthOfMonth());
-                    fechaCierre = siguiente.atDay(diaAjustadoCierre);
-                }
-
-                LocalDate fechaInicio = fechaCierre.plusDays(1);
-                LocalDate fechaFin = calcularFechaVencimiento(fechaCierre, tarjeta.getDiaVencimientoPago());
-
-                List<CuotaCredito> cuotasPendientes = cuotaCreditoRepository.findByTarjetaSinResumenEnRango(tarjeta.getId(), fechaInicio, fechaFin);
-                float monto = cuotasPendientes.stream().map(CuotaCredito::getMontoCuota).reduce(0.0f, Float::sum);
-                resumenMensual += monto;
-            }
-
-            DashboardStatsDTO stats = new DashboardStatsDTO(
-                balanceTotal,
-                gastosMensuales,
-                resumenMensual,
-                deudaTotalPendiente,
-                flujoMensualCompleto,
-                distribucionGastos
-            );
-
-            logger.info("Estadisticas del dashboard para el espacio ID {} generadas exitosamente.", idEspacio);
-            return stats;
-        } catch (Exception e) {
-            logger.error("Error inesperado al obtener estadisticas del dashboard para el espacio ID {}: {}", idEspacio, e.getMessage(), e);
-            throw e;
+        if (idEspacio == null) {
+            logger.warn("Intento de obtener estadísticas del dashboard con ID de espacio nulo.");
+            throw new IllegalArgumentException("El ID del espacio de trabajo no puede ser nulo");
         }
+        logger.info("Obteniendo estadisticas consolidadas del dashboard para el espacio ID: {}", idEspacio);
+
+        // 1. Balance total del espacio
+        EspacioTrabajo espacio = espacioRepository.findById(idEspacio).orElseThrow(() -> {
+            String msg = "Espacio de trabajo con ID " + idEspacio + " no encontrado";
+            logger.warn(msg);
+            return new EntityNotFoundException(msg);
+        });
+        Float balanceTotal = espacio.getSaldo();
+
+        // 2. Gastos del mes actual
+        ZoneId buenosAiresZone = ZoneId.of("America/Argentina/Buenos_Aires");
+        ZonedDateTime nowInBuenosAires = ZonedDateTime.now(buenosAiresZone);
+        Integer anioActual = nowInBuenosAires.getYear();
+        Integer mesActual = nowInBuenosAires.getMonthValue();
+
+        Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(idEspacio, anioActual, mesActual);
+
+        GastosIngresosMensuales registro = opt.orElseGet(() -> {
+            return GastosIngresosMensuales.builder()
+                    .anio(anioActual)
+                    .mes(mesActual)
+                    .gastos(0f)
+                    .ingresos(0f)
+                    .espacioTrabajo(espacio)
+                    .build();
+        });
+
+        Float gastosMensuales = registro.getGastos();
+
+        // 3. Deuda total pendiente (todas las cuotas impagadas)
+        Float deudaTotalPendiente = cuotaCreditoRepository.calcularDeudaTotalPendiente(idEspacio);
+
+        // 4. Flujo mensual (últimos 12 meses)
+        LocalDate now = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+        
+        // Generar lista de los últimos 12 meses (del más antiguo al más reciente)
+        List<String> ultimosMeses = new ArrayList<>();
+        for (int i = 11; i >= 0; i--) {
+            ultimosMeses.add(now.minusMonths(i).format(formatter));
+        }
+        
+        // Obtener los registros existentes de GastosIngresosMensuales
+        List<GastosIngresosMensuales> registrosMensuales = gastosIngresosMensualesRepository
+            .findByEspacioTrabajoAndMeses(idEspacio, ultimosMeses);
+        
+        // Crear un mapa para acceso rápido por mes
+        Map<String, GastosIngresosMensuales> mapRegistros = new HashMap<>();
+        for (GastosIngresosMensuales reg : registrosMensuales) {
+            String mesKey = String.format("%d-%02d", reg.getAnio(), reg.getMes());
+            mapRegistros.put(mesKey, reg);
+        }
+        
+        // Construir la lista completa con todos los meses (rellenar con ceros los faltantes)
+        List<IngresosGastosMesDTO> flujoMensualCompleto = new ArrayList<>();
+        for (String mes : ultimosMeses) {
+            GastosIngresosMensuales reg = mapRegistros.get(mes);
+            if (reg != null) {
+                flujoMensualCompleto.add(new IngresosGastosMesDTOImpl(
+                    mes,
+                    BigDecimal.valueOf(reg.getIngresos()),
+                    BigDecimal.valueOf(reg.getGastos())
+                ));
+            } else {
+                // Mes sin datos: ingresos y gastos en cero
+                flujoMensualCompleto.add(new IngresosGastosMesDTOImpl(
+                    mes,
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO
+                ));
+            }
+        }
+        
+        logger.debug("Flujo mensual calculado con {} registros encontrados de {} meses solicitados", 
+            registrosMensuales.size(), ultimosMeses.size());
+
+        // 5. Distribución de gastos por motivo (últimos 12 meses)
+        LocalDate fechaLimite = now.minusMonths(12);
+        List<DistribucionGastoDTO> distribucionGastos = dashboardRepository.findDistribucionGastos(idEspacio, fechaLimite);
+
+        // 6. Resumen mensual (suma de las cuotas que entrarán en los próximos resúmenes por tarjeta)
+        float resumenMensual = 0.0f;
+        List<Tarjeta> tarjetas = tarjetaRepository.findByEspacioTrabajo_Id(idEspacio);
+        for (Tarjeta tarjeta : tarjetas) {
+            int diaCierre = tarjeta.getDiaCierre();
+
+            YearMonth ym = YearMonth.from(now);
+            int diaAjustadoCierre = Math.min(diaCierre, ym.lengthOfMonth());
+            LocalDate fechaCierre = ym.atDay(diaAjustadoCierre);
+            // Queremos el próximo cierre estrictamente en el futuro (si hoy es el día de cierre, tomar el siguiente mes)
+            if (!fechaCierre.isAfter(now)) {
+                YearMonth siguiente = ym.plusMonths(1);
+                diaAjustadoCierre = Math.min(diaCierre, siguiente.lengthOfMonth());
+                fechaCierre = siguiente.atDay(diaAjustadoCierre);
+            }
+
+            LocalDate fechaInicio = fechaCierre.plusDays(1);
+            LocalDate fechaFin = calcularFechaVencimiento(fechaCierre, tarjeta.getDiaVencimientoPago());
+
+            List<CuotaCredito> cuotasPendientes = cuotaCreditoRepository.findByTarjetaSinResumenEnRango(tarjeta.getId(), fechaInicio, fechaFin);
+            float monto = cuotasPendientes.stream().map(CuotaCredito::getMontoCuota).reduce(0.0f, Float::sum);
+            resumenMensual += monto;
+        }
+
+        DashboardStatsDTO stats = new DashboardStatsDTO(
+            balanceTotal,
+            gastosMensuales,
+            resumenMensual,
+            deudaTotalPendiente,
+            flujoMensualCompleto,
+            distribucionGastos
+        );
+
+        logger.info("Estadisticas del dashboard para el espacio ID {} generadas exitosamente.", idEspacio);
+        return stats;
     }
 
     /*

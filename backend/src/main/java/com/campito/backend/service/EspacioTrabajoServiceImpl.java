@@ -44,7 +44,6 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
      * @param espacioTrabajoDTO Datos del espacio de trabajo a registrar.
      * @throws IllegalArgumentException si el espacio de trabajo es nulo.
      * @throws EntityNotFoundException si el usuario administrador no se encuentra en la base de datos.
-     * @throws Exception para cualquier otro error inesperado.
      */
     @Override
     @Transactional
@@ -56,24 +55,20 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
         }
 
         logger.info("Intentando registrar un nuevo espacio de trabajo con nombre: '{}'", espacioTrabajoDTO.nombre());
-        try {
-            Usuario usuario = usuarioRepository.findById(espacioTrabajoDTO.idUsuarioAdmin()).orElseThrow(() -> {
-                String mensaje = "Usuario con ID " + espacioTrabajoDTO.idUsuarioAdmin() + " no encontrado";
-                logger.warn(mensaje);
-                return new EntityNotFoundException(mensaje);
-            });
 
-            EspacioTrabajo espacioTrabajo = espacioTrabajoMapper.toEntity(espacioTrabajoDTO);
-            espacioTrabajo.setSaldo(0f);
-            espacioTrabajo.setUsuarioAdmin(usuario);
-            espacioTrabajo.setUsuariosParticipantes(new ArrayList<>());
-            espacioTrabajo.getUsuariosParticipantes().add(usuario);
-            espacioRepository.save(espacioTrabajo);
-            logger.info("Espacio de trabajo '{}' registrado exitosamente.", espacioTrabajo.getNombre());
-        } catch (Exception e) {
-            logger.error("Error inesperado al registrar espacio de trabajo con nombre: '{}'", espacioTrabajoDTO.nombre(), e);
-            throw e;
-        }
+        Usuario usuario = usuarioRepository.findById(espacioTrabajoDTO.idUsuarioAdmin()).orElseThrow(() -> {
+            String mensaje = "Usuario con ID " + espacioTrabajoDTO.idUsuarioAdmin() + " no encontrado";
+            logger.warn(mensaje);
+            return new EntityNotFoundException(mensaje);
+        });
+
+        EspacioTrabajo espacioTrabajo = espacioTrabajoMapper.toEntity(espacioTrabajoDTO);
+        espacioTrabajo.setSaldo(0f);
+        espacioTrabajo.setUsuarioAdmin(usuario);
+        espacioTrabajo.setUsuariosParticipantes(new ArrayList<>());
+        espacioTrabajo.getUsuariosParticipantes().add(usuario);
+        espacioRepository.save(espacioTrabajo);
+        logger.info("Espacio de trabajo '{}' registrado exitosamente.", espacioTrabajo.getNombre());
     }
 
     /**
@@ -84,7 +79,6 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
      * @param idUsuarioAdmin ID del usuario administrador que realiza la acción.
      * @throws IllegalArgumentException si alguno de los parámetros es nulo o si el usuario administrador no tiene permiso.
      * @throws EntityNotFoundException si el espacio de trabajo o el usuario no se encuentran en la base de datos.
-     * @throws Exception para cualquier otro error inesperado.
      */
     @Override
     @Transactional
@@ -95,33 +89,28 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
             throw new IllegalArgumentException("El email, el ID del espacio de trabajo y el ID del usuario administrador del espacio no pueden ser nulos");
         }
         logger.info("Intentando compartir espacio de trabajo ID: {} con email: {}", idEspacioTrabajo, email);
-        try {
 
-            EspacioTrabajo espacioTrabajo = espacioRepository.findById(idEspacioTrabajo).orElseThrow(() -> {
-                String mensaje = "Espacio de trabajo con ID " + idEspacioTrabajo + " no encontrado";
-                logger.warn(mensaje);
-                return new EntityNotFoundException(mensaje);
-            });
+        EspacioTrabajo espacioTrabajo = espacioRepository.findById(idEspacioTrabajo).orElseThrow(() -> {
+            String mensaje = "Espacio de trabajo con ID " + idEspacioTrabajo + " no encontrado";
+            logger.warn(mensaje);
+            return new EntityNotFoundException(mensaje);
+        });
 
-            if(!espacioTrabajo.getUsuarioAdmin().getId().equals(idUsuarioAdmin)) {
-                logger.warn("Intento no autorizado del usuario ID: {} para compartir el espacio ID: {}.", idUsuarioAdmin, idEspacioTrabajo);
-                throw new IllegalArgumentException("El usuario administrador no tiene permiso para compartir este espacio de trabajo");
-            }
-
-            Usuario usuario = usuarioRepository.findByEmail(email).orElseThrow(() -> {
-                String mensaje = "Usuario con email " + email + " no encontrado";
-                logger.warn(mensaje);
-                return new EntityNotFoundException(mensaje);
-            });
-
-            espacioTrabajo.getUsuariosParticipantes().add(usuario);
-
-            espacioRepository.save(espacioTrabajo);
-            logger.info("Espacio de trabajo ID: {} compartido exitosamente con {}.", idEspacioTrabajo, email);
-        } catch (Exception e) {
-            logger.error("Error al compartir espacio de trabajo ID: {} con email: {}. Causa: {}", idEspacioTrabajo, email, e.getMessage(), e);
-            throw e;
+        if(!espacioTrabajo.getUsuarioAdmin().getId().equals(idUsuarioAdmin)) {
+            logger.warn("Intento no autorizado del usuario ID: {} para compartir el espacio ID: {}.", idUsuarioAdmin, idEspacioTrabajo);
+            throw new IllegalArgumentException("El usuario administrador no tiene permiso para compartir este espacio de trabajo");
         }
+
+        Usuario usuario = usuarioRepository.findByEmail(email).orElseThrow(() -> {
+            String mensaje = "Usuario con email " + email + " no encontrado";
+            logger.warn(mensaje);
+            return new EntityNotFoundException(mensaje);
+        });
+
+        espacioTrabajo.getUsuariosParticipantes().add(usuario);
+
+        espacioRepository.save(espacioTrabajo);
+        logger.info("Espacio de trabajo ID: {} compartido exitosamente con {}.", idEspacioTrabajo, email);
     }
 
     /**
@@ -130,7 +119,6 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
      * @param idUsuario ID del usuario cuyos espacios se desean listar.
      * @return Lista de espacios de trabajo en formato DTO.
      * @throws IllegalArgumentException si el ID del usuario es nulo.
-     * @throws Exception para cualquier error inesperado.
      */
     @Override
     public List<EspacioTrabajoDTOResponse> listarEspaciosTrabajoPorUsuario(Long idUsuario) {
@@ -140,16 +128,12 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
             throw new IllegalArgumentException("El ID del usuario no puede ser nulo");
         }
         logger.info("Intentando listar espacios de trabajo para el usuario ID: {}", idUsuario);
-        try {
-            List<EspacioTrabajo> espacios = espacioRepository.findByUsuariosParticipantes_Id(idUsuario);
-            logger.info("Encontrados {} espacios de trabajo para el usuario ID: {}.", espacios.size(), idUsuario);
-            return espacios.stream()
-                .map(espacioTrabajoMapper::toResponse)
-                .toList();
-        } catch (Exception e) {
-            logger.error("Error al listar espacios de trabajo para el usuario ID: {}. Causa: {}", idUsuario, e.getMessage(), e);
-            throw e;
-        }
+
+        List<EspacioTrabajo> espacios = espacioRepository.findByUsuariosParticipantes_Id(idUsuario);
+        logger.info("Encontrados {} espacios de trabajo para el usuario ID: {}.", espacios.size(), idUsuario);
+        return espacios.stream()
+            .map(espacioTrabajoMapper::toResponse)
+            .toList();
     }
 
     /**
@@ -159,7 +143,6 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
      * @return Lista de usuarios en formato DTO.
      * @throws EntityNotFoundException si el espacio de trabajo no se encuentra.
      * @throws IllegalArgumentException si el ID del espacio de trabajo es nulo.
-     * @throws Exception para cualquier otro error inesperado.
      */
     @Override
     @Transactional(readOnly = true)
@@ -170,24 +153,20 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
             throw new IllegalArgumentException("El ID del espacio de trabajo no puede ser nulo");
         }
         logger.info("Intentando obtener miembros del espacio de trabajo ID: {}", idEspacioTrabajo);
-        try {
-            EspacioTrabajo espacioTrabajo = espacioRepository.findById(idEspacioTrabajo)
-                .orElseThrow(() -> {
-                    String mensaje = "Espacio de trabajo con ID " + idEspacioTrabajo + " no encontrado";
-                    logger.warn(mensaje);
-                    return new EntityNotFoundException(mensaje);
-                });
-            
-            List<Usuario> miembros = espacioTrabajo.getUsuariosParticipantes();
-            logger.info("Encontrados {} miembros en el espacio de trabajo ID: {}.", miembros.size(), idEspacioTrabajo);
-            
-            return miembros.stream()
-                .map(usuarioMapper::toResponse)
-                .toList();
-        } catch (Exception e) {
-            logger.error("Error al obtener miembros del espacio de trabajo ID: {}. Causa: {}", idEspacioTrabajo, e.getMessage(), e);
-            throw e;
-        }
+
+        EspacioTrabajo espacioTrabajo = espacioRepository.findById(idEspacioTrabajo)
+            .orElseThrow(() -> {
+                String mensaje = "Espacio de trabajo con ID " + idEspacioTrabajo + " no encontrado";
+                logger.warn(mensaje);
+                return new EntityNotFoundException(mensaje);
+            });
+        
+        List<Usuario> miembros = espacioTrabajo.getUsuariosParticipantes();
+        logger.info("Encontrados {} miembros en el espacio de trabajo ID: {}.", miembros.size(), idEspacioTrabajo);
+        
+        return miembros.stream()
+            .map(usuarioMapper::toResponse)
+            .toList();
     }
 
 }

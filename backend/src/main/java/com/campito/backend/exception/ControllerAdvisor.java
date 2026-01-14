@@ -1,5 +1,7 @@
 package com.campito.backend.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -11,6 +13,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 
 @RestControllerAdvice
 public class ControllerAdvisor {
+
+    private static final Logger logger = LoggerFactory.getLogger(ControllerAdvisor.class);
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ExceptionInfo> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
@@ -36,6 +40,7 @@ public class ControllerAdvisor {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ExceptionInfo> handleGeneralException(Exception ex, WebRequest request) {
+        logger.error("Error inesperado: {} - Request: {}", ex.getMessage(), request.getDescription(false), ex);
         ExceptionInfo exceptionInfo = new ExceptionInfo(
                 ex.getMessage(),
                 request.getDescription(false),

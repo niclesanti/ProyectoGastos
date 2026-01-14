@@ -97,52 +97,46 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         }
         logger.info("Iniciando registro de compraCredito por monto {} con cantidad de cuotas {} en espacio ID {}", compraCreditoDTO.montoTotal(), compraCreditoDTO.cantidadCuotas(), compraCreditoDTO.espacioTrabajoId());
 
-        try {
-            EspacioTrabajo espacio = espacioRepository.findById(compraCreditoDTO.espacioTrabajoId()).orElseThrow(() -> {
-                String msg = "Espacio de trabajo con ID " + compraCreditoDTO.espacioTrabajoId() + " no encontrado";
+        EspacioTrabajo espacio = espacioRepository.findById(compraCreditoDTO.espacioTrabajoId()).orElseThrow(() -> {
+            String msg = "Espacio de trabajo con ID " + compraCreditoDTO.espacioTrabajoId() + " no encontrado";
+            logger.warn(msg);
+            return new EntityNotFoundException(msg);
+        });
+        MotivoTransaccion motivo = motivoRepository.findById(compraCreditoDTO.motivoId()).orElseThrow(() -> {
+            String msg = "Motivo de transaccion con ID " + compraCreditoDTO.motivoId() + " no encontrado";
+            logger.warn(msg);
+            return new EntityNotFoundException(msg);
+        });
+        Tarjeta tarjeta = tarjetaRepository.findById(compraCreditoDTO.tarjetaId()).orElseThrow(() -> {
+            String msg = "Tarjeta con ID " + compraCreditoDTO.tarjetaId() + " no encontrado";
+            logger.warn(msg);
+            return new EntityNotFoundException(msg);
+        });
+
+        CompraCredito compraCredito = compraCreditoMapper.toEntity(compraCreditoDTO);
+
+        if (compraCreditoDTO.comercioId() != null) {
+            ContactoTransferencia comercio = contactoRepository.findById(compraCreditoDTO.comercioId()).orElseThrow(() -> {
+                String msg = "Comercio con ID " + compraCreditoDTO.comercioId() + " no encontrado";
                 logger.warn(msg);
                 return new EntityNotFoundException(msg);
             });
-            MotivoTransaccion motivo = motivoRepository.findById(compraCreditoDTO.motivoId()).orElseThrow(() -> {
-                String msg = "Motivo de transaccion con ID " + compraCreditoDTO.motivoId() + " no encontrado";
-                logger.warn(msg);
-                return new EntityNotFoundException(msg);
-            });
-            Tarjeta tarjeta = tarjetaRepository.findById(compraCreditoDTO.tarjetaId()).orElseThrow(() -> {
-                String msg = "Tarjeta con ID " + compraCreditoDTO.tarjetaId() + " no encontrado";
-                logger.warn(msg);
-                return new EntityNotFoundException(msg);
-            });
-
-            CompraCredito compraCredito = compraCreditoMapper.toEntity(compraCreditoDTO);
-
-            if (compraCreditoDTO.comercioId() != null) {
-                ContactoTransferencia comercio = contactoRepository.findById(compraCreditoDTO.comercioId()).orElseThrow(() -> {
-                    String msg = "Comercio con ID " + compraCreditoDTO.comercioId() + " no encontrado";
-                    logger.warn(msg);
-                    return new EntityNotFoundException(msg);
-                });
-                compraCredito.setComercio(comercio);
-            }
-
-            ZoneId buenosAiresZone = ZoneId.of("America/Argentina/Buenos_Aires");
-            ZonedDateTime nowInBuenosAires = ZonedDateTime.now(buenosAiresZone);
-            compraCredito.setFechaCreacion(nowInBuenosAires.toLocalDateTime());
-
-            compraCredito.setEspacioTrabajo(espacio);
-            compraCredito.setMotivo(motivo);
-            compraCredito.setTarjeta(tarjeta);
-
-            CompraCredito compraCreditoGuardada = compraCreditoRepository.save(compraCredito);
-            crearCuotas(compraCreditoGuardada);
-            logger.info("Compra credito ID {} registrada exitosamente en espacio ID {}.", compraCreditoGuardada.getId(), espacio.getId());
-            
-            return compraCreditoMapper.toResponse(compraCreditoGuardada);
-
-        } catch (Exception e) {
-            logger.error("Error inesperado al registrar una compra credito en espacio ID {}: {}", compraCreditoDTO.espacioTrabajoId(), e.getMessage(), e);
-            throw e;
+            compraCredito.setComercio(comercio);
         }
+
+        ZoneId buenosAiresZone = ZoneId.of("America/Argentina/Buenos_Aires");
+        ZonedDateTime nowInBuenosAires = ZonedDateTime.now(buenosAiresZone);
+        compraCredito.setFechaCreacion(nowInBuenosAires.toLocalDateTime());
+
+        compraCredito.setEspacioTrabajo(espacio);
+        compraCredito.setMotivo(motivo);
+        compraCredito.setTarjeta(tarjeta);
+
+        CompraCredito compraCreditoGuardada = compraCreditoRepository.save(compraCredito);
+        crearCuotas(compraCreditoGuardada);
+        logger.info("Compra credito ID {} registrada exitosamente en espacio ID {}.", compraCreditoGuardada.getId(), espacio.getId());
+        
+        return compraCreditoMapper.toResponse(compraCreditoGuardada);
     }
 
     /**
@@ -163,25 +157,19 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         }
         logger.info("Iniciando registro de tarjeta {} en espacio ID {}", tarjetaDTO.numeroTarjeta(), tarjetaDTO.espacioTrabajoId());
 
-        try {
-            EspacioTrabajo espacio = espacioRepository.findById(tarjetaDTO.espacioTrabajoId()).orElseThrow(() -> {
-                String msg = "Espacio de trabajo con ID " + tarjetaDTO.espacioTrabajoId() + " no encontrado";
-                logger.warn(msg);
-                return new EntityNotFoundException(msg);
-            });
+        EspacioTrabajo espacio = espacioRepository.findById(tarjetaDTO.espacioTrabajoId()).orElseThrow(() -> {
+            String msg = "Espacio de trabajo con ID " + tarjetaDTO.espacioTrabajoId() + " no encontrado";
+            logger.warn(msg);
+            return new EntityNotFoundException(msg);
+        });
 
-            Tarjeta tarjeta = tarjetaMapper.toEntity(tarjetaDTO);
-            tarjeta.setEspacioTrabajo(espacio);
+        Tarjeta tarjeta = tarjetaMapper.toEntity(tarjetaDTO);
+        tarjeta.setEspacioTrabajo(espacio);
 
-            Tarjeta tarjetaGuardada = tarjetaRepository.save(tarjeta);
-            logger.info("Tarjeta ID {} registrada exitosamente en espacio ID {}.", tarjetaGuardada.getId(), espacio.getId());
-            
-            return tarjetaMapper.toResponse(tarjetaGuardada);
-
-        } catch (Exception e) {
-            logger.error("Error inesperado al registrar una tarjeta en espacio ID {}: {}", tarjetaDTO.espacioTrabajoId(), e.getMessage(), e);
-            throw e;
-        }
+        Tarjeta tarjetaGuardada = tarjetaRepository.save(tarjeta);
+        logger.info("Tarjeta ID {} registrada exitosamente en espacio ID {}.", tarjetaGuardada.getId(), espacio.getId());
+        
+        return tarjetaMapper.toResponse(tarjetaGuardada);
     }
 
     /**
@@ -202,33 +190,27 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         }
         logger.info("Iniciando remoción de compra crédito ID {}", id);
 
-        try {
-            if (!compraCreditoRepository.existsById(id)) {
-                String msg = "Compra crédito con ID " + id + " no encontrada";
-                logger.warn(msg);
-                throw new EntityNotFoundException(msg);
-            }
-
-            // Verificar si alguna cuota ya fue pagada
-            List<CuotaCredito> cuotasPagadas = cuotaCreditoRepository.findByCompraCredito_IdAndPagada(id, true);
-            if (!cuotasPagadas.isEmpty()) {
-                String msg = "No se puede eliminar la compra crédito ID " + id + " porque tiene cuotas pagadas";
-                logger.warn(msg);
-                throw new IllegalStateException(msg);
-            }
-
-            // Eliminar todas las cuotas asociadas
-            cuotaCreditoRepository.deleteByCompraCredito_Id(id);
-            logger.info("Cuotas de la compra crédito ID {} eliminadas", id);
-
-            // Eliminar la compra crédito
-            compraCreditoRepository.deleteById(id);
-            logger.info("Compra crédito ID {} eliminada exitosamente", id);
-
-        } catch (Exception e) {
-            logger.error("Error inesperado al remover compra crédito ID {}: {}", id, e.getMessage(), e);
-            throw e;
+        if (!compraCreditoRepository.existsById(id)) {
+            String msg = "Compra crédito con ID " + id + " no encontrada";
+            logger.warn(msg);
+            throw new EntityNotFoundException(msg);
         }
+
+        // Verificar si alguna cuota ya fue pagada
+        List<CuotaCredito> cuotasPagadas = cuotaCreditoRepository.findByCompraCredito_IdAndPagada(id, true);
+        if (!cuotasPagadas.isEmpty()) {
+            String msg = "No se puede eliminar la compra crédito ID " + id + " porque tiene cuotas pagadas";
+            logger.warn(msg);
+            throw new IllegalStateException(msg);
+        }
+
+        // Eliminar todas las cuotas asociadas
+        cuotaCreditoRepository.deleteByCompraCredito_Id(id);
+        logger.info("Cuotas de la compra crédito ID {} eliminadas", id);
+
+        // Eliminar la compra crédito
+        compraCreditoRepository.deleteById(id);
+        logger.info("Compra crédito ID {} eliminada exitosamente", id);
     }
 
     /**
@@ -248,23 +230,16 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         }
         logger.info("Listando compras crédito con cuotas pendientes en espacio ID {}", idEspacioTrabajo);
 
-        try {
-            List<CompraCredito> comprasCredito = compraCreditoRepository.findByEspacioTrabajo_IdAndCuotasPendientes(idEspacioTrabajo);
-            
-            List<CompraCreditoDTOResponse> comprasConCuotasPendientes = comprasCredito.stream()
-                .map(compraCreditoMapper::toResponse)
-                .collect(Collectors.toList());
+        List<CompraCredito> comprasCredito = compraCreditoRepository.findByEspacioTrabajo_IdAndCuotasPendientes(idEspacioTrabajo);
+        
+        List<CompraCreditoDTOResponse> comprasConCuotasPendientes = comprasCredito.stream()
+            .map(compraCreditoMapper::toResponse)
+            .collect(Collectors.toList());
 
-            logger.info("Se encontraron {} compras crédito con cuotas pendientes en espacio ID {}", 
-                comprasConCuotasPendientes.size(), idEspacioTrabajo);
-            
-            return comprasConCuotasPendientes;
-
-        } catch (Exception e) {
-            logger.error("Error inesperado al listar compras crédito con cuotas pendientes en espacio ID {}: {}", 
-                idEspacioTrabajo, e.getMessage(), e);
-            throw e;
-        }
+        logger.info("Se encontraron {} compras crédito con cuotas pendientes en espacio ID {}", 
+            comprasConCuotasPendientes.size(), idEspacioTrabajo);
+        
+        return comprasConCuotasPendientes;
     }
 
     /**
@@ -284,23 +259,16 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         }
         logger.info("Buscando compras crédito en espacio ID {}", idEspacioTrabajo);
 
-        try {
-            List<CompraCredito> comprasCredito = compraCreditoRepository.findByEspacioTrabajo_Id(idEspacioTrabajo);
-            
-            List<CompraCreditoDTOResponse> comprasCreditoResponse = comprasCredito.stream()
-                .map(compraCreditoMapper::toResponse)
-                .collect(Collectors.toList());
+        List<CompraCredito> comprasCredito = compraCreditoRepository.findByEspacioTrabajo_Id(idEspacioTrabajo);
+        
+        List<CompraCreditoDTOResponse> comprasCreditoResponse = comprasCredito.stream()
+            .map(compraCreditoMapper::toResponse)
+            .collect(Collectors.toList());
 
-            logger.info("Se encontraron {} compras crédito en espacio ID {}", 
-                comprasCreditoResponse.size(), idEspacioTrabajo);
-            
-            return comprasCreditoResponse;
-
-        } catch (Exception e) {
-            logger.error("Error inesperado al buscar compras crédito en espacio ID {}: {}", 
-                idEspacioTrabajo, e.getMessage(), e);
-            throw e;
-        }
+        logger.info("Se encontraron {} compras crédito en espacio ID {}", 
+            comprasCreditoResponse.size(), idEspacioTrabajo);
+        
+        return comprasCreditoResponse;
     }
 
     /**
@@ -321,27 +289,21 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         }
         logger.info("Iniciando remoción de tarjeta ID {}", id);
 
-        try {
-            if (!tarjetaRepository.existsById(id)) {
-                String msg = "Tarjeta con ID " + id + " no encontrada";
-                logger.warn(msg);
-                throw new EntityNotFoundException(msg);
-            }
-
-            // Verificar si la tarjeta tiene compras asociadas
-            if (tieneComprasAsociadas(id)) {
-                String msg = "No se puede eliminar la tarjeta ID " + id + " porque tiene compras a crédito asociadas";
-                logger.warn(msg);
-                throw new IllegalStateException(msg);
-            }
-
-            tarjetaRepository.deleteById(id);
-            logger.info("Tarjeta ID {} eliminada exitosamente", id);
-
-        } catch (Exception e) {
-            logger.error("Error inesperado al remover tarjeta ID {}: {}", id, e.getMessage(), e);
-            throw e;
+        if (!tarjetaRepository.existsById(id)) {
+            String msg = "Tarjeta con ID " + id + " no encontrada";
+            logger.warn(msg);
+            throw new EntityNotFoundException(msg);
         }
+
+        // Verificar si la tarjeta tiene compras asociadas
+        if (tieneComprasAsociadas(id)) {
+            String msg = "No se puede eliminar la tarjeta ID " + id + " porque tiene compras a crédito asociadas";
+            logger.warn(msg);
+            throw new IllegalStateException(msg);
+        }
+
+        tarjetaRepository.deleteById(id);
+        logger.info("Tarjeta ID {} eliminada exitosamente", id);
     }
 
     /**
@@ -361,22 +323,15 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         }
         logger.info("Listando tarjetas en espacio ID {}", idEspacioTrabajo);
 
-        try {
-            List<Tarjeta> tarjetas = tarjetaRepository.findByEspacioTrabajo_Id(idEspacioTrabajo);
-            
-            List<TarjetaDTOResponse> tarjetasResponse = tarjetas.stream()
-                .map(tarjetaMapper::toResponse)
-                .collect(Collectors.toList());
+        List<Tarjeta> tarjetas = tarjetaRepository.findByEspacioTrabajo_Id(idEspacioTrabajo);
+        
+        List<TarjetaDTOResponse> tarjetasResponse = tarjetas.stream()
+            .map(tarjetaMapper::toResponse)
+            .collect(Collectors.toList());
 
-            logger.info("Se encontraron {} tarjetas en espacio ID {}", tarjetasResponse.size(), idEspacioTrabajo);
-            
-            return tarjetasResponse;
-
-        } catch (Exception e) {
-            logger.error("Error inesperado al listar tarjetas en espacio ID {}: {}", 
-                idEspacioTrabajo, e.getMessage(), e);
-            throw e;
-        }
+        logger.info("Se encontraron {} tarjetas en espacio ID {}", tarjetasResponse.size(), idEspacioTrabajo);
+        
+        return tarjetasResponse;
     }
 
     /**
@@ -404,37 +359,30 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         
         logger.info("Listando cuotas para tarjeta ID {} en fecha {}", idTarjeta, fechaActual);
 
-        try {
-            Tarjeta tarjeta = tarjetaRepository.findById(idTarjeta).orElseThrow(() -> {
-                String msg = "Tarjeta con ID " + idTarjeta + " no encontrada";
-                logger.warn(msg);
-                return new EntityNotFoundException(msg);
-            });
+        Tarjeta tarjeta = tarjetaRepository.findById(idTarjeta).orElseThrow(() -> {
+            String msg = "Tarjeta con ID " + idTarjeta + " no encontrada";
+            logger.warn(msg);
+            return new EntityNotFoundException(msg);
+        });
 
-            // Calcular el rango de fechas del resumen actual
-            LocalDate fechaCierreAnterior = calcularFechaCierreAnterior(fechaActual, tarjeta.getDiaCierre());
-            LocalDate fechaCierreActual = calcularFechaCierreActual(fechaActual, tarjeta.getDiaCierre());
+        // Calcular el rango de fechas del resumen actual
+        LocalDate fechaCierreAnterior = calcularFechaCierreAnterior(fechaActual, tarjeta.getDiaCierre());
+        LocalDate fechaCierreActual = calcularFechaCierreActual(fechaActual, tarjeta.getDiaCierre());
 
-            logger.info("Buscando cuotas entre {} y {} para tarjeta ID {}", 
-                fechaCierreAnterior, fechaCierreActual, idTarjeta);
+        logger.info("Buscando cuotas entre {} y {} para tarjeta ID {}", 
+            fechaCierreAnterior, fechaCierreActual, idTarjeta);
 
-            List<CuotaCredito> cuotas = cuotaCreditoRepository.findByTarjetaAndFechaVencimientoBetween(
-                idTarjeta, fechaCierreAnterior, fechaCierreActual);
-            
-            List<CuotaCreditoDTOResponse> cuotasResponse = cuotas.stream()
-                .map(cuotaCreditoMapper::toResponse)
-                .collect(Collectors.toList());
+        List<CuotaCredito> cuotas = cuotaCreditoRepository.findByTarjetaAndFechaVencimientoBetween(
+            idTarjeta, fechaCierreAnterior, fechaCierreActual);
+        
+        List<CuotaCreditoDTOResponse> cuotasResponse = cuotas.stream()
+            .map(cuotaCreditoMapper::toResponse)
+            .collect(Collectors.toList());
 
-            logger.info("Se encontraron {} cuotas para tarjeta ID {} en el período actual", 
-                cuotasResponse.size(), idTarjeta);
-            
-            return cuotasResponse;
-
-        } catch (Exception e) {
-            logger.error("Error inesperado al listar cuotas para tarjeta ID {}: {}", 
-                idTarjeta, e.getMessage(), e);
-            throw e;
-        }
+        logger.info("Se encontraron {} cuotas para tarjeta ID {} en el período actual", 
+            cuotasResponse.size(), idTarjeta);
+        
+        return cuotasResponse;
     }
 
     /**
@@ -458,125 +406,119 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         logger.info("Procesando pago del resumen ID: {} por un monto de {}", 
             request.idResumen(), request.monto());
         
-        try {
-            // 1. Buscar el resumen y validar su estado
-            Resumen resumen = resumenRepository.findById(request.idResumen())
-                .orElseThrow(() -> new EntityNotFoundException(
-                    "Resumen no encontrado con ID: " + request.idResumen()));
-            
-            // Validar que el resumen esté en estado válido para pago
-            if (resumen.getEstado().equals(EstadoResumen.PAGADO)) {
-                throw new IllegalStateException(
-                    "El resumen ID " + request.idResumen() + " ya está pagado");
-            }
-            
-            if (resumen.getEstado().equals(EstadoResumen.ABIERTO)) {
-                throw new IllegalStateException(
-                    "No se puede pagar un resumen que aún no cerró");
-            }
-            
-            // Validar que el espacio de trabajo coincida
-            if (!resumen.getTarjeta().getEspacioTrabajo().getId().equals(request.idEspacioTrabajo())) {
-                throw new IllegalArgumentException(
-                    "El resumen no pertenece al espacio de trabajo especificado");
-            }
-            
-            if (!request.monto().equals(resumen.getMontoTotal())) {
-                throw new IllegalArgumentException(
-                    "El monto a pagar debe ser igual al total del resumen: $" + resumen.getMontoTotal());
-            }
-            
-            // Validar cuenta bancaria si se especificó
-            if (request.idCuentaBancaria() != null) {
-                CuentaBancaria cuenta = cuentaBancariaRepository.findById(request.idCuentaBancaria())
-                    .orElseThrow(() -> new EntityNotFoundException(
-                        "Cuenta bancaria no encontrada con ID: " + request.idCuentaBancaria()));
-                
-                if (!cuenta.getEspacioTrabajo().getId().equals(request.idEspacioTrabajo())) {
-                    throw new IllegalArgumentException(
-                        "La cuenta bancaria no pertenece al espacio de trabajo especificado");
-                }
-                
-                if (cuenta.getSaldoActual() < request.monto()) {
-                    throw new IllegalStateException(
-                        "Saldo insuficiente en la cuenta. Disponible: $" + cuenta.getSaldoActual());
-                }
-            }
-
-            // 2. Buscar o crear el motivo "Pago de tarjeta" usando Optional.orElseGet()
-            MotivoTransaccion motivo = motivoRepository
-                .findFirstByMotivoAndEspacioTrabajo_Id("Pago de tarjeta", request.idEspacioTrabajo())
-                .orElseGet(() -> {
-                    logger.info("Creando motivo 'Pago de tarjeta' para espacio de trabajo ID: {}", 
-                        request.idEspacioTrabajo());
-                    MotivoTransaccion nuevoMotivo = MotivoTransaccion.builder()
-                        .motivo("Pago de tarjeta")
-                        .espacioTrabajo(resumen.getTarjeta().getEspacioTrabajo())
-                        .build();
-                    return motivoRepository.save(nuevoMotivo);
-                });
-
-            // 3. Registrar la transacción del pago
-            TransaccionDTORequest transaccionDTO = new TransaccionDTORequest(
-                request.fecha(),
-                request.monto(),
-                TipoTransaccion.GASTO,
-                "Pago resumen " + resumen.getMes() + "/" + resumen.getAnio() + 
-                    " - " + resumen.getTarjeta().getNumeroTarjeta(),
-                request.nombreCompletoAuditoria(),
-                request.idEspacioTrabajo(),
-                motivo.getId(),
-                null,
-                request.idCuentaBancaria()
-            );
-            
-            TransaccionDTOResponse transaccionResponse = transaccionService.registrarTransaccion(transaccionDTO);
-            Transaccion transaccion = transaccionRepository.findById(transaccionResponse.id())
-                .orElseThrow(() -> new EntityNotFoundException(
-                    "Transacción no encontrada con ID: " + transaccionResponse.id()));
-            
-            // 4. Actualizar el resumen (asociar transacción y cambiar estado)
-            resumen.asociarTransaccion(transaccion);
-            resumenRepository.save(resumen);
-            
-            logger.info("Resumen ID: {} marcado como PAGADO", request.idResumen());
-            
-            // 5. Obtener y marcar las cuotas como pagadas
-            List<CuotaCredito> cuotasDelResumen = cuotaCreditoRepository
-                .findByResumenAsociado_Id(request.idResumen());
-            
-            if (cuotasDelResumen.isEmpty()) {
-                logger.warn("No se encontraron cuotas asociadas al resumen ID: {}", request.idResumen());
-            }
-            
-            logger.info("Encontradas {} cuotas asociadas al resumen", cuotasDelResumen.size());
-            
-            // 6. Marcar cada cuota como pagada y actualizar la compra correspondiente
-            for (CuotaCredito cuota : cuotasDelResumen) {
-                if (cuota.isPagada()) {
-                    logger.warn("La cuota ID: {} ya estaba marcada como pagada", cuota.getId());
-                    continue;
-                }
-                
-                cuota.pagarCuota();
-                
-                CompraCredito compra = cuota.getCompraCredito();
-                compra.pagarCuota();
-                compraCreditoRepository.save(compra);
-                
-                logger.debug("Cuota {} de CompraCredito {} marcada como pagada", 
-                    cuota.getNumeroCuota(), compra.getId());
-            }
-            
-            cuotaCreditoRepository.saveAll(cuotasDelResumen);
-            
-            logger.info("Pago del resumen ID: {} procesado exitosamente. Total: ${}", 
-                request.idResumen(), resumen.getMontoTotal());
-        } catch (Exception e) {
-            logger.error("Error inesperado al pagar resumen ID: {}: {}", 
-                request.idResumen(), e.getMessage(), e);
-            throw e;
+        // 1. Buscar el resumen y validar su estado
+        Resumen resumen = resumenRepository.findById(request.idResumen())
+            .orElseThrow(() -> new EntityNotFoundException(
+                "Resumen no encontrado con ID: " + request.idResumen()));
+        
+        // Validar que el resumen esté en estado válido para pago
+        if (resumen.getEstado().equals(EstadoResumen.PAGADO)) {
+            throw new IllegalStateException(
+                "El resumen ID " + request.idResumen() + " ya está pagado");
         }
+        
+        if (resumen.getEstado().equals(EstadoResumen.ABIERTO)) {
+            throw new IllegalStateException(
+                "No se puede pagar un resumen que aún no cerró");
+        }
+        
+        // Validar que el espacio de trabajo coincida
+        if (!resumen.getTarjeta().getEspacioTrabajo().getId().equals(request.idEspacioTrabajo())) {
+            throw new IllegalArgumentException(
+                "El resumen no pertenece al espacio de trabajo especificado");
+        }
+        
+        if (!request.monto().equals(resumen.getMontoTotal())) {
+            throw new IllegalArgumentException(
+                "El monto a pagar debe ser igual al total del resumen: $" + resumen.getMontoTotal());
+        }
+        
+        // Validar cuenta bancaria si se especificó
+        if (request.idCuentaBancaria() != null) {
+            CuentaBancaria cuenta = cuentaBancariaRepository.findById(request.idCuentaBancaria())
+                .orElseThrow(() -> new EntityNotFoundException(
+                    "Cuenta bancaria no encontrada con ID: " + request.idCuentaBancaria()));
+            
+            if (!cuenta.getEspacioTrabajo().getId().equals(request.idEspacioTrabajo())) {
+                throw new IllegalArgumentException(
+                    "La cuenta bancaria no pertenece al espacio de trabajo especificado");
+            }
+            
+            if (cuenta.getSaldoActual() < request.monto()) {
+                throw new IllegalStateException(
+                    "Saldo insuficiente en la cuenta. Disponible: $" + cuenta.getSaldoActual());
+            }
+        }
+
+        // 2. Buscar o crear el motivo "Pago de tarjeta" usando Optional.orElseGet()
+        MotivoTransaccion motivo = motivoRepository
+            .findFirstByMotivoAndEspacioTrabajo_Id("Pago de tarjeta", request.idEspacioTrabajo())
+            .orElseGet(() -> {
+                logger.info("Creando motivo 'Pago de tarjeta' para espacio de trabajo ID: {}", 
+                    request.idEspacioTrabajo());
+                MotivoTransaccion nuevoMotivo = MotivoTransaccion.builder()
+                    .motivo("Pago de tarjeta")
+                    .espacioTrabajo(resumen.getTarjeta().getEspacioTrabajo())
+                    .build();
+                return motivoRepository.save(nuevoMotivo);
+            });
+
+        // 3. Registrar la transacción del pago
+        TransaccionDTORequest transaccionDTO = new TransaccionDTORequest(
+            request.fecha(),
+            request.monto(),
+            TipoTransaccion.GASTO,
+            "Pago resumen " + resumen.getMes() + "/" + resumen.getAnio() + 
+                " - " + resumen.getTarjeta().getNumeroTarjeta(),
+            request.nombreCompletoAuditoria(),
+            request.idEspacioTrabajo(),
+            motivo.getId(),
+            null,
+            request.idCuentaBancaria()
+        );
+        
+        TransaccionDTOResponse transaccionResponse = transaccionService.registrarTransaccion(transaccionDTO);
+        Transaccion transaccion = transaccionRepository.findById(transaccionResponse.id())
+            .orElseThrow(() -> new EntityNotFoundException(
+                "Transacción no encontrada con ID: " + transaccionResponse.id()));
+        
+        // 4. Actualizar el resumen (asociar transacción y cambiar estado)
+        resumen.asociarTransaccion(transaccion);
+        resumenRepository.save(resumen);
+        
+        logger.info("Resumen ID: {} marcado como PAGADO", request.idResumen());
+        
+        // 5. Obtener y marcar las cuotas como pagadas
+        List<CuotaCredito> cuotasDelResumen = cuotaCreditoRepository
+            .findByResumenAsociado_Id(request.idResumen());
+        
+        if (cuotasDelResumen.isEmpty()) {
+            logger.warn("No se encontraron cuotas asociadas al resumen ID: {}", request.idResumen());
+        }
+        
+        logger.info("Encontradas {} cuotas asociadas al resumen", cuotasDelResumen.size());
+        
+        // 6. Marcar cada cuota como pagada y actualizar la compra correspondiente
+        for (CuotaCredito cuota : cuotasDelResumen) {
+            if (cuota.isPagada()) {
+                logger.warn("La cuota ID: {} ya estaba marcada como pagada", cuota.getId());
+                continue;
+            }
+            
+            cuota.pagarCuota();
+            
+            CompraCredito compra = cuota.getCompraCredito();
+            compra.pagarCuota();
+            compraCreditoRepository.save(compra);
+            
+            logger.debug("Cuota {} de CompraCredito {} marcada como pagada", 
+                cuota.getNumeroCuota(), compra.getId());
+        }
+        
+        cuotaCreditoRepository.saveAll(cuotasDelResumen);
+        
+        logger.info("Pago del resumen ID: {} procesado exitosamente. Total: ${}", 
+            request.idResumen(), resumen.getMontoTotal());
     }
 
     /**
@@ -596,24 +538,17 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         }
         logger.info("Listando resúmenes pendientes de pago para tarjeta ID: {}", idTarjeta);
         
-        try {
-            // Solo devolver resúmenes con estado CERRADO o PAGADO_PARCIAL (excluir PAGADO y ABIERTO)
-            List<Resumen> resumenes = resumenRepository.findByTarjetaIdAndEstadoIn(
-                idTarjeta, 
-                List.of(EstadoResumen.CERRADO, EstadoResumen.PAGADO_PARCIAL)
-            );
-            
-            logger.info("Se encontraron {} resúmenes pendientes de pago", resumenes.size());
-            
-            return resumenes.stream()
-                .map(this::mapearResumenConCuotas)
-                .collect(Collectors.toList());
-        } catch (Exception e) {
-            logger.error("Error inesperado al listar resúmenes para tarjeta ID {}: {}", 
-                idTarjeta, e.getMessage(), e);
-            throw e;
-        }
+        // Solo devolver resúmenes con estado CERRADO o PAGADO_PARCIAL (excluir PAGADO y ABIERTO)
+        List<Resumen> resumenes = resumenRepository.findByTarjetaIdAndEstadoIn(
+            idTarjeta, 
+            List.of(EstadoResumen.CERRADO, EstadoResumen.PAGADO_PARCIAL)
+        );
         
+        logger.info("Se encontraron {} resúmenes pendientes de pago", resumenes.size());
+        
+        return resumenes.stream()
+            .map(this::mapearResumenConCuotas)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -633,20 +568,13 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         }
         logger.info("Listando resúmenes para espacio de trabajo ID: {}", idEspacioTrabajo);
         
-        try {
-            List<Resumen> resumenes = resumenRepository.findByEspacioTrabajoId(idEspacioTrabajo);
+        List<Resumen> resumenes = resumenRepository.findByEspacioTrabajoId(idEspacioTrabajo);
+    
+        logger.info("Se encontraron {} resúmenes", resumenes.size());
         
-            logger.info("Se encontraron {} resúmenes", resumenes.size());
-            
-            return resumenes.stream()
-                .map(resumenMapper::toResponse)
-                .collect(Collectors.toList());
-        } catch (Exception e) {
-            logger.error("Error inesperado al listar resúmenes para espacio de trabajo ID {}: {}", 
-                idEspacioTrabajo, e.getMessage(), e);
-            throw e;
-        }
-        
+        return resumenes.stream()
+            .map(resumenMapper::toResponse)
+            .collect(Collectors.toList());
     }
 
     /*
