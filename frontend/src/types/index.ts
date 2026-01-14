@@ -108,6 +108,7 @@ export interface CuentaBancariaDTORequest {
   nombre: string
   entidadFinanciera: string
   idEspacioTrabajo: number
+  saldoActual: number
 }
 
 export interface EspacioTrabajoDTORequest {

@@ -31,7 +31,7 @@ public class CuentaBancaria {
     private String entidadFinanciera;
 
     @Column(name = "saldo_actual", nullable = false)
-    private Float saldoActual;// Asignar saldo inicial a 0.0f
+    private Float saldoActual;
     
     @ManyToOne
     @JoinColumn(name = "id_espacio_trabajo", nullable = false)

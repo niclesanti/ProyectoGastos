@@ -71,7 +71,7 @@ public class CuentaBancariaServiceTest {
         espacioTrabajo.setUsuarioAdmin(usuarioAdmin);
         espacioTrabajo.setUsuariosParticipantes(List.of(usuarioAdmin));
 
-        cuentaBancariaDTO = new CuentaBancariaDTORequest("Cuenta de Ahorros", "Banco A", 1L);
+        cuentaBancariaDTO = new CuentaBancariaDTORequest("Cuenta de Ahorros", "Banco A", 1L, 1000f);
 
         cuentaBancaria = new CuentaBancaria();
         cuentaBancaria.setId(1L);
@@ -99,7 +99,7 @@ public class CuentaBancariaServiceTest {
 
     @Test
     void testCrearCuentaBancaria_cuandoIdEspacioTrabajoEsNulo_lanzaEntityNotFound() {
-        CuentaBancariaDTORequest dtoSinEspacio = new CuentaBancariaDTORequest("Nombre", "Entidad", null);
+        CuentaBancariaDTORequest dtoSinEspacio = new CuentaBancariaDTORequest("Nombre", "Entidad", null, 0f);
         assertThrows(EntityNotFoundException.class, () -> {
             cuentaBancariaService.crearCuentaBancaria(dtoSinEspacio);
         });

@@ -111,6 +111,21 @@ const newCuentaSchema = z.object({
     .regex(/^[a-zA-Z0-9,()_\-/\s]*$/, { 
       message: "Solo se permiten letras, números, coma, paréntesis, guiones y barra." 
     }),
+  saldoActual: z.string()
+    .refine((val) => {
+      if (!val || val.trim() === '') return true
+      // Validar que solo contenga números y punto decimal
+      const validFormat = /^\d+(\.\d{1,2})?$/.test(val)
+      if (!validFormat) return false
+      const num = parseFloat(val)
+      return !isNaN(num) && num >= 0
+    }, { message: "El saldo debe ser un número válido (0 o mayor)." })
+    .refine((val) => {
+      if (!val || val.trim() === '') return true
+      const parts = val.split('.')
+      if (parts.length === 1) return parts[0].length <= 11
+      return parts[0].length <= 11 && parts[1].length <= 2
+    }, { message: "Máximo 11 dígitos enteros y 2 decimales." }),
   entidad: z.string().min(1, { message: "Debes seleccionar una entidad financiera." }),
 })
 
@@ -175,6 +190,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
   const [newMotivo, setNewMotivo] = useState('')
   const [newMotivoError, setNewMotivoError] = useState('')
   const [newCuentaNombre, setNewCuentaNombre] = useState('')
+  const [newCuentaSaldo, setNewCuentaSaldo] = useState('')
   const [newCuentaEntidad, setNewCuentaEntidad] = useState('')
   const [newCuentaError, setNewCuentaError] = useState('')
   const [newContacto, setNewContacto] = useState('')
@@ -211,6 +227,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
       setShowNewContacto(false)
       setNewMotivo('')
       setNewCuentaNombre('')
+      setNewCuentaSaldo('')
       setNewCuentaEntidad('')
       setNewContacto('')
       setNewMotivoError('')
@@ -300,7 +317,8 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
     }
 
     const result = newCuentaSchema.safeParse({ 
-      nombre: newCuentaNombre, 
+      nombre: newCuentaNombre,
+      saldoActual: newCuentaSaldo || '0',
       entidad: newCuentaEntidad 
     })
     if (!result.success) {
@@ -308,16 +326,30 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
       return
     }
 
+    const saldoValue = newCuentaSaldo && newCuentaSaldo.trim() !== '' 
+      ? parseFloat(newCuentaSaldo) 
+      : 0
+
+    console.log('Datos de cuenta a enviar:', {
+      nombre: newCuentaNombre,
+      entidadFinanciera: newCuentaEntidad,
+      saldoActual: saldoValue,
+      saldoOriginal: newCuentaSaldo,
+      idEspacioTrabajo: currentWorkspace.id
+    })
+
     try {
       await createCuentaMutation.mutateAsync({
         nombre: newCuentaNombre,
         entidadFinanciera: newCuentaEntidad,
+        saldoActual: saldoValue,
         idEspacioTrabajo: currentWorkspace.id
       })
       
       toast.success('Cuenta guardada correctamente')
       setShowNewCuenta(false)
       setNewCuentaNombre('')
+      setNewCuentaSaldo('')
       setNewCuentaEntidad('')
       setNewCuentaError('')
     } catch (error) {
@@ -365,6 +397,15 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
     const regex = /^\d{0,11}(\.\d{0,2})?$/
     if (regex.test(value) || value === '') {
       form.setValue('monto', value)
+    }
+  }
+
+  // Restringir entrada de saldo de cuenta
+  const handleSaldoCuentaChange = (value: string) => {
+    const regex = /^\d{0,11}(\.\d{0,2})?$/
+    if (regex.test(value) || value === '') {
+      setNewCuentaSaldo(value)
+      setNewCuentaError('')
     }
   }
 
@@ -626,6 +667,19 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                             setNewCuentaError('')
                           }}
                         />
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            $
+                          </span>
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="0.00"
+                            className="h-9 pl-7"
+                            value={newCuentaSaldo}
+                            onChange={(e) => handleSaldoCuentaChange(e.target.value)}
+                          />
+                        </div>
                         <Select value={newCuentaEntidad} onValueChange={(val) => {
                           setNewCuentaEntidad(val)
                           setNewCuentaError('')
@@ -653,6 +707,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                             onClick={() => {
                               setShowNewCuenta(false)
                               setNewCuentaNombre('')
+                              setNewCuentaSaldo('')
                               setNewCuentaEntidad('')
                               setNewCuentaError('')
                             }}

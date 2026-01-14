@@ -131,11 +131,18 @@ export const useCuentasBancarias = (idEspacioTrabajo: number | undefined) => {
 
 export const useCreateCuentaBancaria = () => {
   const queryClient = useQueryClient()
+  const currentWorkspace = useAppStore((state) => state.currentWorkspace)
+  const invalidateDashboardCache = useAppStore((state) => state.invalidateDashboardCache)
 
   return useMutation({
     mutationFn: (cuenta: CuentaBancariaDTORequest) => cuentaBancariaService.crearCuenta(cuenta),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['cuentas', variables.idEspacioTrabajo] })
+      
+      // Invalidar el caché de Zustand para el dashboard
+      if (currentWorkspace?.id) {
+        invalidateDashboardCache(currentWorkspace.id)
+      }
     },
   })
 }

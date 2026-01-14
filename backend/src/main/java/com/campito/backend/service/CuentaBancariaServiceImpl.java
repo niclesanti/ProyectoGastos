@@ -60,7 +60,7 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
             });
 
         CuentaBancaria cuentaBancaria = cuentaBancariaMapper.toEntity(cuentaBancariaDTO);
-        cuentaBancaria.setSaldoActual(0f);
+
         cuentaBancaria.setEspacioTrabajo(espacioTrabajo);
         cuentaBancariaRepository.save(cuentaBancaria);
         logger.info("Cuenta bancaria '{}' creada exitosamente.", cuentaBancaria.getNombre());

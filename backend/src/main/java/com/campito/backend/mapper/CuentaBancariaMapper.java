@@ -29,7 +29,6 @@ public interface CuentaBancariaMapper {
      * @return Entidad CuentaBancaria sin ID (para INSERT)
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "saldoActual", ignore = true)
     @Mapping(target = "espacioTrabajo", ignore = true)
     CuentaBancaria toEntity(CuentaBancariaDTORequest request);
 

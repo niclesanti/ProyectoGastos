@@ -91,6 +91,21 @@ const newCuentaSchema = z.object({
     .regex(/^[a-zA-Z0-9,()_\-/\s]*$/, { 
       message: "Solo se permiten letras, números, comas, paréntesis, guiones y barras." 
     }),
+  saldoActual: z.string()
+    .refine((val) => {
+      if (!val || val.trim() === '') return true
+      // Validar que solo contenga números y punto decimal
+      const validFormat = /^\d+(\.\d{1,2})?$/.test(val)
+      if (!validFormat) return false
+      const num = parseFloat(val)
+      return !isNaN(num) && num >= 0
+    }, { message: "El saldo debe ser un número válido (0 o mayor)." })
+    .refine((val) => {
+      if (!val || val.trim() === '') return true
+      const parts = val.split('.')
+      if (parts.length === 1) return parts[0].length <= 11
+      return parts[0].length <= 11 && parts[1].length <= 2
+    }, { message: "Máximo 11 dígitos enteros y 2 decimales." }),
   entidadFinanciera: z.string().min(1, { message: "Debes seleccionar una entidad financiera." }),
 })
 
@@ -135,7 +150,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
   // Formulario para nueva cuenta
   const newCuentaForm = useForm<z.infer<typeof newCuentaSchema>>({
     resolver: zodResolver(newCuentaSchema),
-    defaultValues: { nombre: '', entidadFinanciera: '' },
+    defaultValues: { nombre: '', saldoActual: '', entidadFinanciera: '' },
   })
 
   // Formulario principal
@@ -182,23 +197,27 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
     }
 
     const data = newCuentaForm.getValues()
+    const saldoValue = data.saldoActual && data.saldoActual.trim() !== '' 
+      ? parseFloat(data.saldoActual) 
+      : 0
+    
+    console.log('Datos de cuenta a enviar:', {
+      nombre: data.nombre,
+      entidadFinanciera: data.entidadFinanciera,
+      saldoActual: saldoValue,
+      saldoOriginal: data.saldoActual,
+      idEspacioTrabajo: currentWorkspace!.id,
+    })
+
     try {
       await createCuentaMutation.mutateAsync({
         nombre: data.nombre,
         entidadFinanciera: data.entidadFinanciera,
+        saldoActual: saldoValue,
         idEspacioTrabajo: currentWorkspace!.id,
       })
       
       toast.success('Cuenta bancaria creada exitosamente')
-      
-      // Esperar un momento para que se actualice el cache
-      setTimeout(() => {
-        // Seleccionar la última cuenta (la recién creada)
-        if (cuentas.length > 0) {
-          const ultimaCuenta = cuentas[cuentas.length - 1]
-          form.setValue('cuenta', ultimaCuenta.id.toString())
-        }
-      }, 100)
       
       setShowNewCuenta(false)
       newCuentaForm.reset()
@@ -298,6 +317,14 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
     const filtered = value.replace(/[^a-zA-Z0-9,()_\-/\s]/g, '')
     if (filtered.length <= 50) {
       newCuentaForm.setValue('nombre', filtered)
+    }
+  }
+
+  // Restringir entrada de saldo de cuenta
+  const handleSaldoCuentaChange = (value: string) => {
+    const regex = /^\d{0,11}(\.\d{0,2})?$/
+    if (regex.test(value) || value === '') {
+      newCuentaForm.setValue('saldoActual', value)
     }
   }
 
@@ -445,6 +472,30 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
                                     className="h-9"
                                     onChange={(e) => handleCuentaNombreChange(e.target.value)}
                                   />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={newCuentaForm.control}
+                            name="saldoActual"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                      $
+                                    </span>
+                                    <Input
+                                      {...field}
+                                      type="text"
+                                      inputMode="decimal"
+                                      placeholder="0.00"
+                                      className="h-9 pl-7"
+                                      onChange={(e) => handleSaldoCuentaChange(e.target.value)}
+                                    />
+                                  </div>
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
