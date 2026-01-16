@@ -1,201 +1,352 @@
-# 📈💰 Sistema de Gestión de Finanzas Personales
+<div align="center">
 
-## 📖 Descripción General
-Esta aplicación web desarrollada con **Spring Boot** y **Java** fue pensada para gestionar mis ingresos/gastos de dinero personales, como también gestionar, de manera simple y eficiente, las finanzas de mi grupo familiar que son productores ganaderos a pequeña escala.
-El sistema centraliza información sobre **transacciones, presupuestos, espacios de trabajo y control de gastos/ingresos**, ofreciendo a los usuarios un **dashboard interactivo** para el análisis de datos.
+# 💰 Sistema de Gestión de Finanzas Personales
 
-Este proyecto fue diseñado con un enfoque en **buenas prácticas de ingeniería de software** y aplicando todos los conceptos, conocimientos y técnicas aprendidos durante el curso de la carrera de Ingeniería en Sistemas de Información.
+### Plataforma Full-Stack moderna para gestión financiera familiar y personal
 
----
+[![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat&logo=openjdk&logoColor=white)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5.3-6DB33F?style=flat&logo=spring-boot)](https://spring.io/projects/spring-boot)
+[![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3.3-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 
-## 🎯 Objetivos del Sistema
-- Poder crear diferentes **espacios de trabajo** y compartirlos con otros usuarios.
-- Facilitar la **gestión de ingresos y gastos** por espacio de trabajo.
-- Permitir la **autenticación segura** mediante Google OAuth 2.0.
-- Proveer un **panel de control (dashboard)** con visualizaciones claras sobre:
-  - Comparativa mensual de ingresos vs gastos.
-  - Distribución porcentual de gastos por motivo.
-  - Tendencia del saldo acumulado.
-- Asegurar **portabilidad** para entornos de desarrollo y producción.
+[Características](#-características-principales) • [Tecnologías](#-stack-tecnológico) • [Arquitectura](#-arquitectura) • [Instalación](#-inicio-rápido) • [Documentación](#-documentación) • [Contribuir](CONTRIBUTING.md)
+
+</div>
 
 ---
 
-## 🛠️ Tecnologías Utilizadas
+## 📖 Descripción
 
-![Java](https://img.shields.io/badge/Java-007396?style=for-the-badge&logo=java&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
-![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)
-![Maven](https://img.shields.io/badge/Maven-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)
-![JUnit](https://img.shields.io/badge/JUnit-25A162?style=for-the-badge&logo=junit5&logoColor=white)
-![Google Cloud](https://img.shields.io/badge/Google_Cloud-4285F4?style=for-the-badge&logo=google-cloud&logoColor=white)
-![Google OAuth 2.0](https://img.shields.io/badge/Google_OAuth-4285F4?style=for-the-badge&logo=google&logoColor=white)
-![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
-![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
-![Chart.js](https://img.shields.io/badge/Chart.js-FF6384?style=for-the-badge&logo=chartdotjs&logoColor=white)
-![PgAdmin](https://img.shields.io/badge/PgAdmin-336791?style=for-the-badge&logo=postgresql&logoColor=white)
-![H2 Database](https://img.shields.io/badge/H2_Database-007396?style=for-the-badge&logo=databricks&logoColor=white)
-![Mockito](https://img.shields.io/badge/Mockito-FFCA28?style=for-the-badge&logo=java&logoColor=black)
+Sistema Full-Stack profesional para la gestión integral de finanzas personales y familiares. Ofrece control completo sobre el registro de transacciones, cuentas bancarias, tarjetas de crédito, compras en cuotas y análisis financiero mediante dashboards interactivos. Desarrollado con tecnologías modernas y siguiendo las mejores prácticas de la industria.
+
+### ✨ ¿Por qué este proyecto?
+
+- 🎯 **Solución Real**: Creado para resolver necesidades financieras reales de gestión familiar
+- 🏗️ **Arquitectura Profesional**: Separación frontend/backend con arquitectura en capas
+- 🔐 **Seguridad OAuth2**: Autenticación moderna con proveedores externos
+- 📊 **Dashboard Interactivo**: Visualizaciones y análisis financiero en tiempo real
+- 👥 **Multi-Tenant**: Espacios de trabajo colaborativos para gestión grupal
+- 🚀 **Producción Ready**: Dockerizado y desplegable en cloud con un comando
+
+---
+
+## 🌟 Características Principales
+
+### 💳 Gestión Financiera Completa
+- **Transacciones**: Registro detallado de ingresos y gastos con categorización
+- **Cuentas Bancarias**: Gestión de múltiples cuentas con actualización de saldos
+- **Tarjetas de Crédito**: Control de tarjetas con ciclos de facturación configurables
+- **Compras en Cuotas**: Seguimiento automático de cuotas y generación de resúmenes mensuales
+
+### 📊 Dashboard y Analytics
+- **KPIs en Tiempo Real**: Balance total, gastos mensuales, deuda pendiente
+- **Visualizaciones Interactivas**: 
+  - Flujo de caja mensual (ingresos vs gastos)
+  - Distribución de gastos por categoría
+  - Tendencias y evolución temporal
+
+### 👥 Colaboración y Multi-Tenant
+- **Espacios de Trabajo**: Crear y compartir espacios entre usuarios
+- **Roles y Permisos**: Sistema de administrador/participante
+- **Gestión Familiar**: Ideal para finanzas compartidas
+
+### ⚡ Automatización
+- **Cierre Automático**: Resúmenes de tarjetas procesados automáticamente
+- **Cálculo Incremental**: Actualización eficiente de estadísticas
+- **Tareas Programadas**: Schedulers para operaciones periódicas
+
+---
+
+## 🛠 Stack Tecnológico
+
+<table>
+<tr>
+<td width="50%" valign="top">
 
 ### Backend
-- **Java 21**
-- **Spring Framework** - **Spring Boot**
-- **Spring Data JPA** + **Hibernate**
-- **PostgreSQL 14** como base de datos relacional.
-- **Maven** para gestión de dependencias.
-- **JUnit 5** + **Mockito** para pruebas unitarias.
-- **Docker** para despliegue y contenedorización.
-- **Google OAuth 2.0** para autenticación.
 
-### Frontend (integrado en el backend)
-- **HTML5**, **CSS3**, **JavaScript**
-- **Chart.js** (librería utilizada para gráficos)
-- Integrado en **templates de Spring Boot**.
+**Core**
+- ☕ Java 21 (LTS)
+- 🍃 Spring Boot 3.5.3
+- 🗃️ Spring Data JPA + Hibernate
+- 🐘 PostgreSQL 14
 
-### Infraestructura y despliegue
-- **Google Cloud Run** (producción)
-- **Docker Compose** (desarrollo)
-- **Neon.tech** / **PostgreSQL en la nube** (Base de datos en producción)
-- **PgAdmin** para administración de base de datos.
+**Seguridad y Autenticación**
+- 🔐 Spring Security + OAuth2
+- 🔑 Google OAuth 2.0
+
+**Herramientas**
+- 🗺️ MapStruct 1.5.5 (Mapeo DTO/Entidad)
+- 🔨 Lombok (Reducción boilerplate)
+- 📚 SpringDoc OpenAPI (Swagger)
+- 🔄 Flyway (Migraciones BD)
+
+**Testing**
+- ✅ JUnit 5
+- 🧪 Mockito
+- 💾 H2 (BD en memoria)
+
+</td>
+<td width="50%" valign="top">
+
+### Frontend
+
+**Core**
+- ⚛️ React 18.3.1
+- 📘 TypeScript 5.3.3
+- ⚡ Vite 5.0.11
+
+**UI/UX**
+- 🎨 Tailwind CSS 3.4.0
+- 🧩 shadcn/ui (Radix UI)
+- 🎭 32+ componentes accesibles
+- 📱 PWA (Progressive Web App)
+
+**Estado y Datos**
+- 🐻 Zustand 4.4.7
+- 🔄 React Query
+- 📝 React Hook Form + Zod
+
+**Visualización**
+- 📊 Recharts 2.15.4
+- 📈 Gráficos interactivos
+
+</td>
+</tr>
+</table>
+
+### Infraestructura
+
+- 🐳 **Docker & Docker Compose**: Contenerización completa
+- ☁️ **Google Cloud Run**: Despliegue en producción
+- 🗄️ **Neon.tech**: PostgreSQL managed en cloud
+- 🛠️ **Maven**: Gestión de dependencias backend
+- 📦 **npm**: Gestión de dependencias frontend
 
 ---
 
-## 🗂️ Arquitectura del Proyecto
-Se pensó en una arquitectura simple por el hecho de sería un sistema pequeño de baja concurrencia.
-El proyecto sigue una **arquitectura en capas** con separación de responsabilidades clara:
+## 🏗 Arquitectura
 
-- **Model:** Clases de negocio y entidades JPA.
-- **Repository:** Interfaces que extienden `JpaRepository` para acceso a datos.
-- **Service:** Contiene la lógica de negocio e interacción con repositorios.
-- **Controller:** Define los endpoints REST y gestiona las solicitudes HTTP.
-- **Frontend:** Archivos HTML, CSS y JS dentro de `src/main/resources/static`.
+### Arquitectura General
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       FRONTEND (SPA)                        │
+│  React + TypeScript + Vite + Tailwind CSS + shadcn/ui      │
+│  - Componentes reutilizables y accesibles                   │
+│  - Estado global con Zustand + caché inteligente           │
+│  - Responsive design (móvil-first)                          │
+└────────────────────────┬────────────────────────────────────┘
+                         │ REST API (JSON)
+                         │ OAuth2 Authentication
+┌────────────────────────▼────────────────────────────────────┐
+│                    BACKEND (Spring Boot)                    │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │          Controllers (REST Endpoints)                │  │
+│  └──────────────────────┬───────────────────────────────┘  │
+│  ┌──────────────────────▼───────────────────────────────┐  │
+│  │          Services (Lógica de Negocio)               │  │
+│  └──────────────────────┬───────────────────────────────┘  │
+│  ┌──────────────────────▼───────────────────────────────┐  │
+│  │          Repositories (Acceso a Datos)              │  │
+│  └──────────────────────┬───────────────────────────────┘  │
+└─────────────────────────┼───────────────────────────────────┘
+                          │ JPA/Hibernate
+┌─────────────────────────▼───────────────────────────────────┐
+│                  PostgreSQL Database                        │
+│  - Migraciones con Flyway                                   │
+│  - Índices optimizados                                      │
+│  - Auditoría completa                                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Estructura del Proyecto
+
+```
+ProyectoGastos/
+├── backend/                    # API REST Spring Boot
+│   ├── src/main/java/
+│   │   └── com/campito/backend/
+│   │       ├── config/        # Configuración (Security, CORS)
+│   │       ├── controller/    # REST Controllers
+│   │       ├── service/       # Lógica de negocio
+│   │       ├── dao/           # Repositories JPA
+│   │       ├── model/         # Entidades JPA
+│   │       ├── dto/           # Data Transfer Objects
+│   │       ├── mapper/        # MapStruct mappers
+│   │       └── exception/     # Manejo de errores
+│   ├── src/main/resources/
+│   │   └── db/migration/      # Scripts Flyway
+│   └── pom.xml
+│
+├── frontend/                   # SPA React + TypeScript
+│   ├── src/
+│   │   ├── components/        # Componentes reutilizables
+│   │   │   └── ui/           # shadcn/ui components
+│   │   ├── pages/            # Páginas principales
+│   │   ├── features/         # Lógica por módulo
+│   │   ├── services/         # Servicios API
+│   │   ├── store/            # Estado Zustand
+│   │   ├── hooks/            # Custom hooks
+│   │   └── lib/              # Utilidades
+│   ├── public/               # Assets estáticos + PWA
+│   └── package.json
+│
+├── docs/                       # Documentación
+│   ├── DiagramaDeClasesUML.puml
+│   ├── HistoriasDeUsuario.md
+│   └── GuiaDocker.md
+│
+├── docker-compose.yml          # Orquestación Docker
+├── docker-compose.override.yml # Configuración desarrollo
+├── docker-compose.prod.yml     # Configuración producción
+└── .env                        # Variables de entorno
+```
 
 ---
 
-## 📊 Funcionalidades Principales
+## 🚀 Inicio Rápido
 
-1. **Gestión de Usuarios**
-   - Registro e inicio de sesión mediante Google OAuth 2.0.
+### Prerrequisitos
 
-2. **Gestión de Espacios de Trabajo**
-   - Creación de diferentes espacios de trabajo (cada uno es independiente del otro).
-   - Compartir espacios de trabajo entre usuarios registrados en el sistema para colaborar.
+- Docker y Docker Compose instalados
+- Git
+- (Opcional) Java 21 y Node.js 18+ para desarrollo local sin Docker
 
-3. **Movimientos de dinero**
-   - Registro de ingresos y gastos de dinero en diferentes espacios de trabajo.
-   - A cada movimiento de dinero se le asigna una fecha, motivo, monto, emisor/destinatario, cuenta bancaria, etc.
+### Instalación
 
-5. **Dashboard**
-   - Ingresos vs gastos mensuales.
-   - Distribución porcentual de gastos por motivo.
-   - Evolución del saldo acumulado.
-
----
-
-## 🚀 Despliegue
-
-### Desarrollo local
-Requiere tener instalado:
-- **Docker** y **Docker Compose**
-- **Java 21**
-
-Pasos:
 ```bash
-# Clonar el repositorio
-git clone git@github.com:niclesanti/ProyectoCampo.git
-cd [repositorio]
+# 1. Clonar el repositorio
+git clone https://github.com/niclesanti/ProyectoCampo.git
+cd ProyectoCampo
 
-# ----
-# Crear un archivo .env con las variables de entorno en la raiz del proyecto
+# 2. Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tus credenciales de Google OAuth2
 
-# Configuración de la base de datos PostgreSQL
+# 3. Levantar todos los servicios
+docker-compose up -d --build
+
+# 4. Acceder a la aplicación
+# Frontend: http://localhost:3100
+# Backend: http://localhost:8080
+# API Docs: http://localhost:8080/swagger-ui/index.html
+# pgAdmin: http://localhost:5050
+```
+
+### Configuración de Variables de Entorno
+
+Crear archivo `.env` en la raíz del proyecto:
+
+```env
+# Configuración de Base de Datos PostgreSQL
 DB_NAME=campito_db
-DB_USER=campito_user
-DB_PASSWORD=campito_pass
-DB_HOST=db
-DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres123
 
 # Configuración de pgAdmin
 PGADMIN_EMAIL=admin@campito.com
 PGADMIN_PASSWORD=admin123
 
-# Configuración de Spring Boot (opcional)
+# Spring Boot
 SPRING_PROFILES_ACTIVE=dev
 
-# Configuración de Google OAuth2
-GOOGLE_CLIENT_ID=[Pegar un id de cliente de google]
-GOOGLE_CLIENT_SECRET=[Pegar un secreto de cliente de google]
-# ----
-
-# Construye la imagen y levantar servicios (app + bdd + pgadmin)
-docker-compose up --build
-
-````
-
-La aplicación estará disponible en:
-[http://localhost:8080](http://localhost:8080)
-
----
-
-### Producción (Google Cloud Run)
-
-La aplicación está desplegada en:
-**\[URL de producción]** *(https://campito-665598202897.us-central1.run.app/)*
-
-Base de datos alojada en: **Neon.tech**.
-
----
-
-## 🧪 Pruebas
-
-El proyecto incluye pruebas unitarias con:
-
-* **JUnit 5** para la lógica de negocio.
-* **Mockito** para simulación de dependencias.
-* **Base de datos H2** en memoria para pruebas de repositorios.
-
-Ejecutar pruebas:
-
-```bash
-.\mvnw test
+# Google OAuth2
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
 ```
+
+Para obtener credenciales de Google OAuth2, sigue la [guía oficial](https://support.google.com/cloud/answer/6158849).
 
 ---
 
 ## 📄 Documentación
-A continuación se listan documentos del proyecto:
 
-*   [Diagrama de Clases UML](./docs/DiagramaDeClasesUML.puml)
-*   [Historias de Usuario](./docs/HistoriasDeUsuario.md)
-*   [Planificación de Pruebas](./docs/PlanificacionPruebas.md)
-*   [Problemas y Soluciones](./docs/ProblemasSoluciones.md)
+### Documentación Técnica Completa
+
+- 📘 **[Backend README](backend/README.md)**: Documentación completa del API REST
+  - Arquitectura y patrones
+  - Endpoints y ejemplos
+  - Modelo de datos
+  - Seguridad y autenticación
+  - Migraciones de base de datos
+
+- 📗 **[Frontend README](frontend/README_FRONTEND.md)**: Documentación completa del frontend
+  - Estructura de componentes
+  - Sistema de diseño (Tailwind + shadcn/ui)
+  - Gestión de estado con Zustand
+  - PWA y responsive design
+  - Optimización y performance
+
+### Otros Documentos
+
+- 📐 [Diagrama de Clases UML](docs/DiagramaDeClasesUML.puml)
+- 📋 [Historias de Usuario](docs/HistoriasDeUsuario.md)
+- 🐛 [Problemas y Soluciones](docs/ProblemasSoluciones.md)
+- 🐳 [Guía Docker](docs/GuiaDocker.md)
 
 ---
 
-## 📈 Mejoras Futuras
+## 🧪 Testing
 
-* Agregar nuevas funcionalidades para gestión de la producción de ganado.
-  * Se podría llevar a una refactorización para dividir la arquitectura monolítica en 3 microservicios:
-    * Gestión de usuarios.
-    * Gestión de finanzas.
-    * Gestión de producción.
-  * Separar el frontend en un proyecto independiente (React o Angular).
-* Autenticación con otros proveedores (Facebook, Microsoft, etc.).
-* Sistema de notificaciones automáticas.
-* Implementación de mensajería asíncrona (RabbitMQ o Kafka).
+### Backend
+```bash
+cd backend
+./mvnw test
+```
 
-Este proyecto se encuentra en un proceso de mejora continua a medida que surgen nuevas necesidades y desafíos.
+---
+
+## 🌐 Despliegue en Producción
+
+El proyecto incluye configuración para despliegue en Google Cloud Run:
+
+```bash
+# Usar configuración de producción
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+```
+
+**Producción actual**: No hay aún
+
+---
+
+## 🤝 Contribuciones
+
+Las contribuciones son bienvenidas. Por favor, lee la [guía de contribución](CONTRIBUTING.md) antes de enviar un Pull Request.
+
+### Proceso de Contribución
+
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
 
 ---
 
 ## 👨‍💻 Autor
 
-* **Nombre:** Nicle Santiago
-* **Email:** niclesantiago@gmail.com
-* 🔗 [LinkedIn](https://www.linkedin.com/in/santiago-nicle/)
-* 🔗 [GitHub](https://github.com/niclesanti)
+**Santiago Nicle**
+
+- 📧 Email: niclesantiago@gmail.com
+- 💼 LinkedIn: [santiago-nicle](https://www.linkedin.com/in/santiago-nicle/)
+- 🐙 GitHub: [@niclesanti](https://github.com/niclesanti)
+
+---
+
+## 🙏 Agradecimientos
+
+Este proyecto fue desarrollado aplicando conocimientos adquiridos durante la formación académica en la carrera de Ingeniería en Sistemas de Información.
+
+---
+
+<div align="center">
+
+**⭐ Si este proyecto te resulta útil, considera darle una estrella en GitHub ⭐**
+
+</div>
 
 
