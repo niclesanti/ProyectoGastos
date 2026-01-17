@@ -270,8 +270,6 @@ backend/
 │   │   │   │   ├── EstadoResumen.java     # Enum
 │   │   │   │   ├── GastosIngresosMensuales.java
 │   │   │   │   ├── MotivoTransaccion.java
-│   │   │   │   ├── Notificacion.java
-│   │   │   │   ├── Presupuesto.java
 │   │   │   │   ├── ProveedorAutenticacion.java # Enum
 │   │   │   │   ├── Resumen.java
 │   │   │   │   ├── Tarjeta.java
@@ -323,14 +321,13 @@ Representa a los usuarios del sistema que se autentican mediante OAuth2.
 - **Relaciones**: 
   - Administra múltiples EspaciosTrabajo
   - Participa en múltiples EspaciosTrabajo
-  - Recibe Notificaciones
 
 #### EspacioTrabajo
 Contexto colaborativo donde se gestionan las finanzas de un grupo.
 - **Atributos**: id, nombre, saldo, usuarioAdmin, usuariosParticipantes
 - **Métodos**: actualizarSaldoNuevaTransaccion(), actualizarSaldoEliminarTransaccion()
 - **Relaciones**: 
-  - Contiene CuentasBancarias, Transacciones, Motivos, Contactos, Presupuestos, Tarjetas, ComprasCredito, GastosIngresosMensuales
+  - Contiene CuentasBancarias, Transacciones, Motivos, Contactos, Tarjetas, ComprasCredito, GastosIngresosMensuales
 
 #### Transaccion
 Registro de movimientos financieros (ingresos/gastos).

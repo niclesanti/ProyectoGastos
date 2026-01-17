@@ -54,14 +54,6 @@ class ContactoTransferencia {
   - nombre: String
 }
 
-class Presupuesto {
-  - id: Long
-  - monto: Float
-  - periodoInicio: LocalDateTime
-  - periodoFin: LocalDateTime
-  - umbralAlerta: Float
-}
-
 class Tarjeta {
   - id: Long
   - numeroTarjeta: String
@@ -90,11 +82,6 @@ class CuotaCredito {
   - montoCuota: Float
   - pagada: boolean
   + pagarCuota(): void
-}
-
-class Notificacion {
-  - id: Long
-  - mensaje: String
 }
 
 class Resumen {
@@ -147,13 +134,11 @@ enum EstadoResumen {
 
 Usuario "1" -- "0..*" EspacioTrabajo : "es admin de"
 Usuario "0..*" -- "0..*" EspacioTrabajo : "participa en"
-Usuario "1" -- "0..*" Notificacion : "recibe"
 
 EspacioTrabajo "1" -- "0..*" CuentaBancaria : "tiene"
 EspacioTrabajo "1" -- "0..*" Transaccion : "registra"
 EspacioTrabajo "1" -- "0..*" MotivoTransaccion : "define"
 EspacioTrabajo "1" -- "0..*" ContactoTransferencia : "registra"
-EspacioTrabajo "1" -- "0..*" Presupuesto : "asigna"
 EspacioTrabajo "1" -- "0..*" Tarjeta : "registra"
 EspacioTrabajo "1" -- "0..*" CompraCredito : "tiene"
 EspacioTrabajo "1" -- "0..*" GastosIngresosMensuales : "posee"
@@ -161,8 +146,6 @@ EspacioTrabajo "1" -- "0..*" GastosIngresosMensuales : "posee"
 Transaccion "0..*" -- "1" MotivoTransaccion : "tiene un"
 Transaccion "0..*" -- "0..1" ContactoTransferencia : "asociada a un"
 Transaccion "0..*" -- "0..1" CuentaBancaria : "afecta a"
-
-Presupuesto "1" -- "0..1" MotivoTransaccion : "relacionado con"
 
 Tarjeta "1" -- "0..*" CompraCredito : "utiliza"
 Tarjeta "1" -- "0..*" Resumen : "genera"
