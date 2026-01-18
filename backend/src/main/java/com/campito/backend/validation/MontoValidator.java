@@ -16,20 +16,23 @@ public class MontoValidator implements ConstraintValidator<ValidMonto, Float> {
             return true; // Usar @NotNull para validar nulidad
         }
 
-        // Convertir a BigDecimal para analizar precisión
-        BigDecimal bd = BigDecimal.valueOf(monto);
-        String stringValue = bd.toPlainString();
+        // Usar BigDecimal para manejar la precisión correctamente
+        BigDecimal bd = new BigDecimal(Float.toString(monto));
         
-        // Separar parte entera y decimal
-        String[] parts = stringValue.split("\\.");
+        // Obtener la parte entera y decimal
+        BigDecimal integerPart = bd.setScale(0, BigDecimal.ROUND_DOWN);
+        int integerDigits = integerPart.abs().toPlainString().replace(".", "").length();
         
         // Validar parte entera (máximo 11 dígitos)
-        if (parts[0].replace("-", "").length() > 11) {
+        if (integerDigits > 11) {
             return false;
         }
         
+        // Obtener escala (dígitos decimales)
+        int decimalDigits = bd.scale();
+        
         // Validar parte decimal (máximo 2 dígitos)
-        if (parts.length > 1 && parts[1].length() > 2) {
+        if (decimalDigits > 2) {
             return false;
         }
         
