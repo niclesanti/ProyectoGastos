@@ -49,6 +49,17 @@ public class ControllerAdvisor {
         return new ResponseEntity<>(exceptionInfo, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(EntidadDuplicadaException.class)
+    public ResponseEntity<ExceptionInfo> handleEntidadDuplicadaException(EntidadDuplicadaException ex, WebRequest request) {
+        ExceptionInfo exceptionInfo = new ExceptionInfo(
+                ex.getMessage(),
+                request.getDescription(false),
+                String.valueOf(System.currentTimeMillis()),
+                HttpStatus.CONFLICT.value()
+        );
+        return new ResponseEntity<>(exceptionInfo, HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ExceptionInfo> handleGeneralException(Exception ex, WebRequest request) {
         logger.error("Error inesperado: {} - Request: {}", ex.getMessage(), request.getDescription(false), ex);

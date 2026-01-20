@@ -39,6 +39,7 @@ import com.campito.backend.model.MotivoTransaccion;
 import com.campito.backend.model.TipoTransaccion;
 import com.campito.backend.model.Transaccion;
 
+import com.campito.backend.exception.EntidadDuplicadaException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
@@ -237,6 +238,17 @@ public class TransaccionServiceImpl implements TransaccionService {
         }
         logger.info("Iniciando registro de contacto '{}' en espacio ID {}", contactoDTO.nombre(), contactoDTO.idEspacioTrabajo());
 
+        // Validar que no exista un contacto con el mismo nombre en el espacio de trabajo
+        Optional<ContactoTransferencia> contactoExistente = contactoRepository
+                .findFirstByNombreAndEspacioTrabajo_Id(contactoDTO.nombre(), contactoDTO.idEspacioTrabajo());
+        
+        if (contactoExistente.isPresent()) {
+            String msg = String.format("Ya existe un contacto con el nombre '%s' en este espacio de trabajo. Por favor, utiliza un nombre diferente.", 
+                    contactoDTO.nombre());
+            logger.warn(msg);
+            throw new EntidadDuplicadaException(msg);
+        }
+
         ContactoTransferencia contacto = contactoTransferenciaMapper.toEntity(contactoDTO);
 
         EspacioTrabajo espacio = espacioRepository.findById(contactoDTO.idEspacioTrabajo()).orElseThrow(() -> {
@@ -268,6 +280,17 @@ public class TransaccionServiceImpl implements TransaccionService {
             throw new IllegalArgumentException("El motivo no puede ser nulo");
         }
         logger.info("Iniciando registro de motivo '{}' en espacio ID {}", motivoDTO.motivo(), motivoDTO.idEspacioTrabajo());
+
+        // Validar que no exista un motivo con el mismo nombre en el espacio de trabajo
+        Optional<MotivoTransaccion> motivoExistente = motivoRepository
+                .findFirstByMotivoAndEspacioTrabajo_Id(motivoDTO.motivo(), motivoDTO.idEspacioTrabajo());
+        
+        if (motivoExistente.isPresent()) {
+            String msg = String.format("Ya existe un motivo con el nombre '%s' en este espacio de trabajo. Por favor, utiliza un nombre diferente.", 
+                    motivoDTO.motivo());
+            logger.warn(msg);
+            throw new EntidadDuplicadaException(msg);
+        }
 
         MotivoTransaccion motivo = motivoTransaccionMapper.toEntity(motivoDTO);
 

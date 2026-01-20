@@ -685,6 +685,8 @@ public class TransaccionServiceTest {
     void registrarContactoTransferencia_cuandoOpcionCorrecta_entoncesRegistroExitoso() {
         ContactoDTORequest dto = new ContactoDTORequest("Nuevo Contacto", 1L);
         when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+        when(contactoRepository.findFirstByNombreAndEspacioTrabajo_Id("Nuevo Contacto", 1L))
+                .thenReturn(Optional.empty());
         when(contactoRepository.save(any(ContactoTransferencia.class))).thenAnswer(invocation -> {
             ContactoTransferencia contacto = invocation.getArgument(0);
             contacto.setId(1L);
@@ -697,6 +699,25 @@ public class TransaccionServiceTest {
         assertEquals(1L, result.id());
         assertEquals("Nuevo Contacto", result.nombre());
         verify(contactoRepository, times(1)).save(any(ContactoTransferencia.class));
+    }
+
+    @Test
+    void registrarContactoTransferencia_cuandoContactoDuplicado_entoncesLanzaExcepcion() {
+        ContactoDTORequest dto = new ContactoDTORequest("Contacto Existente", 1L);
+        ContactoTransferencia contactoExistente = new ContactoTransferencia();
+        contactoExistente.setId(10L);
+        contactoExistente.setNombre("Contacto Existente");
+        
+        when(contactoRepository.findFirstByNombreAndEspacioTrabajo_Id("Contacto Existente", 1L))
+                .thenReturn(Optional.of(contactoExistente));
+
+        com.campito.backend.exception.EntidadDuplicadaException exception = 
+                assertThrows(com.campito.backend.exception.EntidadDuplicadaException.class, () -> {
+            transaccionService.registrarContactoTransferencia(dto);
+        });
+        
+        assertTrue(exception.getMessage().contains("Ya existe un contacto con el nombre 'Contacto Existente'"));
+        verify(contactoRepository, never()).save(any(ContactoTransferencia.class));
     }
 
     // Tests para nuevoMotivoTransaccion
@@ -728,6 +749,8 @@ public class TransaccionServiceTest {
     void nuevoMotivoTransaccion_cuandoOpcionCorrecta_entoncesRegistroExitoso() {
         MotivoDTORequest dto = new MotivoDTORequest("Nuevo Motivo", 1L);
         when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+        when(motivoRepository.findFirstByMotivoAndEspacioTrabajo_Id("Nuevo Motivo", 1L))
+                .thenReturn(Optional.empty());
         when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(invocation -> {
             MotivoTransaccion motivo = invocation.getArgument(0);
             motivo.setId(1L);
@@ -740,6 +763,25 @@ public class TransaccionServiceTest {
         assertEquals(1L, result.id());
         assertEquals("Nuevo Motivo", result.motivo());
         verify(motivoRepository, times(1)).save(any(MotivoTransaccion.class));
+    }
+
+    @Test
+    void nuevoMotivoTransaccion_cuandoMotivoDuplicado_entoncesLanzaExcepcion() {
+        MotivoDTORequest dto = new MotivoDTORequest("Motivo Existente", 1L);
+        MotivoTransaccion motivoExistente = new MotivoTransaccion();
+        motivoExistente.setId(10L);
+        motivoExistente.setMotivo("Motivo Existente");
+        
+        when(motivoRepository.findFirstByMotivoAndEspacioTrabajo_Id("Motivo Existente", 1L))
+                .thenReturn(Optional.of(motivoExistente));
+
+        com.campito.backend.exception.EntidadDuplicadaException exception = 
+                assertThrows(com.campito.backend.exception.EntidadDuplicadaException.class, () -> {
+            transaccionService.nuevoMotivoTransaccion(dto);
+        });
+        
+        assertTrue(exception.getMessage().contains("Ya existe un motivo con el nombre 'Motivo Existente'"));
+        verify(motivoRepository, never()).save(any(MotivoTransaccion.class));
     }
 
     // Tests para listarContactos

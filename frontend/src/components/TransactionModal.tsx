@@ -265,9 +265,9 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
       
       toast.success('Transacción registrada exitosamente')
       onOpenChange(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al registrar transacción:', error)
-      toast.error('Error al registrar la transacción')
+      toast.error(error?.message || 'Error al registrar la transacción')
     }
   }
 
@@ -303,9 +303,9 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
       setShowNewMotivo(false)
       setNewMotivo('')
       setNewMotivoError('')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al guardar motivo:', error)
-      toast.error('Error al guardar el motivo')
+      toast.error(error?.message || 'Error al guardar el motivo')
     }
   }
 
@@ -352,9 +352,9 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
       setNewCuentaSaldo('')
       setNewCuentaEntidad('')
       setNewCuentaError('')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al guardar cuenta:', error)
-      toast.error('Error al guardar la cuenta')
+      toast.error(error?.message || 'Error al guardar la cuenta')
     }
   }
 
@@ -385,9 +385,9 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
       setShowNewContacto(false)
       setNewContacto('')
       setNewContactoError('')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al guardar contacto:', error)
-      toast.error('Error al guardar el contacto')
+      toast.error(error?.message || 'Error al guardar el contacto')
     }
   }
 

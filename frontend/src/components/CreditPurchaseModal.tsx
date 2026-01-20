@@ -192,9 +192,9 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
       form.setValue('motivo', nuevoMotivo.id.toString())
       setShowNewMotivo(false)
       newMotivoForm.reset()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al crear motivo:', error)
-      toast.error('Error al crear el motivo')
+      toast.error(error?.message || 'Error al crear el motivo')
     }
   }
 
@@ -217,9 +217,9 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
       form.setValue('comercio', nuevoComercio.id.toString())
       setShowNewComercio(false)
       newComercioForm.reset()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al crear comercio:', error)
-      toast.error('Error al crear el comercio')
+      toast.error(error?.message || 'Error al crear el comercio')
     }
   }
 
@@ -249,9 +249,9 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
       
       toast.success('Compra con crédito registrada exitosamente')
       onOpenChange(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al registrar compra:', error)
-      toast.error('Error al registrar la compra')
+      toast.error(error?.message || 'Error al registrar la compra')
     }
   }
 
