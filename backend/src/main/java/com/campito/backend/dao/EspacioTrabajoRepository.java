@@ -13,5 +13,8 @@ public interface EspacioTrabajoRepository extends JpaRepository<EspacioTrabajo, 
     
     List<EspacioTrabajo> findByUsuariosParticipantes_Id(Long idUsuario);
     
+    // Método para obtener espacios de trabajo ordenados por última modificación (más recientes primero)
+    List<EspacioTrabajo> findByUsuariosParticipantes_IdOrderByFechaModificacionDesc(Long idUsuario);
+    
     Optional<EspacioTrabajo> findFirstByNombreAndUsuarioAdmin_Id(String nombre, Long idUsuarioAdmin);
 }

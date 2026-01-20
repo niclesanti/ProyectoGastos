@@ -13,5 +13,8 @@ public interface ContactoTransferenciaRepository extends JpaRepository<ContactoT
     
     List<ContactoTransferencia> findByEspacioTrabajo_Id(Long idEspacioTrabajo);
     
+    // Método para obtener contactos ordenados por última modificación (más recientes primero)
+    List<ContactoTransferencia> findByEspacioTrabajo_IdOrderByFechaModificacionDesc(Long idEspacioTrabajo);
+    
     Optional<ContactoTransferencia> findFirstByNombreAndEspacioTrabajo_Id(String nombre, Long idEspacioTrabajo);
 }

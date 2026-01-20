@@ -13,5 +13,8 @@ public interface CuentaBancariaRepository extends JpaRepository<CuentaBancaria, 
     
     List<CuentaBancaria> findByEspacioTrabajo_Id(Long idEspacioTrabajo);
     
+    // Método para obtener cuentas bancarias ordenadas por última modificación (más recientes primero)
+    List<CuentaBancaria> findByEspacioTrabajo_IdOrderByFechaModificacionDesc(Long idEspacioTrabajo);
+    
     Optional<CuentaBancaria> findFirstByNombreAndEspacioTrabajo_Id(String nombre, Long idEspacioTrabajo);
 }

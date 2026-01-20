@@ -142,8 +142,8 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
         }
         logger.info("Intentando listar espacios de trabajo para el usuario ID: {}", idUsuario);
 
-        List<EspacioTrabajo> espacios = espacioRepository.findByUsuariosParticipantes_Id(idUsuario);
-        logger.info("Encontrados {} espacios de trabajo para el usuario ID: {}.", espacios.size(), idUsuario);
+        List<EspacioTrabajo> espacios = espacioRepository.findByUsuariosParticipantes_IdOrderByFechaModificacionDesc(idUsuario);
+        logger.info("Encontrados {} espacios de trabajo para el usuario ID: {} (ordenados por última modificación).", espacios.size(), idUsuario);
         return espacios.stream()
             .map(espacioTrabajoMapper::toResponse)
             .toList();

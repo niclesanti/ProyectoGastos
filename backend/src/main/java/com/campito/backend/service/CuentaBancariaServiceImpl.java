@@ -133,10 +133,10 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
         }
         logger.info("Listando cuentas bancarias para el espacio de trabajo ID: {}", idEspacioTrabajo);
 
-        List<CuentaBancariaDTOResponse> cuentas = cuentaBancariaRepository.findByEspacioTrabajo_Id(idEspacioTrabajo).stream()
+        List<CuentaBancariaDTOResponse> cuentas = cuentaBancariaRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(idEspacioTrabajo).stream()
             .map(cuentaBancariaMapper::toResponse)
             .toList();
-        logger.info("Encontradas {} cuentas bancarias para el espacio de trabajo ID: {}.", cuentas.size(), idEspacioTrabajo);
+        logger.info("Encontradas {} cuentas bancarias para el espacio de trabajo ID: {} (ordenadas por última modificación).", cuentas.size(), idEspacioTrabajo);
         return cuentas;
     }
 

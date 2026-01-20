@@ -1,5 +1,6 @@
 package com.campito.backend.model;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import jakarta.persistence.*;
@@ -7,9 +8,13 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(name = "espacios_trabajo")
+@EntityListeners(AuditingEntityListener.class)
 @Data // Genera equals, hashCode, toString y getters/setters para todos los campos
 @NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)
 @AllArgsConstructor  // Genera constructor con todos los argumentos
@@ -32,6 +37,14 @@ public class EspacioTrabajo {
     @ManyToMany
     @JoinTable(name = "espacios_trabajo_usuarios", joinColumns = @JoinColumn(name = "espacio_trabajo_id"), inverseJoinColumns = @JoinColumn(name = "usuario_id"))
     private List<Usuario> usuariosParticipantes;
+
+    @CreatedDate
+    @Column(name = "fecha_creacion", nullable = false, updatable = false)
+    private LocalDateTime fechaCreacion;
+
+    @LastModifiedDate
+    @Column(name = "fecha_modificacion", nullable = false)
+    private LocalDateTime fechaModificacion;
 
     public void actualizarSaldoNuevaTransaccion(Float monto, TipoTransaccion tipo) {
         if (tipo.equals(TipoTransaccion.INGRESO)) {

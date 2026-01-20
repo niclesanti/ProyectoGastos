@@ -1,6 +1,7 @@
 package com.campito.backend.service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -123,16 +124,32 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
                 logger.warn(msg);
                 return new EntityNotFoundException(msg);
             });
-            compraCredito.setComercio(comercio);
+
+            // Actualizar manualmente fecha_modificacion para que el comercio aparezca primero
+            comercio.setFechaModificacion(LocalDateTime.now());
+            ContactoTransferencia comercioGuardado = contactoRepository.save(comercio);
+            logger.info("Contacto ID {} actualizado tras registro de transaccion", comercioGuardado.getId());
+
+            compraCredito.setComercio(comercioGuardado);
         }
 
         ZoneId buenosAiresZone = ZoneId.of("America/Argentina/Buenos_Aires");
         ZonedDateTime nowInBuenosAires = ZonedDateTime.now(buenosAiresZone);
         compraCredito.setFechaCreacion(nowInBuenosAires.toLocalDateTime());
 
+        // Actualizar manualmente fecha_modificacion para que el motivo aparezca primero
+        motivo.setFechaModificacion(LocalDateTime.now());
+        MotivoTransaccion motivoGuardado = motivoRepository.save(motivo);
+        logger.info("Motivo ID {} actualizado tras registro de transaccion", motivoGuardado.getId());
+
+        // Actualizar manualmente fecha_modificacion para que la tarjeta aparezca primero
+        tarjeta.setFechaModificacion(LocalDateTime.now());
+        Tarjeta tarjetaGuardada = tarjetaRepository.save(tarjeta);
+        logger.info("Tarjeta ID {} actualizado tras registro de transaccion", tarjetaGuardada.getId());
+
         compraCredito.setEspacioTrabajo(espacio);
-        compraCredito.setMotivo(motivo);
-        compraCredito.setTarjeta(tarjeta);
+        compraCredito.setMotivo(motivoGuardado);
+        compraCredito.setTarjeta(tarjetaGuardada);
 
         CompraCredito compraCreditoGuardada = compraCreditoRepository.save(compraCredito);
         crearCuotas(compraCreditoGuardada);

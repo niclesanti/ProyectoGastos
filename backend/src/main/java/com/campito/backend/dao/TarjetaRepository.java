@@ -13,6 +13,9 @@ public interface TarjetaRepository extends JpaRepository<Tarjeta, Long> {
     
     List<Tarjeta> findByEspacioTrabajo_Id(Long idEspacioTrabajo);
     
+    // Método para obtener tarjetas ordenadas por última modificación (más recientes primero)
+    List<Tarjeta> findByEspacioTrabajo_IdOrderByFechaModificacionDesc(Long idEspacioTrabajo);
+    
     Optional<Tarjeta> findFirstByNumeroTarjetaAndEntidadFinancieraAndRedDePagoAndEspacioTrabajo_Id(
         String numeroTarjeta, String entidadFinanciera, String redDePago, Long idEspacioTrabajo);
 }

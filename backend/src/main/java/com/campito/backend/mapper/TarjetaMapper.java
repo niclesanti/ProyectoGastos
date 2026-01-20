@@ -29,6 +29,8 @@ public interface TarjetaMapper {
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "espacioTrabajo", ignore = true)
+    @Mapping(target = "fechaCreacion", ignore = true)
+    @Mapping(target = "fechaModificacion", ignore = true)
     Tarjeta toEntity(TarjetaDTORequest request);
 
     /**

@@ -13,5 +13,8 @@ public interface MotivoTransaccionRepository extends JpaRepository<MotivoTransac
 
     List<MotivoTransaccion> findByEspacioTrabajo_Id(Long idEspacioTrabajo);
     
+    // Método para obtener motivos ordenados por última modificación (más recientes primero)
+    List<MotivoTransaccion> findByEspacioTrabajo_IdOrderByFechaModificacionDesc(Long idEspacioTrabajo);
+    
     Optional<MotivoTransaccion> findFirstByMotivoAndEspacioTrabajo_Id(String motivo, Long idEspacioTrabajo);
 }

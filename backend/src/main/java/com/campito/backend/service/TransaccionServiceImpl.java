@@ -105,7 +105,13 @@ public class TransaccionServiceImpl implements TransaccionService {
                 logger.warn(msg);
                 return new EntityNotFoundException(msg);
             });
-            transaccion.setContacto(contacto);
+
+            // Actualizar manualmente fecha_modificacion para que el contacto aparezca primero
+            contacto.setFechaModificacion(LocalDateTime.now());
+            ContactoTransferencia contactoGuardado = contactoRepository.save(contacto);
+            logger.info("Contacto ID {} actualizado tras registro de transaccion", contactoGuardado.getId());
+
+            transaccion.setContacto(contactoGuardado);
         }
 
         if(transaccionDTO.idCuentaBancaria() != null) {
@@ -120,8 +126,13 @@ public class TransaccionServiceImpl implements TransaccionService {
         espacio.actualizarSaldoNuevaTransaccion(transaccion.getMonto(), transaccion.getTipo());
         espacioRepository.save(espacio);
 
+        // Actualizar manualmente fecha_modificacion para que el motivo aparezca primero
+        motivo.setFechaModificacion(LocalDateTime.now());
+        MotivoTransaccion motivoGuardado = motivoRepository.save(motivo);
+        logger.info("Motivo ID {} actualizado tras registro de transaccion", motivoGuardado.getId());
+
         transaccion.setEspacioTrabajo(espacio);
-        transaccion.setMotivo(motivo);
+        transaccion.setMotivo(motivoGuardado);
 
         Transaccion transaccionGuardada = transaccionRepository.save(transaccion);
         logger.info("Transaccion ID {} registrada exitosamente en espacio ID {}. Nuevo saldo: {}", transaccionGuardada.getId(), espacio.getId(), espacio.getSaldo());
@@ -322,10 +333,10 @@ public class TransaccionServiceImpl implements TransaccionService {
         }
         logger.info("Listando contactos para el espacio de trabajo ID: {}", idEspacioTrabajo);
 
-        List<ContactoDTOResponse> contactos = contactoRepository.findByEspacioTrabajo_Id(idEspacioTrabajo).stream()
+        List<ContactoDTOResponse> contactos = contactoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(idEspacioTrabajo).stream()
                 .map(contactoTransferenciaMapper::toResponse)
                 .toList();
-        logger.info("Se encontraron {} contactos para el espacio ID {}.", contactos.size(), idEspacioTrabajo);
+        logger.info("Se encontraron {} contactos para el espacio ID {} (ordenados por última modificación).", contactos.size(), idEspacioTrabajo);
         return contactos;
     }
 
@@ -345,10 +356,10 @@ public class TransaccionServiceImpl implements TransaccionService {
         }
         logger.info("Listando motivos para el espacio de trabajo ID: {}", idEspacioTrabajo);
 
-        List<MotivoDTOResponse> motivos = motivoRepository.findByEspacioTrabajo_Id(idEspacioTrabajo).stream()
+        List<MotivoDTOResponse> motivos = motivoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(idEspacioTrabajo).stream()
                 .map(motivoTransaccionMapper::toResponse)
                 .toList();
-        logger.info("Se encontraron {} motivos para el espacio ID {}.", motivos.size(), idEspacioTrabajo);
+        logger.info("Se encontraron {} motivos para el espacio ID {} (ordenados por última modificación).", motivos.size(), idEspacioTrabajo);
         return motivos;
     }
 
