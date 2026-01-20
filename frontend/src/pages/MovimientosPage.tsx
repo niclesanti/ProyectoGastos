@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useAppStore } from '@/store/app-store'
 import { useBuscarTransacciones, useMotivosTransaccion, useContactosTransaccion, useRemoverTransaccion } from '@/features/selectors/api/selector-queries'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { TransactionDetailsModal } from '@/components/TransactionDetailsModal'
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
@@ -156,6 +157,7 @@ const anos = [
 
 export function MovimientosPage() {
   const espacioActual = useAppStore((state) => state.currentWorkspace)
+  const queryClient = useQueryClient()
   
   // Defaults dinámicos para mes y año
   const today = new Date()
@@ -330,6 +332,8 @@ export function MovimientosPage() {
         toast.success('Transacción eliminada', {
           description: 'La transacción ha sido eliminada correctamente.',
         })
+        // Invalidar caché de workspaces para actualizar el saldo en la sidebar
+        queryClient.invalidateQueries({ queryKey: ['workspaces'] })
         // Recargar la búsqueda actual
         handleBuscar()
       },

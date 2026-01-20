@@ -7,6 +7,7 @@ import * as z from 'zod'
 import { useAppStore } from '@/store/app-store'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDashboardCache } from '@/hooks'
+import { useQueryClient } from '@tanstack/react-query'
 import { 
   useTarjetas, 
   useCuentasBancarias, 
@@ -129,6 +130,7 @@ interface CardPaymentModalProps {
 export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) {
   const currentWorkspace = useAppStore((state) => state.currentWorkspace)
   const { user } = useAuth()
+  const queryClient = useQueryClient()
   const { refreshDashboard } = useDashboardCache()
   
   // Cargar datos con TanStack Query
@@ -286,6 +288,9 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
       
       // Actualizar el caché del dashboard
       await refreshDashboard()
+      
+      // Invalidar caché de workspaces para actualizar el saldo en la sidebar
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
       
       toast.success(
         `Resumen pagado exitosamente. Total: $${resumenSeleccionado.montoTotal.toFixed(2)}`

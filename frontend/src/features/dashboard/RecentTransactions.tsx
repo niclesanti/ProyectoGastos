@@ -19,6 +19,7 @@ import { format, parseISO } from 'date-fns'
 import { TransactionDetailsModal } from '@/components/TransactionDetailsModal'
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
 import { useRemoverTransaccion } from '@/features/selectors/api/selector-queries'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 const formatFecha = (fechaString: string): string => {
@@ -34,6 +35,7 @@ export function RecentTransactions() {
   const currentWorkspace = useAppStore((state) => state.currentWorkspace)
   const loadRecentTransactions = useAppStore((state) => state.loadRecentTransactions)
   const recentTransactionsCache = useAppStore((state) => state.recentTransactions)
+  const queryClient = useQueryClient()
   
   const [transactions, setTransactions] = useState<TransaccionDTOResponse[]>([])
   const [loading, setLoading] = useState(false)
@@ -63,6 +65,8 @@ export function RecentTransactions() {
         toast.success('Transacción eliminada', {
           description: 'La transacción ha sido eliminada correctamente.',
         })
+        // Invalidar caché de workspaces para actualizar el saldo en la sidebar
+        queryClient.invalidateQueries({ queryKey: ['workspaces'] })
       },
       onError: (error: any) => {
         console.error('Error al eliminar transacción:', error)

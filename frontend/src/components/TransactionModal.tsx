@@ -16,6 +16,7 @@ import {
   useCreateCuentaBancaria
 } from '@/features/selectors/api/selector-queries'
 import { useDashboardCache } from '@/hooks'
+import { useQueryClient } from '@tanstack/react-query'
 import { format as formatDate } from 'date-fns'
 import {
   Dialog,
@@ -169,6 +170,7 @@ interface TransactionModalProps {
 export function TransactionModal({ open, onOpenChange }: TransactionModalProps) {
   const currentWorkspace = useAppStore((state) => state.currentWorkspace)
   const { user } = useAuth()
+  const queryClient = useQueryClient()
   
   // Cargar datos con TanStack Query
   const { data: motivos = [], isLoading: loadingMotivos } = useMotivos(currentWorkspace?.id)
@@ -262,6 +264,9 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
       
       // Actualizar el caché del dashboard
       await refreshDashboard()
+      
+      // Invalidar caché de workspaces para actualizar el saldo en la sidebar
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
       
       toast.success('Transacción registrada exitosamente')
       onOpenChange(false)
