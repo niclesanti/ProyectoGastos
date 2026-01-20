@@ -38,6 +38,17 @@ public class ControllerAdvisor {
         return new ResponseEntity<>(exceptionInfo, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(UsuarioNoEncontradoException.class)
+    public ResponseEntity<ExceptionInfo> handleUsuarioNoEncontradoException(UsuarioNoEncontradoException ex, WebRequest request) {
+        ExceptionInfo exceptionInfo = new ExceptionInfo(
+                ex.getMessage(),
+                request.getDescription(false),
+                String.valueOf(System.currentTimeMillis()),
+                HttpStatus.NOT_FOUND.value()
+        );
+        return new ResponseEntity<>(exceptionInfo, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ExceptionInfo> handleGeneralException(Exception ex, WebRequest request) {
         logger.error("Error inesperado: {} - Request: {}", ex.getMessage(), request.getDescription(false), ex);

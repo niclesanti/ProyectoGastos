@@ -3,6 +3,7 @@ package com.campito.backend.service;
 import com.campito.backend.dao.EspacioTrabajoRepository;
 import com.campito.backend.dao.UsuarioRepository;
 import com.campito.backend.dto.EspacioTrabajoDTORequest;
+import com.campito.backend.exception.UsuarioNoEncontradoException;
 import com.campito.backend.mapper.EspacioTrabajoMapper;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.ProveedorAutenticacion;
@@ -160,10 +161,10 @@ public class EspacioTrabajoServiceTest {
         when(espacioTrabajoRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
         when(usuarioRepository.findByEmail("noexiste@test.com")).thenReturn(Optional.empty());
 
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
+        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class, () -> {
             espacioTrabajoService.compartirEspacioTrabajo("noexiste@test.com", 1L, 1L);
         });
-        assertEquals("Usuario con email noexiste@test.com no encontrado", exception.getMessage());
+        assertEquals("No existe ningún usuario registrado con el correo electrónico 'noexiste@test.com'. Por favor, verifica que el correo sea correcto o invita a esa persona a registrarse primero.", exception.getMessage());
         verify(espacioTrabajoRepository, never()).save(any(EspacioTrabajo.class));
     }
 

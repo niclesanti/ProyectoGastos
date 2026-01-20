@@ -17,6 +17,7 @@ import com.campito.backend.mapper.EspacioTrabajoMapper;
 import com.campito.backend.mapper.UsuarioMapper;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.Usuario;
+import com.campito.backend.exception.UsuarioNoEncontradoException;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -102,9 +103,10 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
         }
 
         Usuario usuario = usuarioRepository.findByEmail(email).orElseThrow(() -> {
-            String mensaje = "Usuario con email " + email + " no encontrado";
-            logger.warn(mensaje);
-            return new EntityNotFoundException(mensaje);
+            String mensajeLog = "Usuario con email " + email + " no encontrado";
+            logger.warn(mensajeLog);
+            String mensajeUsuario = "No existe ningún usuario registrado con el correo electrónico '" + email + "'. Por favor, verifica que el correo sea correcto o invita a esa persona a registrarse primero.";
+            return new UsuarioNoEncontradoException(mensajeUsuario);
         });
 
         espacioTrabajo.getUsuariosParticipantes().add(usuario);
