@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAppStore } from '@/store/app-store'
 import { useTarjetas, useCreateTarjeta } from '@/features/selectors/api/selector-queries'
 import { useForm } from 'react-hook-form'
@@ -69,11 +69,19 @@ const tarjetaFormSchema = z.object({
   diaCierre: z.number()
     .int({ message: 'Debe ser un número entero.' })
     .min(1, { message: 'El día debe ser entre 1 y 29.' })
-    .max(29, { message: 'El día debe ser entre 1 y 29.' }),
+    .max(29, { message: 'El día debe ser entre 1 y 29.' })
+    .optional()
+    .refine((val) => val !== undefined, { 
+      message: 'El día de cierre es obligatorio.' 
+    }),
   diaVencimientoPago: z.number()
     .int({ message: 'Debe ser un número entero.' })
     .min(1, { message: 'El día debe ser entre 1 y 29.' })
-    .max(29, { message: 'El día debe ser entre 1 y 29.' }),
+    .max(29, { message: 'El día debe ser entre 1 y 29.' })
+    .optional()
+    .refine((val) => val !== undefined, { 
+      message: 'El día de vencimiento es obligatorio.' 
+    }),
 })
 
 type TarjetaFormValues = z.infer<typeof tarjetaFormSchema>
@@ -211,19 +219,38 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
 
   const form = useForm<TarjetaFormValues>({
     resolver: zodResolver(tarjetaFormSchema),
+    mode: 'onSubmit',
     defaultValues: {
       numeroTarjeta: '',
       entidadFinanciera: '',
       redDePago: '',
-      diaCierre: 1,
-      diaVencimientoPago: 1,
+      diaCierre: undefined,
+      diaVencimientoPago: undefined,
     },
   })
+
+  // Resetear formulario cuando el modal se abre
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        numeroTarjeta: '',
+        entidadFinanciera: '',
+        redDePago: '',
+        diaCierre: undefined,
+        diaVencimientoPago: undefined,
+      })
+      form.clearErrors()
+    }
+  }, [open, form])
 
   const onSubmit = async (values: TarjetaFormValues) => {
     try {
       await createTarjetaMutation.mutateAsync({
-        ...values,
+        numeroTarjeta: values.numeroTarjeta,
+        entidadFinanciera: values.entidadFinanciera,
+        redDePago: values.redDePago,
+        diaCierre: values.diaCierre!,
+        diaVencimientoPago: values.diaVencimientoPago!,
         espacioTrabajoId,
       })
       
@@ -232,7 +259,6 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
       })
       
       setOpen(false)
-      form.reset()
     } catch (error: any) {
       console.error('Error al registrar tarjeta:', error)
       toast.error('Error al registrar tarjeta', {
@@ -242,12 +268,7 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      setOpen(isOpen)
-      if (!isOpen) {
-        form.reset()
-      }
-    }}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
@@ -361,11 +382,11 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
                         placeholder="15"
                         min="1"
                         max="29"
-                        value={field.value || ''}
+                        value={field.value ?? ''}
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, '')
                           if (val === '') {
-                            field.onChange(1)
+                            field.onChange(undefined)
                           } else {
                             const num = parseInt(val, 10)
                             if (num >= 1 && num <= 29) {
@@ -400,11 +421,11 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
                         placeholder="25"
                         min="1"
                         max="29"
-                        value={field.value || ''}
+                        value={field.value ?? ''}
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, '')
                           if (val === '') {
-                            field.onChange(1)
+                            field.onChange(undefined)
                           } else {
                             const num = parseInt(val, 10)
                             if (num >= 1 && num <= 29) {
@@ -436,17 +457,14 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  setOpen(false)
-                  form.reset()
-                }}
+                onClick={() => setOpen(false)}
                 disabled={form.formState.isSubmitting}
                 className="w-full sm:w-auto"
               >
                 Cancelar
               </Button>
               <Button type="submit" disabled={form.formState.isSubmitting} className="w-full sm:w-auto">
-                {form.formState.isSubmitting ? 'Guardando...' : 'Guardar Tarjeta'}
+                {form.formState.isSubmitting ? 'Guardando...' : 'Guardar tarjeta'}
               </Button>
             </div>
           </form>
