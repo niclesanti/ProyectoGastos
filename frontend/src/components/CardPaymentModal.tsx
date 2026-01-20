@@ -221,9 +221,9 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
       
       setShowNewCuenta(false)
       newCuentaForm.reset()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al crear cuenta:', error)
-      toast.error('Error al crear la cuenta bancaria')
+      toast.error(error?.message || 'Error al crear la cuenta bancaria')
     }
   }
 

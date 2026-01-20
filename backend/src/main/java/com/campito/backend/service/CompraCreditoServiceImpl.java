@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ import com.campito.backend.dto.TarjetaDTORequest;
 import com.campito.backend.dto.TarjetaDTOResponse;
 import com.campito.backend.dto.TransaccionDTORequest;
 import com.campito.backend.dto.TransaccionDTOResponse;
+import com.campito.backend.exception.EntidadDuplicadaException;
 import com.campito.backend.mapper.CompraCreditoMapper;
 import com.campito.backend.mapper.CuotaCreditoMapper;
 import com.campito.backend.mapper.ResumenMapper;
@@ -156,6 +158,23 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
             throw new IllegalArgumentException("La tarjeta no puede ser nula");
         }
         logger.info("Iniciando registro de tarjeta {} en espacio ID {}", tarjetaDTO.numeroTarjeta(), tarjetaDTO.espacioTrabajoId());
+
+        // Validar que no exista una tarjeta con la misma combinación en el espacio de trabajo
+        Optional<Tarjeta> tarjetaExistente = tarjetaRepository
+                .findFirstByNumeroTarjetaAndEntidadFinancieraAndRedDePagoAndEspacioTrabajo_Id(
+                    tarjetaDTO.numeroTarjeta(), 
+                    tarjetaDTO.entidadFinanciera(), 
+                    tarjetaDTO.redDePago(), 
+                    tarjetaDTO.espacioTrabajoId());
+        
+        if (tarjetaExistente.isPresent()) {
+            String msg = String.format("Ya existe una tarjeta %s terminada en %s de %s en este espacio de trabajo. Por favor, verifica los datos.", 
+                    tarjetaDTO.redDePago(), 
+                    tarjetaDTO.numeroTarjeta(), 
+                    tarjetaDTO.entidadFinanciera());
+            logger.warn(msg);
+            throw new EntidadDuplicadaException(msg);
+        }
 
         EspacioTrabajo espacio = espacioRepository.findById(tarjetaDTO.espacioTrabajoId()).orElseThrow(() -> {
             String msg = "Espacio de trabajo con ID " + tarjetaDTO.espacioTrabajoId() + " no encontrado";

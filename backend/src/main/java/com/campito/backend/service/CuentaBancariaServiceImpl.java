@@ -16,6 +16,8 @@ import com.campito.backend.model.CuentaBancaria;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.TipoTransaccion;
 
+import java.util.Optional;
+import com.campito.backend.exception.EntidadDuplicadaException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
@@ -51,7 +53,16 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
             throw new IllegalArgumentException("La cuenta bancaria no puede ser nula");
         }
         logger.info("Creando cuenta bancaria '{}' para entidad '{}'", cuentaBancariaDTO.nombre(), cuentaBancariaDTO.entidadFinanciera());
-
+        // Validar que no exista una cuenta con el mismo nombre en el espacio de trabajo
+        Optional<CuentaBancaria> cuentaExistente = cuentaBancariaRepository
+                .findFirstByNombreAndEspacioTrabajo_Id(cuentaBancariaDTO.nombre(), cuentaBancariaDTO.idEspacioTrabajo());
+        
+        if (cuentaExistente.isPresent()) {
+            String msg = String.format("Ya existe una cuenta bancaria con el nombre '%s' en este espacio de trabajo. Por favor, utiliza un nombre diferente.", 
+                    cuentaBancariaDTO.nombre());
+            logger.warn(msg);
+            throw new EntidadDuplicadaException(msg);
+        }
         EspacioTrabajo espacioTrabajo = espacioTrabajoRepository.findById(cuentaBancariaDTO.idEspacioTrabajo())
             .orElseThrow(() -> {
                 String mensaje = "Espacio de trabajo con ID " + cuentaBancariaDTO.idEspacioTrabajo() + " no encontrado";

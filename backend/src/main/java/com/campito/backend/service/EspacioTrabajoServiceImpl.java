@@ -18,7 +18,9 @@ import com.campito.backend.mapper.UsuarioMapper;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.Usuario;
 import com.campito.backend.exception.UsuarioNoEncontradoException;
+import com.campito.backend.exception.EntidadDuplicadaException;
 
+import java.util.Optional;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
@@ -56,7 +58,16 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
         }
 
         logger.info("Intentando registrar un nuevo espacio de trabajo con nombre: '{}'", espacioTrabajoDTO.nombre());
-
+        // Validar que no exista un espacio con el mismo nombre para el mismo usuario administrador
+        Optional<EspacioTrabajo> espacioExistente = espacioRepository
+                .findFirstByNombreAndUsuarioAdmin_Id(espacioTrabajoDTO.nombre(), espacioTrabajoDTO.idUsuarioAdmin());
+        
+        if (espacioExistente.isPresent()) {
+            String msg = String.format("Ya existe un espacio de trabajo con el nombre '%s' creado por ti. Por favor, utiliza un nombre diferente.", 
+                    espacioTrabajoDTO.nombre());
+            logger.warn(msg);
+            throw new EntidadDuplicadaException(msg);
+        }
         Usuario usuario = usuarioRepository.findById(espacioTrabajoDTO.idUsuarioAdmin()).orElseThrow(() -> {
             String mensaje = "Usuario con ID " + espacioTrabajoDTO.idUsuarioAdmin() + " no encontrado";
             logger.warn(mensaje);
