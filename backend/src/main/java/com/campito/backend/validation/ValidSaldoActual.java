@@ -9,7 +9,7 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidSaldoActual {
-    String message() default "El saldo actual no puede exceder los 11 dígitos enteros y 2 decimales";
+    String message() default "El saldo actual no puede exceder los 8 dígitos enteros y 2 decimales";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }

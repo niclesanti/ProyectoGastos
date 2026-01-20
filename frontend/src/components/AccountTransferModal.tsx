@@ -46,9 +46,9 @@ const transferFormSchema = z.object({
     }, { message: "El monto debe ser mayor a 0." })
     .refine((val) => {
       const parts = val.split('.')
-      if (parts.length === 1) return parts[0].length <= 11
-      return parts[0].length <= 11 && parts[1].length <= 2
-    }, { message: "Máximo 11 dígitos enteros y 2 decimales." }),
+      if (parts.length === 1) return parts[0].length <= 8
+      return parts[0].length <= 8 && parts[1].length <= 2
+    }, { message: "Máximo 8 dígitos enteros y 2 decimales." }),
 }).refine((data) => data.cuentaOrigen !== data.cuentaDestino, {
   message: "La cuenta de origen y destino no pueden ser iguales.",
   path: ["cuentaDestino"],
@@ -118,7 +118,7 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
 
   // Restringir entrada de monto
   const handleMontoChange = (value: string) => {
-    const regex = /^\d{0,11}(\.\d{0,2})?$/
+    const regex = /^\d{0,8}(\.\d{0,2})?$/
     if (regex.test(value) || value === '') {
       form.setValue('monto', value)
     }

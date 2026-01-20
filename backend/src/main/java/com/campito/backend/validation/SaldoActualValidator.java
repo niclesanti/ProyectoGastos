@@ -28,8 +28,8 @@ public class SaldoActualValidator implements ConstraintValidator<ValidSaldoActua
         BigDecimal integerPart = bd.setScale(0, BigDecimal.ROUND_DOWN);
         int integerDigits = integerPart.abs().toPlainString().replace(".", "").length();
         
-        // Validar parte entera (máximo 11 dígitos)
-        if (integerDigits > 11) {
+        // Validar parte entera (máximo 8 dígitos)
+        if (integerDigits > 9) {
             return false;
         }
         

@@ -17,7 +17,7 @@ public record TransaccionDTORequest(
     @PastOrPresent(message = "La fecha debe ser en el pasado o presente")
     LocalDate fecha,
     @NotNull(message = "El monto no puede ser nulo")
-    @DecimalMin(value = "0.01", message = "El monto debe ser mayor a 0")
+    @DecimalMin(value = "0.009", message = "El monto debe ser mayor a 0")
     @ValidMonto
     Float monto,
     @NotNull(message = "El tipo de transacción no puede ser nulo")

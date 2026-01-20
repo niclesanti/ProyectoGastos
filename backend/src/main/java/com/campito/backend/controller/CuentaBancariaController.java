@@ -79,7 +79,7 @@ public class CuentaBancariaController {
             @PathVariable @NotNull(message = "La cuenta de origen es obligatoria") Long idCuentaOrigen, 
             @PathVariable @NotNull(message = "La cuenta de destino es obligatoria") Long idCuentaDestino, 
             @PathVariable @NotNull(message = "El monto es obligatorio") 
-            @DecimalMin(value = "0.01", message = "El monto debe ser mayor a 0")
+            @DecimalMin(value = "0.009", message = "El monto debe ser mayor a 0")
             @ValidMonto Float monto) {
             
         cuentaBancariaService.transaccionEntreCuentas(idCuentaOrigen, idCuentaDestino, monto);

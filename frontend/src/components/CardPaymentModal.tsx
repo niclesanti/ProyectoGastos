@@ -104,9 +104,9 @@ const newCuentaSchema = z.object({
     .refine((val) => {
       if (!val || val.trim() === '') return true
       const parts = val.split('.')
-      if (parts.length === 1) return parts[0].length <= 11
-      return parts[0].length <= 11 && parts[1].length <= 2
-    }, { message: "Máximo 11 dígitos enteros y 2 decimales." }),
+      if (parts.length === 1) return parts[0].length <= 8
+      return parts[0].length <= 8 && parts[1].length <= 2
+    }, { message: "Máximo 8 dígitos enteros y 2 decimales." }),
   entidadFinanciera: z.string().min(1, { message: "Debes seleccionar una entidad financiera." }),
 })
 
@@ -327,7 +327,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
 
   // Restringir entrada de saldo de cuenta
   const handleSaldoCuentaChange = (value: string) => {
-    const regex = /^\d{0,11}(\.\d{0,2})?$/
+    const regex = /^\d{0,8}(\.\d{0,2})?$/
     if (regex.test(value) || value === '') {
       newCuentaForm.setValue('saldoActual', value)
     }
