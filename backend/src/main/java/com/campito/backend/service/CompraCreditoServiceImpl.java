@@ -33,6 +33,7 @@ import com.campito.backend.dto.TarjetaDTOResponse;
 import com.campito.backend.dto.TransaccionDTORequest;
 import com.campito.backend.dto.TransaccionDTOResponse;
 import com.campito.backend.exception.EntidadDuplicadaException;
+import com.campito.backend.exception.OperacionNoPermitidaException;
 import com.campito.backend.mapper.CompraCreditoMapper;
 import com.campito.backend.mapper.CuotaCreditoMapper;
 import com.campito.backend.mapper.ResumenMapper;
@@ -213,8 +214,9 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      * Solo se permite eliminar si ninguna cuota ha sido pagada.
      * 
      * @param id ID de la compra a crédito a eliminar
+     * @throws IllegalArgumentException si el ID es nulo
      * @throws EntityNotFoundException si la compra no existe
-     * @throws IllegalStateException si alguna cuota ya fue pagada
+     * @throws OperacionNoPermitidaException si alguna cuota ya fue pagada
      */
     @Override
     @Transactional
@@ -235,9 +237,9 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         // Verificar si alguna cuota ya fue pagada
         List<CuotaCredito> cuotasPagadas = cuotaCreditoRepository.findByCompraCredito_IdAndPagada(id, true);
         if (!cuotasPagadas.isEmpty()) {
-            String msg = "No se puede eliminar la compra crédito ID " + id + " porque tiene cuotas pagadas";
+            String msg = String.format("No se puede eliminar esta compra a crédito porque ya tiene %d cuota(s) pagada(s). Solo se pueden eliminar compras sin cuotas pagadas.", cuotasPagadas.size());
             logger.warn(msg);
-            throw new IllegalStateException(msg);
+            throw new OperacionNoPermitidaException(msg);
         }
 
         // Eliminar todas las cuotas asociadas
@@ -309,11 +311,12 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
 
     /**
      * Remueve una tarjeta del sistema.
-     * Solo se permite eliminar si no tiene compras a crédito asociadas.
+     * Solo se permite eliminar si no tiene compras asociadas.
      * 
      * @param id ID de la tarjeta a eliminar
+     * @throws IllegalArgumentException si el ID es nulo
      * @throws EntityNotFoundException si la tarjeta no existe
-     * @throws IllegalStateException si la tarjeta tiene compras asociadas
+     * @throws OperacionNoPermitidaException si la tarjeta tiene compras asociadas
      */
     @Override
     @Transactional
@@ -333,9 +336,9 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
 
         // Verificar si la tarjeta tiene compras asociadas
         if (tieneComprasAsociadas(id)) {
-            String msg = "No se puede eliminar la tarjeta ID " + id + " porque tiene compras a crédito asociadas";
+            String msg = "No se puede eliminar esta tarjeta porque tiene compras a crédito asociadas.";
             logger.warn(msg);
-            throw new IllegalStateException(msg);
+            throw new OperacionNoPermitidaException(msg);
         }
 
         tarjetaRepository.deleteById(id);
@@ -478,11 +481,6 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
             if (!cuenta.getEspacioTrabajo().getId().equals(request.idEspacioTrabajo())) {
                 throw new IllegalArgumentException(
                     "La cuenta bancaria no pertenece al espacio de trabajo especificado");
-            }
-            
-            if (cuenta.getSaldoActual() < request.monto()) {
-                throw new IllegalStateException(
-                    "Saldo insuficiente en la cuenta. Disponible: $" + cuenta.getSaldoActual());
             }
         }
 

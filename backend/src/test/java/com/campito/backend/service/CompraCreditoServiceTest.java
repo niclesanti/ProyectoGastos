@@ -203,7 +203,17 @@ public class CompraCreditoServiceTest {
         MotivoTransaccion motivoConId = new MotivoTransaccion();
         motivoConId.setId(1L);
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoConId));
+        when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> {
+            MotivoTransaccion m = inv.getArgument(0);
+            m.setId(1L);
+            return m;
+        });
         when(tarjetaRepository.findById(10L)).thenReturn(Optional.of(tarjeta));
+        when(tarjetaRepository.save(any(Tarjeta.class))).thenAnswer(inv -> {
+            Tarjeta t = inv.getArgument(0);
+            t.setId(10L);
+            return t;
+        });
         when(compraCreditoRepository.save(any(CompraCredito.class))).thenAnswer(inv -> {
             CompraCredito c = inv.getArgument(0);
             c.setId(123L);
@@ -225,10 +235,25 @@ public class CompraCreditoServiceTest {
         MotivoTransaccion motivoConId2 = new MotivoTransaccion();
         motivoConId2.setId(1L);
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoConId2));
+        when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> {
+            MotivoTransaccion m = inv.getArgument(0);
+            m.setId(1L);
+            return m;
+        });
         when(tarjetaRepository.findById(10L)).thenReturn(Optional.of(tarjeta));
+        when(tarjetaRepository.save(any(Tarjeta.class))).thenAnswer(inv -> {
+            Tarjeta t = inv.getArgument(0);
+            t.setId(10L);
+            return t;
+        });
         ContactoTransferencia comercio = new ContactoTransferencia();
         comercio.setId(99L);
         when(contactoRepository.findById(99L)).thenReturn(Optional.of(comercio));
+        when(contactoRepository.save(any(ContactoTransferencia.class))).thenAnswer(inv -> {
+            ContactoTransferencia c = inv.getArgument(0);
+            c.setId(99L);
+            return c;
+        });
         when(compraCreditoRepository.save(any(CompraCredito.class))).thenAnswer(inv -> {
             CompraCredito c = inv.getArgument(0);
             c.setId(555L);
@@ -247,7 +272,17 @@ public class CompraCreditoServiceTest {
         MotivoTransaccion motivoConId3 = new MotivoTransaccion();
         motivoConId3.setId(1L);
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoConId3));
+        when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> {
+            MotivoTransaccion m = inv.getArgument(0);
+            m.setId(1L);
+            return m;
+        });
         when(tarjetaRepository.findById(10L)).thenReturn(Optional.of(tarjeta));
+        when(tarjetaRepository.save(any(Tarjeta.class))).thenAnswer(inv -> {
+            Tarjeta t = inv.getArgument(0);
+            t.setId(10L);
+            return t;
+        });
         when(compraCreditoRepository.save(any(CompraCredito.class))).thenAnswer(inv -> {
             CompraCredito c = inv.getArgument(0);
             c.setId(999L);
@@ -321,7 +356,7 @@ public class CompraCreditoServiceTest {
     void removerCompraCredito_tieneCuotasPagadas_lanzaIllegalState() {
         when(compraCreditoRepository.existsById(100L)).thenReturn(true);
         when(cuotaCreditoRepository.findByCompraCredito_IdAndPagada(100L, true)).thenReturn(List.of(new CuotaCredito()));
-        assertThrows(IllegalStateException.class, () -> compraCreditoService.removerCompraCredito(100L));
+        assertThrows(com.campito.backend.exception.OperacionNoPermitidaException.class, () -> compraCreditoService.removerCompraCredito(100L));
     }
 
     @Test
@@ -453,6 +488,16 @@ public class CompraCreditoServiceTest {
 
         when(resumenRepository.findById(52L)).thenReturn(Optional.of(resumen));
         when(cuentaBancariaRepository.findById(3L)).thenReturn(Optional.of(cuenta));
+        when(motivoRepository.findFirstByMotivoAndEspacioTrabajo_Id("Pago de tarjeta", 1L)).thenReturn(Optional.empty());
+        when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> {
+            MotivoTransaccion m = inv.getArgument(0);
+            m.setId(100L);
+            return m;
+        });
+        // Mock para que transaccionService lance IllegalStateException por saldo insuficiente
+        when(transaccionService.registrarTransaccion(any())).thenThrow(
+            new IllegalStateException("Saldo insuficiente en la cuenta")
+        );
 
         // request indicando idCuentaBancaria = 3L
         assertThrows(IllegalStateException.class, () -> compraCreditoService.pagarResumenTarjeta(new PagarResumenTarjetaRequest(52L, LocalDate.now(), 100f, "Aud", 1L, 3L)));

@@ -40,6 +40,7 @@ import com.campito.backend.model.TipoTransaccion;
 import com.campito.backend.model.Transaccion;
 
 import com.campito.backend.exception.EntidadDuplicadaException;
+import com.campito.backend.exception.SaldoInsuficienteException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
@@ -472,16 +473,16 @@ public class TransaccionServiceImpl implements TransaccionService {
 
         if (tipo.equals(TipoTransaccion.GASTO)) {
             if (registro.getGastos() < monto) {
-                String msg = "No se pueden eliminar gastos mensuales: el monto a eliminar es mayor que los gastos registrados.";
+                String msg = String.format("No se puede eliminar la transacción. El monto a eliminar ($%.2f) es mayor que los gastos registrados en este mes ($%.2f).", monto, registro.getGastos());
                 logger.warn(msg);
-                throw new IllegalArgumentException(msg);
+                throw new SaldoInsuficienteException(msg);
             }
             registro.eliminarGastos(monto);
         } else {
             if (registro.getIngresos() < monto) {
-                String msg = "No se pueden eliminar ingresos mensuales: el monto a eliminar es mayor que los ingresos registrados.";
+                String msg = String.format("No se puede eliminar la transacción. El monto a eliminar ($%.2f) es mayor que los ingresos registrados en este mes ($%.2f).", monto, registro.getIngresos());
                 logger.warn(msg);
-                throw new IllegalArgumentException(msg);
+                throw new SaldoInsuficienteException(msg);
             }
             registro.eliminarIngresos(monto);
         }

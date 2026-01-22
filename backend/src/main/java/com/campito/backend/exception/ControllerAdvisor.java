@@ -98,5 +98,36 @@ public class ControllerAdvisor {
         );
         return new ResponseEntity<>(exceptionInfo, HttpStatus.CONFLICT);
     }
+    @ExceptionHandler(PermisosDenegadosException.class)
+    public ResponseEntity<ExceptionInfo> handlePermisosDenegadosException(PermisosDenegadosException ex, WebRequest request) {
+        ExceptionInfo exceptionInfo = new ExceptionInfo(
+                ex.getMessage(),
+                request.getDescription(false),
+                String.valueOf(System.currentTimeMillis()),
+                HttpStatus.FORBIDDEN.value()
+        );
+        return new ResponseEntity<>(exceptionInfo, HttpStatus.FORBIDDEN);
+    }
 
+    @ExceptionHandler(SaldoInsuficienteException.class)
+    public ResponseEntity<ExceptionInfo> handleSaldoInsuficienteException(SaldoInsuficienteException ex, WebRequest request) {
+        ExceptionInfo exceptionInfo = new ExceptionInfo(
+                ex.getMessage(),
+                request.getDescription(false),
+                String.valueOf(System.currentTimeMillis()),
+                HttpStatus.BAD_REQUEST.value()
+        );
+        return new ResponseEntity<>(exceptionInfo, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(OperacionNoPermitidaException.class)
+    public ResponseEntity<ExceptionInfo> handleOperacionNoPermitidaException(OperacionNoPermitidaException ex, WebRequest request) {
+        ExceptionInfo exceptionInfo = new ExceptionInfo(
+                ex.getMessage(),
+                request.getDescription(false),
+                String.valueOf(System.currentTimeMillis()),
+                HttpStatus.UNPROCESSABLE_ENTITY.value()
+        );
+        return new ResponseEntity<>(exceptionInfo, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
 }

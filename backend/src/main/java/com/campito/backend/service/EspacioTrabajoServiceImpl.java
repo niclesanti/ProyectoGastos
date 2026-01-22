@@ -19,6 +19,7 @@ import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.Usuario;
 import com.campito.backend.exception.UsuarioNoEncontradoException;
 import com.campito.backend.exception.EntidadDuplicadaException;
+import com.campito.backend.exception.PermisosDenegadosException;
 
 import java.util.Optional;
 import jakarta.persistence.EntityNotFoundException;
@@ -89,8 +90,9 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
      * @param email Email del usuario con quien se compartirá el espacio.
      * @param idEspacioTrabajo ID del espacio de trabajo a compartir.
      * @param idUsuarioAdmin ID del usuario administrador que realiza la acción.
-     * @throws IllegalArgumentException si alguno de los parámetros es nulo o si el usuario administrador no tiene permiso.
+     * @throws IllegalArgumentException si alguno de los parámetros es nulo.
      * @throws EntityNotFoundException si el espacio de trabajo o el usuario no se encuentran en la base de datos.
+     * @throws PermisosDenegadosException si el usuario no es el administrador del espacio de trabajo.
      */
     @Override
     @Transactional
@@ -110,7 +112,7 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
 
         if(!espacioTrabajo.getUsuarioAdmin().getId().equals(idUsuarioAdmin)) {
             logger.warn("Intento no autorizado del usuario ID: {} para compartir el espacio ID: {}.", idUsuarioAdmin, idEspacioTrabajo);
-            throw new IllegalArgumentException("El usuario administrador no tiene permiso para compartir este espacio de trabajo");
+            throw new PermisosDenegadosException("No tienes permiso para compartir este espacio de trabajo. Solo el administrador puede realizar esta acción.");
         }
 
         Usuario usuario = usuarioRepository.findByEmail(email).orElseThrow(() -> {

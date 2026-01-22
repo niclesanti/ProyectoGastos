@@ -207,7 +207,7 @@ public class CuentaBancariaServiceTest {
         cuentaConSaldo.setEspacioTrabajo(espacioTrabajo);
         
         when(cuentaBancariaRepository.findById(1L)).thenReturn(Optional.of(cuentaConSaldo));
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(com.campito.backend.exception.SaldoInsuficienteException.class, () -> {
             cuentaBancariaService.actualizarCuentaBancaria(1L, TipoTransaccion.GASTO, 2000f);
         });
     }
@@ -254,7 +254,7 @@ public class CuentaBancariaServiceTest {
 
     @Test
     void testListarCuentasBancarias_cuandoNoExistenCuentas_retornaListaVacia() {
-        when(cuentaBancariaRepository.findByEspacioTrabajo_Id(1L)).thenReturn(Collections.emptyList());
+        when(cuentaBancariaRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L)).thenReturn(Collections.emptyList());
         List<CuentaBancariaDTOResponse> resultado = cuentaBancariaService.listarCuentasBancarias(1L);
         assertNotNull(resultado);
         assertEquals(0, resultado.size());
@@ -262,7 +262,7 @@ public class CuentaBancariaServiceTest {
 
     @Test
     void testListarCuentasBancarias_cuandoExistenCuentas_retornaListaDTOs() {
-        when(cuentaBancariaRepository.findByEspacioTrabajo_Id(1L)).thenReturn(List.of(cuentaBancaria));
+        when(cuentaBancariaRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L)).thenReturn(List.of(cuentaBancaria));
         List<CuentaBancariaDTOResponse> resultado = cuentaBancariaService.listarCuentasBancarias(1L);
         assertNotNull(resultado);
         assertEquals(1, resultado.size());
@@ -333,7 +333,7 @@ public class CuentaBancariaServiceTest {
         when(cuentaBancariaRepository.findById(1L)).thenReturn(Optional.of(cuentaConSaldo));
         when(cuentaBancariaRepository.findById(2L)).thenReturn(Optional.of(cuentaDestino));
 
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(com.campito.backend.exception.SaldoInsuficienteException.class, () -> {
             cuentaBancariaService.transaccionEntreCuentas(1L, 2L, 2000f);
         });
     }

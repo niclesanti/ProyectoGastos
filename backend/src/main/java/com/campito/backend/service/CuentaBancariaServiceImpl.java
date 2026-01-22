@@ -18,6 +18,7 @@ import com.campito.backend.model.TipoTransaccion;
 
 import java.util.Optional;
 import com.campito.backend.exception.EntidadDuplicadaException;
+import com.campito.backend.exception.SaldoInsuficienteException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
@@ -84,8 +85,9 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
      * @param tipo Tipo de transacción (INGRESO o GASTO).
      * @param monto Monto de la transacción.
      * @return Entidad CuentaBancaria actualizada.
-     * @throws IllegalArgumentException si el ID o monto son nulos, o si el saldo es insuficiente.
+     * @throws IllegalArgumentException si el ID o monto son nulos.
      * @throws EntityNotFoundException si la cuenta bancaria no se encuentra.
+     * @throws SaldoInsuficienteException si el saldo de la cuenta es insuficiente para realizar un gasto.
      */
     @Override
     @Transactional
@@ -106,8 +108,9 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
 
         if (tipo.equals(TipoTransaccion.GASTO) && cuenta.getSaldoActual() < monto) {
             logger.warn("Saldo insuficiente en la cuenta bancaria ID: {} para realizar la actualización de monto: {}", id, monto);
-            throw new IllegalArgumentException("Saldo insuficiente en la cuenta bancaria");
-            
+            throw new SaldoInsuficienteException(
+                String.format("Saldo insuficiente en la cuenta '%s'. Saldo actual: $%.2f, Monto requerido: $%.2f", 
+                    cuenta.getNombre(), cuenta.getSaldoActual(), monto));
         }
 
         cuenta.actualizarSaldoNuevaTransaccion(monto, tipo);
@@ -146,8 +149,9 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
      * @param idCuentaOrigen ID de la cuenta bancaria origen.
      * @param idCuentaDestino ID de la cuenta bancaria destino.
      * @param monto Monto a transferir.
-     * @throws IllegalArgumentException si algún parámetro es nulo o si el saldo origen es insuficiente.
+     * @throws IllegalArgumentException si algún parámetro es nulo.
      * @throws EntityNotFoundException si alguna de las cuentas no se encuentra.
+     * @throws SaldoInsuficienteException si el saldo de la cuenta origen es insuficiente.
      */
     @Override
     public void transaccionEntreCuentas(Long idCuentaOrigen, Long idCuentaDestino, Float monto) {
@@ -173,7 +177,9 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
 
         if(cuentaOrigen.getSaldoActual() < monto) {
             logger.warn("Saldo insuficiente en la cuenta origen ID: {} para realizar la transacción de monto: {}", idCuentaOrigen, monto);
-            throw new IllegalArgumentException("Saldo insuficiente en la cuenta origen");
+            throw new SaldoInsuficienteException(
+                String.format("Saldo insuficiente en la cuenta origen '%s'. Saldo actual: $%.2f, Monto requerido: $%.2f", 
+                    cuentaOrigen.getNombre(), cuentaOrigen.getSaldoActual(), monto));
         }
 
         cuentaOrigen.setSaldoActual(cuentaOrigen.getSaldoActual() - monto);

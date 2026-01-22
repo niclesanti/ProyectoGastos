@@ -149,10 +149,10 @@ public class EspacioTrabajoServiceTest {
 
         when(espacioTrabajoRepository.findById(1L)).thenReturn(Optional.of(otroEspacio));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+        com.campito.backend.exception.PermisosDenegadosException exception = assertThrows(com.campito.backend.exception.PermisosDenegadosException.class, () -> {
             espacioTrabajoService.compartirEspacioTrabajo("test@test.com", 1L, 1L);
         });
-        assertEquals("El usuario administrador no tiene permiso para compartir este espacio de trabajo", exception.getMessage());
+        assertEquals("No tienes permiso para compartir este espacio de trabajo. Solo el administrador puede realizar esta acción.", exception.getMessage());
         verify(usuarioRepository, never()).findByEmail(anyString());
     }
 

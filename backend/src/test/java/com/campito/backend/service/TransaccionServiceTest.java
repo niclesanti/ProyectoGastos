@@ -217,6 +217,16 @@ public class TransaccionServiceTest {
         when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(contactoRepository.findById(1L)).thenReturn(Optional.of(contactoTransferencia));
+        when(contactoRepository.save(any(ContactoTransferencia.class))).thenAnswer(inv -> {
+            ContactoTransferencia c = inv.getArgument(0);
+            c.setId(1L);
+            return c;
+        });
+        when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> {
+            MotivoTransaccion m = inv.getArgument(0);
+            m.setId(1L);
+            return m;
+        });
         when(transaccionRepository.save(any(Transaccion.class))).thenAnswer(invocation -> {
             Transaccion trans = invocation.getArgument(0);
             trans.setId(1L);
@@ -245,6 +255,16 @@ public class TransaccionServiceTest {
         when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(contactoRepository.findById(1L)).thenReturn(Optional.of(contactoTransferencia));
+        when(contactoRepository.save(any(ContactoTransferencia.class))).thenAnswer(inv -> {
+            ContactoTransferencia c = inv.getArgument(0);
+            c.setId(1L);
+            return c;
+        });
+        when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> {
+            MotivoTransaccion m = inv.getArgument(0);
+            m.setId(1L);
+            return m;
+        });
         when(cuentaBancariaService.actualizarCuentaBancaria(anyLong(), any(TipoTransaccion.class), anyFloat())).thenReturn(cuentaBancaria);
         when(transaccionRepository.save(any(Transaccion.class))).thenAnswer(invocation -> {
             Transaccion trans = invocation.getArgument(0);
@@ -282,6 +302,11 @@ public class TransaccionServiceTest {
 
         when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
+        when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> {
+            MotivoTransaccion m = inv.getArgument(0);
+            m.setId(1L);
+            return m;
+        });
         when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(1L, año, mes)).thenReturn(Optional.of(registro));
         when(transaccionRepository.save(any(Transaccion.class))).thenAnswer(invocation -> {
             Transaccion t = invocation.getArgument(0);
@@ -308,6 +333,11 @@ public class TransaccionServiceTest {
 
         when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
+        when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> {
+            MotivoTransaccion m = inv.getArgument(0);
+            m.setId(1L);
+            return m;
+        });
         when(transaccionRepository.save(any(Transaccion.class))).thenAnswer(invocation -> {
             Transaccion t = invocation.getArgument(0);
             t.setId(1L);
@@ -495,8 +525,7 @@ public class TransaccionServiceTest {
         when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(1L, año, mes)).thenReturn(Optional.of(registro));
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> transaccionService.removerTransaccion(1L));
-        assertEquals("No se pueden eliminar gastos mensuales: el monto a eliminar es mayor que los gastos registrados.", exception.getMessage());
+        assertThrows(com.campito.backend.exception.SaldoInsuficienteException.class, () -> transaccionService.removerTransaccion(1L));
         verify(transaccionRepository, never()).delete(any(Transaccion.class));
         verify(gastosIngresosMensualesRepository, never()).save(any(GastosIngresosMensuales.class));
     }
@@ -797,20 +826,20 @@ public class TransaccionServiceTest {
 
     @Test
     void listarContactos_cuandoNoExistenContactos_entoncesRetornaListaVacia() {
-        when(contactoRepository.findByEspacioTrabajo_Id(1L)).thenReturn(Collections.emptyList());
+        when(contactoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L)).thenReturn(Collections.emptyList());
 
         List<ContactoDTOResponse> result = transaccionService.listarContactos(1L);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
-        verify(contactoRepository, times(1)).findByEspacioTrabajo_Id(1L);
+        verify(contactoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L);
     }
 
     @Test
     void listarContactos_cuandoExistenContactos_entoncesRetornaListaConContactos() {
         List<ContactoTransferencia> contactos = new ArrayList<>();
         contactos.add(contactoTransferencia);
-        when(contactoRepository.findByEspacioTrabajo_Id(1L)).thenReturn(contactos);
+        when(contactoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L)).thenReturn(contactos);
 
         List<ContactoDTOResponse> result = transaccionService.listarContactos(1L);
 
@@ -819,7 +848,7 @@ public class TransaccionServiceTest {
         assertEquals(1, result.size());
         assertEquals(contactoTransferencia.getId(), result.get(0).id());
         assertEquals(contactoTransferencia.getNombre(), result.get(0).nombre());
-        verify(contactoRepository, times(1)).findByEspacioTrabajo_Id(1L);
+        verify(contactoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L);
     }
 
     // Tests para listarMotivos
@@ -835,20 +864,20 @@ public class TransaccionServiceTest {
 
     @Test
     void listarMotivos_cuandoNoExistenMotivos_entoncesRetornaListaVacia() {
-        when(motivoRepository.findByEspacioTrabajo_Id(1L)).thenReturn(Collections.emptyList());
+        when(motivoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L)).thenReturn(Collections.emptyList());
 
         List<MotivoDTOResponse> result = transaccionService.listarMotivos(1L);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
-        verify(motivoRepository, times(1)).findByEspacioTrabajo_Id(1L);
+        verify(motivoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L);
     }
 
     @Test
     void listarMotivos_cuandoExistenMotivos_entoncesRetornaListaConMotivos() {
         List<MotivoTransaccion> motivos = new ArrayList<>();
         motivos.add(motivoTransaccion);
-        when(motivoRepository.findByEspacioTrabajo_Id(1L)).thenReturn(motivos);
+        when(motivoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L)).thenReturn(motivos);
 
         List<MotivoDTOResponse> result = transaccionService.listarMotivos(1L);
 
@@ -857,7 +886,7 @@ public class TransaccionServiceTest {
         assertEquals(1, result.size());
         assertEquals(motivoTransaccion.getId(), result.get(0).id());
         assertEquals(motivoTransaccion.getMotivo(), result.get(0).motivo());
-        verify(motivoRepository, times(1)).findByEspacioTrabajo_Id(1L);
+        verify(motivoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L);
     }
 
     // Tests para buscarTransaccionesRecientes
