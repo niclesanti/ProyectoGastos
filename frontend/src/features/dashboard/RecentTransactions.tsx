@@ -121,7 +121,7 @@ export function RecentTransactions() {
     },
     {
       accessorKey: "nombreCuentaBancaria",
-      header: ({ column }) => <div className="hidden lg:table-cell">Cuenta</div>,
+      header: () => <div className="hidden lg:table-cell">Cuenta</div>,
       enableHiding: true,
       cell: ({ row }) => {
         const cuentaNombre = row.getValue("nombreCuentaBancaria") as string || 'Sin cuenta'
@@ -130,7 +130,7 @@ export function RecentTransactions() {
     },
     {
       accessorKey: "nombreContacto",
-      header: ({ column }) => <div className="hidden lg:table-cell">Contacto</div>,
+      header: () => <div className="hidden lg:table-cell">Contacto</div>,
       enableHiding: true,
       cell: ({ row }) => {
         const contactoNombre = row.getValue("nombreContacto") as string || '-'
@@ -139,7 +139,7 @@ export function RecentTransactions() {
     },
     {
       accessorKey: "fecha",
-      header: ({ column }) => <div className="hidden sm:table-cell">Fecha</div>,
+      header: () => <div className="hidden sm:table-cell">Fecha</div>,
       enableHiding: true,
       cell: ({ row }) => {
         const fechaFormateada = formatFecha(row.getValue("fecha"))

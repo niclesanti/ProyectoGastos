@@ -1,6 +1,8 @@
 package com.campito.backend.service;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +18,6 @@ import com.campito.backend.model.CuentaBancaria;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.TipoTransaccion;
 
-import java.util.Optional;
 import com.campito.backend.exception.EntidadDuplicadaException;
 import com.campito.backend.exception.SaldoInsuficienteException;
 import jakarta.persistence.EntityNotFoundException;
@@ -128,7 +129,7 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
      * @throws IllegalArgumentException si el ID del espacio es nulo.
      */
     @Override
-    public List<CuentaBancariaDTOResponse> listarCuentasBancarias(Long idEspacioTrabajo) {
+    public List<CuentaBancariaDTOResponse> listarCuentasBancarias(UUID idEspacioTrabajo) {
 
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de listar cuentas bancarias con idEspacioTrabajo nulo.");

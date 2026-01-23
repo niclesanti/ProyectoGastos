@@ -167,8 +167,8 @@ export function MovimientosPage() {
   // Hooks de TanStack Query
   const buscarTransaccionesMutation = useBuscarTransacciones()
   const removerTransaccionMutation = useRemoverTransaccion()
-  const { data: motivosData = [], isLoading: isLoadingMotivos } = useMotivosTransaccion(espacioActual?.id)
-  const { data: contactosData = [], isLoading: isLoadingContactos } = useContactosTransaccion(espacioActual?.id)
+  const { data: motivosData = [] } = useMotivosTransaccion(espacioActual?.id)
+  const { data: contactosData = [] } = useContactosTransaccion(espacioActual?.id)
   
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [hasSearched, setHasSearched] = useState(false)
@@ -412,17 +412,17 @@ export function MovimientosPage() {
     },
     {
       accessorKey: 'cuenta',
-      header: ({ column }) => <div className="hidden lg:table-cell">Cuenta</div>,
+      header: () => <div className="hidden lg:table-cell">Cuenta</div>,
       cell: ({ row }) => <div className="text-muted-foreground hidden lg:block lg:table-cell">{row.getValue('cuenta')}</div>,
     },
     {
       accessorKey: 'contacto',
-      header: ({ column }) => <div className="hidden lg:table-cell">Contacto</div>,
+      header: () => <div className="hidden lg:table-cell">Contacto</div>,
       cell: ({ row }) => <div className="hidden lg:block lg:table-cell">{row.getValue('contacto')}</div>,
     },
     {
       accessorKey: 'fecha',
-      header: ({ column }) => <div className="hidden sm:table-cell">Fecha</div>,
+      header: () => <div className="hidden sm:table-cell">Fecha</div>,
       cell: ({ row }) => {
         const fecha = parseISO(row.getValue('fecha'))
         return <div className="text-muted-foreground hidden sm:block sm:table-cell">{format(fecha, 'dd/MM/yyyy', { locale: es })}</div>

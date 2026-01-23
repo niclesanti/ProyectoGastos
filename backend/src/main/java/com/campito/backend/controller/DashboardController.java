@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.campito.backend.dto.DashboardStatsDTO;
 import com.campito.backend.service.DashboardService;
+import com.campito.backend.service.SecurityService;
+
+import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -25,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 public class DashboardController {
 
     private final DashboardService dashboardService;
+    private final SecurityService securityService;
 
     @Operation(summary = "Obtener estadísticas consolidadas del dashboard",
                 description = "Obtiene todas las estadísticas del dashboard (KPIs + charts) en una sola llamada.",
@@ -35,8 +39,9 @@ public class DashboardController {
                 })
     @GetMapping("/stats/{idEspacio}")
     public ResponseEntity<DashboardStatsDTO> obtenerDashboardStats(
-        @PathVariable @NotNull(message = "El id del espacio es obligatorio") Long idEspacio) {
+        @PathVariable @NotNull(message = "El id del espacio es obligatorio") UUID idEspacio) {
         
+        securityService.validateWorkspaceAccess(idEspacio);
         DashboardStatsDTO dashboardStats = dashboardService.obtenerDashboardStats(idEspacio);
         return new ResponseEntity<>(dashboardStats, HttpStatus.OK);
     }

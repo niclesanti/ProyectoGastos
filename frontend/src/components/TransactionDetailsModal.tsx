@@ -14,8 +14,6 @@ import {
   Calendar,
   User,
   Landmark,
-  Copy,
-  CheckCircle2,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -48,8 +46,6 @@ export function TransactionDetailsModal({
   open,
   onOpenChange,
 }: TransactionDetailsModalProps) {
-  const [copied, setCopied] = useState(false)
-
   if (!transaction) return null
 
   const formatCurrency = (amount: number) => {
@@ -58,21 +54,6 @@ export function TransactionDetailsModal({
       currency: 'ARS',
       minimumFractionDigits: 2,
     }).format(amount)
-  }
-
-  const handleCopyId = async () => {
-    try {
-      await navigator.clipboard.writeText(transaction.id)
-      setCopied(true)
-      toast.success('ID copiado', {
-        description: 'El ID de la transacción ha sido copiado al portapapeles.',
-      })
-      setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      toast.error('Error al copiar', {
-        description: 'No se pudo copiar el ID al portapapeles.',
-      })
-    }
   }
 
   return (
@@ -164,31 +145,10 @@ export function TransactionDetailsModal({
             {/* Audit Footer */}
             <Separator />
             <div className="space-y-1 text-xs text-muted-foreground">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-0.5 flex-1">
-                  <p>Espacio: <span className="font-medium text-foreground">{transaction.nombreEspacioTrabajo}</span></p>
-                  <p>Registrado por: <span className="font-medium text-foreground">{transaction.nombreCompletoAuditoria}</span></p>
-                  <p>Fecha creación: <span className="font-medium text-foreground">{format(parseISO(transaction.fechaCreacion), "dd/MM/yyyy HH:mm", { locale: es })}</span></p>
-                  <p className="pt-1">ID: <span className="font-mono">{transaction.id}</span></p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCopyId}
-                  className="h-7 text-xs shrink-0"
-                >
-                  {copied ? (
-                    <>
-                      <CheckCircle2 className="mr-1 h-3 w-3" />
-                      Copiado
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="mr-1 h-3 w-3" />
-                      Copiar ID
-                    </>
-                  )}
-                </Button>
+              <div className="space-y-0.5">
+                <p>Espacio: <span className="font-medium text-foreground">{transaction.nombreEspacioTrabajo}</span></p>
+                <p>Registrado por: <span className="font-medium text-foreground">{transaction.nombreCompletoAuditoria}</span></p>
+                <p>Fecha creación: <span className="font-medium text-foreground">{format(parseISO(transaction.fechaCreacion), "dd/MM/yyyy HH:mm", { locale: es })}</span></p>
               </div>
             </div>
           </div>

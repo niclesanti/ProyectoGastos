@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,13 +66,13 @@ public class CuentaBancariaServiceTest {
         usuarioAdmin.setFechaRegistro(LocalDateTime.now());
 
         espacioTrabajo = new EspacioTrabajo();
-        espacioTrabajo.setId(1L);
+        espacioTrabajo.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
         espacioTrabajo.setNombre("Mi Espacio de Trabajo");
         espacioTrabajo.setSaldo(0f);
         espacioTrabajo.setUsuarioAdmin(usuarioAdmin);
         espacioTrabajo.setUsuariosParticipantes(List.of(usuarioAdmin));
 
-        cuentaBancariaDTO = new CuentaBancariaDTORequest("Cuenta de Ahorros", "Banco A", 1L, 0f);
+        cuentaBancariaDTO = new CuentaBancariaDTORequest("Cuenta de Ahorros", "Banco A", espacioTrabajo.getId(), 0f);
 
         cuentaBancaria = new CuentaBancaria();
         cuentaBancaria.setId(1L);
@@ -117,7 +118,7 @@ public class CuentaBancariaServiceTest {
 
     @Test
     void testCrearCuentaBancaria_cuandoEspacioTrabajoNoExiste_lanzaExcepcion() {
-        when(espacioTrabajoRepository.findById(1L)).thenReturn(Optional.empty());
+        when(espacioTrabajoRepository.findById(espacioTrabajo.getId())).thenReturn(Optional.empty());
         assertThrows(EntityNotFoundException.class, () -> {
             cuentaBancariaService.crearCuentaBancaria(cuentaBancariaDTO);
         });
@@ -126,7 +127,7 @@ public class CuentaBancariaServiceTest {
 
     @Test
     void testCrearCuentaBancaria_conDatosValidos_guardaCuenta() {
-        when(espacioTrabajoRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioTrabajoRepository.findById(espacioTrabajo.getId())).thenReturn(Optional.of(espacioTrabajo));
         cuentaBancariaService.crearCuentaBancaria(cuentaBancariaDTO);
         verify(cuentaBancariaRepository, times(1)).save(any(CuentaBancaria.class));
     }
@@ -134,7 +135,7 @@ public class CuentaBancariaServiceTest {
     @Test
     void testCrearCuentaBancaria_conDatosValidos_guardaCuentaConSaldoCeroYEspacioAsignado() {
         // Arrange
-        when(espacioTrabajoRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioTrabajoRepository.findById(espacioTrabajo.getId())).thenReturn(Optional.of(espacioTrabajo));
 
         // Act
         cuentaBancariaService.crearCuentaBancaria(cuentaBancariaDTO);
@@ -254,16 +255,16 @@ public class CuentaBancariaServiceTest {
 
     @Test
     void testListarCuentasBancarias_cuandoNoExistenCuentas_retornaListaVacia() {
-        when(cuentaBancariaRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L)).thenReturn(Collections.emptyList());
-        List<CuentaBancariaDTOResponse> resultado = cuentaBancariaService.listarCuentasBancarias(1L);
+        when(cuentaBancariaRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioTrabajo.getId())).thenReturn(Collections.emptyList());
+        List<CuentaBancariaDTOResponse> resultado = cuentaBancariaService.listarCuentasBancarias(espacioTrabajo.getId());
         assertNotNull(resultado);
         assertEquals(0, resultado.size());
     }
 
     @Test
     void testListarCuentasBancarias_cuandoExistenCuentas_retornaListaDTOs() {
-        when(cuentaBancariaRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L)).thenReturn(List.of(cuentaBancaria));
-        List<CuentaBancariaDTOResponse> resultado = cuentaBancariaService.listarCuentasBancarias(1L);
+        when(cuentaBancariaRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioTrabajo.getId())).thenReturn(List.of(cuentaBancaria));
+        List<CuentaBancariaDTOResponse> resultado = cuentaBancariaService.listarCuentasBancarias(espacioTrabajo.getId());
         assertNotNull(resultado);
         assertEquals(1, resultado.size());
         assertEquals("Cuenta de Ahorros", resultado.get(0).nombre());

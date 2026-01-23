@@ -1,5 +1,6 @@
 package com.campito.backend.dto;
 
+import java.util.UUID;
 import com.campito.backend.validation.ValidNombre;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,7 +12,7 @@ public record ContactoDTORequest(
     @ValidNombre
     String nombre,
     @NotNull(message = "El ID del espacio de trabajo no puede ser nulo")
-    Long idEspacioTrabajo
+    UUID idEspacioTrabajo
 ) {
 
 }

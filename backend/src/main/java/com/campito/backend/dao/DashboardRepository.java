@@ -2,6 +2,7 @@ package com.campito.backend.dao;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -26,7 +27,7 @@ public interface DashboardRepository extends JpaRepository<Transaccion, Long> {
             GROUP BY mt.motivo
             ORDER BY SUM(t.monto) DESC
             """, nativeQuery = true)
-    List<DistribucionGastoDTO> findDistribucionGastos(@Param("idEspacio") Long idEspacio,
+    List<DistribucionGastoDTO> findDistribucionGastos(@Param("idEspacio") UUID idEspacio,
             @Param("fechaLimite") LocalDate fechaLimite);
 
 }

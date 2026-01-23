@@ -5,6 +5,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -326,7 +327,7 @@ public class TransaccionServiceImpl implements TransaccionService {
      * @throws IllegalArgumentException si el ID del espacio es nulo.
      */
     @Override
-    public List<ContactoDTOResponse> listarContactos(Long idEspacioTrabajo) {
+    public List<ContactoDTOResponse> listarContactos(UUID idEspacioTrabajo) {
 
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de listar contactos con ID de espacio de trabajo nulo.");
@@ -349,7 +350,7 @@ public class TransaccionServiceImpl implements TransaccionService {
      * @throws IllegalArgumentException si el ID del espacio es nulo.
      */
     @Override
-    public List<MotivoDTOResponse> listarMotivos(Long idEspacioTrabajo) {
+    public List<MotivoDTOResponse> listarMotivos(UUID idEspacioTrabajo) {
 
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de listar motivos con ID de espacio de trabajo nulo.");
@@ -372,7 +373,7 @@ public class TransaccionServiceImpl implements TransaccionService {
      * @throws IllegalArgumentException si el ID del espacio es nulo.
      */
     @Override
-    public List<TransaccionDTOResponse> buscarTransaccionesRecientes(Long idEspacioTrabajo) {
+    public List<TransaccionDTOResponse> buscarTransaccionesRecientes(UUID idEspacioTrabajo) {
 
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de buscar transacciones recientes con ID de espacio de trabajo nulo.");
@@ -407,7 +408,7 @@ public class TransaccionServiceImpl implements TransaccionService {
      * Método auxiliar para anotar gastos e ingresos por mes
      */
     @Transactional
-    private void gastosIgresosMesAnotar(TipoTransaccion tipo, Float monto, Long idEspacioTrabajo) {
+    private void gastosIgresosMesAnotar(TipoTransaccion tipo, Float monto, UUID idEspacioTrabajo) {
 
         if (tipo == null || monto == null || idEspacioTrabajo == null) {
             logger.warn("Argumentos inválidos para anotar gastos/ingresos: tipo={}, monto={}, espacioId={}", tipo, monto, idEspacioTrabajo);
@@ -451,7 +452,7 @@ public class TransaccionServiceImpl implements TransaccionService {
      * Método auxiliar para eliminar gastos e ingresos por mes porque se eliminó una transacción
      */
     @Transactional
-    private void gastosIngresosMesDelete(TipoTransaccion tipo, Float monto, Long idEspacioTrabajo) {
+    private void gastosIngresosMesDelete(TipoTransaccion tipo, Float monto, UUID idEspacioTrabajo) {
         
         if (tipo == null || monto == null || idEspacioTrabajo == null) {
             logger.warn("Argumentos inválidos para anotar gastos/ingresos: tipo={}, monto={}, espacioId={}", tipo, monto, idEspacioTrabajo);

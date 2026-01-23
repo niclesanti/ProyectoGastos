@@ -2,6 +2,7 @@ package com.campito.backend.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,6 @@ import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.Usuario;
 import com.campito.backend.exception.UsuarioNoEncontradoException;
 import com.campito.backend.exception.EntidadDuplicadaException;
-import com.campito.backend.exception.PermisosDenegadosException;
 
 import java.util.Optional;
 import jakarta.persistence.EntityNotFoundException;
@@ -89,18 +89,16 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
      * 
      * @param email Email del usuario con quien se compartirá el espacio.
      * @param idEspacioTrabajo ID del espacio de trabajo a compartir.
-     * @param idUsuarioAdmin ID del usuario administrador que realiza la acción.
      * @throws IllegalArgumentException si alguno de los parámetros es nulo.
      * @throws EntityNotFoundException si el espacio de trabajo o el usuario no se encuentran en la base de datos.
-     * @throws PermisosDenegadosException si el usuario no es el administrador del espacio de trabajo.
      */
     @Override
     @Transactional
-    public void compartirEspacioTrabajo(String email, Long idEspacioTrabajo, Long idUsuarioAdmin) {
+    public void compartirEspacioTrabajo(String email, UUID idEspacioTrabajo) {
         
-        if(email == null || idEspacioTrabajo == null || idUsuarioAdmin == null) {
-            logger.warn("Se recibieron parametros nulos para compartir. Email: {}, EspacioID: {}, AdminID: {}", email, idEspacioTrabajo, idUsuarioAdmin);
-            throw new IllegalArgumentException("El email, el ID del espacio de trabajo y el ID del usuario administrador del espacio no pueden ser nulos");
+        if(email == null || idEspacioTrabajo == null) {
+            logger.warn("Se recibieron parametros nulos para compartir. Email: {}, EspacioID: {}", email, idEspacioTrabajo);
+            throw new IllegalArgumentException("El email y el ID del espacio de trabajo no pueden ser nulos");
         }
         logger.info("Intentando compartir espacio de trabajo ID: {} con email: {}", idEspacioTrabajo, email);
 
@@ -109,11 +107,6 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
             logger.warn(mensaje);
             return new EntityNotFoundException(mensaje);
         });
-
-        if(!espacioTrabajo.getUsuarioAdmin().getId().equals(idUsuarioAdmin)) {
-            logger.warn("Intento no autorizado del usuario ID: {} para compartir el espacio ID: {}.", idUsuarioAdmin, idEspacioTrabajo);
-            throw new PermisosDenegadosException("No tienes permiso para compartir este espacio de trabajo. Solo el administrador puede realizar esta acción.");
-        }
 
         Usuario usuario = usuarioRepository.findByEmail(email).orElseThrow(() -> {
             String mensajeLog = "Usuario con email " + email + " no encontrado";
@@ -136,7 +129,7 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
      * @throws IllegalArgumentException si el ID del usuario es nulo.
      */
     @Override
-    public List<EspacioTrabajoDTOResponse> listarEspaciosTrabajoPorUsuario(Long idUsuario) {
+    public List<EspacioTrabajoDTOResponse> listarEspaciosTrabajoPorUsuario(UUID idUsuario) {
         
         if(idUsuario == null) {
             logger.warn("Se recibieron parametros nulos para listar espacios de trabajo por usuario.");
@@ -161,7 +154,7 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<UsuarioDTOResponse> obtenerMiembrosEspacioTrabajo(Long idEspacioTrabajo) {
+    public List<UsuarioDTOResponse> obtenerMiembrosEspacioTrabajo(UUID idEspacioTrabajo) {
         
         if(idEspacioTrabajo == null) {
             logger.warn("Se recibieron parametros nulos para obtener miembros del espacio de trabajo.");

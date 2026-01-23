@@ -2,7 +2,7 @@ import { apiClient } from '@/lib/api-client'
 import type { Contacto, ContactoDTORequest } from '@/types'
 
 export const contactoService = {
-  async listarContactos(idEspacioTrabajo: number): Promise<Contacto[]> {
+  async listarContactos(idEspacioTrabajo: string): Promise<Contacto[]> {
     const { data } = await apiClient.get<Contacto[]>(`/transaccion/contacto/listar/${idEspacioTrabajo}`)
     return data
   },

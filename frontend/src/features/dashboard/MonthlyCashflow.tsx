@@ -6,7 +6,6 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
   type ChartConfig,
@@ -50,7 +49,7 @@ export function MonthlyCashflow() {
     if (!stats?.flujoMensual) return []
     
     const allData = stats.flujoMensual.map((item) => {
-      const [year, month] = item.mes.split('-')
+      const [, month] = item.mes.split('-')
       return {
         month: monthMap[month] || item.mes,
         fullDate: item.mes,

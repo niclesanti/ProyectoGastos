@@ -8,33 +8,38 @@ import type {
 
 export const espacioTrabajoService = {
   async getAll(): Promise<EspacioTrabajo[]> {
-    const { data } = await apiClient.get<EspacioTrabajo[]>('/espacios-trabajo')
+    // El usuario se obtiene del contexto OAuth2 automáticamente
+    const { data } = await apiClient.get<EspacioTrabajo[]>('/espaciotrabajo/listar')
     return data
   },
 
-  async getById(id: number): Promise<EspacioTrabajo> {
-    const { data } = await apiClient.get<EspacioTrabajo>(`/espacios-trabajo/${id}`)
+  async getById(id: string): Promise<EspacioTrabajo> {
+    const { data } = await apiClient.get<EspacioTrabajo>(`/espaciotrabajo/${id}`)
     return data
   },
 
-  async create(espacioTrabajo: EspacioTrabajoDTORequest): Promise<EspacioTrabajo> {
-    const { data } = await apiClient.post<EspacioTrabajo>('/espacios-trabajo', espacioTrabajo)
+  async create(espacioTrabajo: EspacioTrabajoDTORequest): Promise<void> {
+    await apiClient.post<void>('/espaciotrabajo/registrar', espacioTrabajo)
+  },
+
+  async update(id: string, espacioTrabajo: EspacioTrabajoDTORequest): Promise<EspacioTrabajo> {
+    const { data } = await apiClient.put<EspacioTrabajo>(`/espaciotrabajo/${id}`, espacioTrabajo)
     return data
   },
 
-  async update(id: number, espacioTrabajo: EspacioTrabajoDTORequest): Promise<EspacioTrabajo> {
-    const { data } = await apiClient.put<EspacioTrabajo>(`/espacios-trabajo/${id}`, espacioTrabajo)
-    return data
-  },
-
-  async delete(id: number): Promise<void> {
-    await apiClient.delete<void>(`/espacios-trabajo/${id}`)
+  async delete(id: string): Promise<void> {
+    await apiClient.delete<void>(`/espaciotrabajo/${id}`)
   },
 
   // Gestión de miembros
-  async getMiembros(espacioTrabajoId: number): Promise<MiembroEspacio[]> {
+  async getMiembros(espacioTrabajoId: string): Promise<MiembroEspacio[]> {
     const { data } = await apiClient.get<MiembroEspacio[]>(`/espaciotrabajo/miembros/${espacioTrabajoId}`)
     return data
+  },
+
+  async compartirEspacio(email: string, idEspacioTrabajo: string): Promise<void> {
+    // Ya NO se envía idUsuarioAdmin, se valida en el backend desde el contexto OAuth2
+    await apiClient.put<void>(`/espaciotrabajo/compartir/${email}/${idEspacioTrabajo}`)
   },
 
   async invitarMiembro(invitacion: InvitacionMiembroDTORequest): Promise<MiembroEspacio> {
@@ -45,7 +50,7 @@ export const espacioTrabajoService = {
     return data
   },
 
-  async eliminarMiembro(espacioTrabajoId: number, miembroId: number): Promise<void> {
+  async eliminarMiembro(espacioTrabajoId: string, miembroId: string): Promise<void> {
     await apiClient.delete<void>(`/espacios-trabajo/${espacioTrabajoId}/miembros/${miembroId}`)
   },
 }

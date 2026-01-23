@@ -2,6 +2,7 @@ package com.campito.backend.dao;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -37,7 +38,7 @@ public interface ResumenRepository extends JpaRepository<Resumen, Long> {
      */
     @Query("SELECT r FROM Resumen r WHERE r.tarjeta.espacioTrabajo.id = :idEspacioTrabajo " +
            "ORDER BY r.anio DESC, r.mes DESC")
-    List<Resumen> findByEspacioTrabajoId(@Param("idEspacioTrabajo") Long idEspacioTrabajo);
+    List<Resumen> findByEspacioTrabajoId(@Param("idEspacioTrabajo") UUID idEspacioTrabajo);
     
     /**
      * Lista resúmenes por estado

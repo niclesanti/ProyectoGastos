@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +60,7 @@ public class DashboardServiceImpl implements DashboardService {
      * @throws IllegalArgumentException si el ID del espacio es nulo.
      */
     @Override
-    public DashboardStatsDTO obtenerDashboardStats(Long idEspacio) {
+    public DashboardStatsDTO obtenerDashboardStats(UUID idEspacio) {
 
         if (idEspacio == null) {
             logger.warn("Intento de obtener estadísticas del dashboard con ID de espacio nulo.");

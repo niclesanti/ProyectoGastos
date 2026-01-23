@@ -20,6 +20,9 @@ import com.campito.backend.dto.ResumenDTOResponse;
 import com.campito.backend.dto.TarjetaDTORequest;
 import com.campito.backend.dto.TarjetaDTOResponse;
 import com.campito.backend.service.CompraCreditoService;
+import com.campito.backend.service.SecurityService;
+
+import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -37,6 +40,7 @@ import lombok.RequiredArgsConstructor;
 public class ComprasCreditoController {
 
     private final CompraCreditoService comprasCreditoService;
+    private final SecurityService securityService;
 
     @Operation(summary = "Registrar una nueva compra con crédito",
                 description = "Permite registrar una nueva compra con crédito en el sistema.",
@@ -51,6 +55,7 @@ public class ComprasCreditoController {
         @NotNull(message = "La compra a crédito es obligatoria") 
         @RequestBody CompraCreditoDTORequest comprasCreditoDTO) {
         
+        securityService.validateWorkspaceAccess(comprasCreditoDTO.espacioTrabajoId());
         CompraCreditoDTOResponse nuevaCompra = comprasCreditoService.registrarCompraCredito(comprasCreditoDTO);
         return new ResponseEntity<>(nuevaCompra, HttpStatus.CREATED);
     }
@@ -68,6 +73,7 @@ public class ComprasCreditoController {
         @NotNull(message = "La tarjeta es obligatoria") 
         @RequestBody TarjetaDTORequest tarjetaDTO) {
         
+        securityService.validateWorkspaceAccess(tarjetaDTO.espacioTrabajoId());
         TarjetaDTOResponse nuevaTarjeta = comprasCreditoService.registrarTarjeta(tarjetaDTO);
         return new ResponseEntity<>(nuevaTarjeta, HttpStatus.CREATED);
     }
@@ -84,6 +90,7 @@ public class ComprasCreditoController {
     public ResponseEntity<Void> removerCompraCredito(
         @PathVariable @NotNull(message = "El id de la compra a crédito es obligatorio") Long id) {
         
+        securityService.validateCompraCreditoOwnership(id);
         comprasCreditoService.removerCompraCredito(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -97,8 +104,9 @@ public class ComprasCreditoController {
                 })
     @GetMapping("/pendientes/{idEspacioTrabajo}")
     public ResponseEntity<List<CompraCreditoDTOResponse>> listarComprasCreditoDebeCuotas(
-        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo) {
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
         
+        securityService.validateWorkspaceAccess(idEspacioTrabajo);
         List<CompraCreditoDTOResponse> compras = comprasCreditoService.listarComprasCreditoDebeCuotas(idEspacioTrabajo);
         return new ResponseEntity<>(compras, HttpStatus.OK);
     }
@@ -112,8 +120,9 @@ public class ComprasCreditoController {
                 })
     @GetMapping("/buscar/{idEspacioTrabajo}")
     public ResponseEntity<List<CompraCreditoDTOResponse>> buscarComprasCredito(
-        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo) {
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
         
+        securityService.validateWorkspaceAccess(idEspacioTrabajo);
         List<CompraCreditoDTOResponse> compras = comprasCreditoService.BuscarComprasCredito(idEspacioTrabajo);
         return new ResponseEntity<>(compras, HttpStatus.OK);
     }
@@ -130,6 +139,7 @@ public class ComprasCreditoController {
     public ResponseEntity<Void> removerTarjeta(
         @PathVariable @NotNull(message = "El id de la tarjeta es obligatorio") Long id) {
         
+        securityService.validateTarjetaOwnership(id);
         comprasCreditoService.removerTarjeta(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -143,8 +153,9 @@ public class ComprasCreditoController {
                 })
     @GetMapping("/tarjetas/{idEspacioTrabajo}")
     public ResponseEntity<List<TarjetaDTOResponse>> listarTarjetas(
-        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo) {
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
         
+        securityService.validateWorkspaceAccess(idEspacioTrabajo);
         List<TarjetaDTOResponse> tarjetas = comprasCreditoService.listarTarjetas(idEspacioTrabajo);
         return new ResponseEntity<>(tarjetas, HttpStatus.OK);
     }
@@ -161,6 +172,7 @@ public class ComprasCreditoController {
     public ResponseEntity<List<CuotaCreditoDTOResponse>> listarCuotasPorTarjeta(
         @PathVariable @NotNull(message = "El id de la tarjeta es obligatorio") Long idTarjeta) {
         
+        securityService.validateTarjetaOwnership(idTarjeta);
         List<CuotaCreditoDTOResponse> cuotas = comprasCreditoService.listarCuotasPorTarjeta(idTarjeta);
         return new ResponseEntity<>(cuotas, HttpStatus.OK);
     }
@@ -194,6 +206,7 @@ public class ComprasCreditoController {
     public ResponseEntity<List<ResumenDTOResponse>> listarResumenesPorTarjeta(
         @PathVariable @NotNull(message = "El id de la tarjeta es obligatorio") Long idTarjeta) {
         
+        securityService.validateTarjetaOwnership(idTarjeta);
         List<ResumenDTOResponse> resumenes = comprasCreditoService.listarResumenesPorTarjeta(idTarjeta);
         return new ResponseEntity<>(resumenes, HttpStatus.OK);
     }
@@ -207,8 +220,9 @@ public class ComprasCreditoController {
                 })
     @GetMapping("/resumenes/espacio/{idEspacioTrabajo}")
     public ResponseEntity<List<ResumenDTOResponse>> listarResumenesPorEspacioTrabajo(
-        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo) {
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
         
+        securityService.validateWorkspaceAccess(idEspacioTrabajo);
         List<ResumenDTOResponse> resumenes = comprasCreditoService.listarResumenesPorEspacioTrabajo(idEspacioTrabajo);
         return new ResponseEntity<>(resumenes, HttpStatus.OK);
     }

@@ -15,7 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 import com.campito.backend.dto.CuentaBancariaDTORequest;
 import com.campito.backend.dto.CuentaBancariaDTOResponse;
 import com.campito.backend.service.CuentaBancariaService;
+import com.campito.backend.service.SecurityService;
 import com.campito.backend.validation.ValidMonto;
+
+import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -34,6 +37,7 @@ import org.springframework.validation.annotation.Validated;
 public class CuentaBancariaController {
 
     private final CuentaBancariaService cuentaBancariaService;
+    private final SecurityService securityService;
 
     @Operation(
         summary = "Crear una nueva cuenta bancaria",
@@ -48,6 +52,7 @@ public class CuentaBancariaController {
         @NotNull(message = "La cuenta bancaria es obligatoria") 
         @RequestBody CuentaBancariaDTORequest cuentaBancariaDTO) {
         
+        securityService.validateWorkspaceAccess(cuentaBancariaDTO.idEspacioTrabajo());
         cuentaBancariaService.crearCuentaBancaria(cuentaBancariaDTO);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
@@ -61,8 +66,9 @@ public class CuentaBancariaController {
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @GetMapping("/listar/{idEspacioTrabajo}")
     public ResponseEntity<List<CuentaBancariaDTOResponse>> listarCuentasBancarias(
-        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo) {
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
         
+        securityService.validateWorkspaceAccess(idEspacioTrabajo);
         List<CuentaBancariaDTOResponse> cuentas = cuentaBancariaService.listarCuentasBancarias(idEspacioTrabajo);
         return new ResponseEntity<>(cuentas, HttpStatus.OK);
     }
@@ -82,6 +88,8 @@ public class CuentaBancariaController {
             @DecimalMin(value = "0.009", message = "El monto debe ser mayor a 0")
             @ValidMonto Float monto) {
             
+        securityService.validateCuentaBancariaOwnership(idCuentaOrigen);
+        securityService.validateCuentaBancariaOwnership(idCuentaDestino);
         cuentaBancariaService.transaccionEntreCuentas(idCuentaOrigen, idCuentaDestino, monto);
         return new ResponseEntity<>(HttpStatus.OK);
     }

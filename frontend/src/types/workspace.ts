@@ -1,13 +1,13 @@
 // Tipos TypeScript que coinciden con los DTOs de Java del backend
 
 export interface EspacioTrabajoResponse {
-  id: number
+  id: string  // UUID
   nombre: string
   saldo: number
-  usuarioAdminId: number
+  usuarioAdminId: string  // UUID
 }
 
 export interface EspacioTrabajoRequest {
   nombre: string
-  idUsuarioAdmin: number
+  idUsuarioAdmin: string  // UUID
 }

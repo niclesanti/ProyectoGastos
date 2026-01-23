@@ -2,6 +2,7 @@ package com.campito.backend.model;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -21,8 +22,9 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Builder // Implementa el patrón Builder para construcción fluida de objetos
 public class EspacioTrabajo {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "uuid", updatable = false, nullable = false)
+    private UUID id;
 
     @Column(name = "nombre", nullable = false, length = 50)
     private String nombre;

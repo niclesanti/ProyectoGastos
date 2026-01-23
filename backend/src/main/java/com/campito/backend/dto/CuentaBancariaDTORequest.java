@@ -1,5 +1,6 @@
 package com.campito.backend.dto;
 
+import java.util.UUID;
 import com.campito.backend.validation.ValidNombre;
 import com.campito.backend.validation.ValidSaldoActual;
 import jakarta.validation.constraints.NotBlank;
@@ -15,7 +16,7 @@ public record CuentaBancariaDTORequest(
     @NotBlank(message = "La entidad financiera no puede estar vacía")
     String entidadFinanciera,
     @NotNull(message = "El ID del espacio de trabajo no puede ser nulo")
-    Long idEspacioTrabajo,
+    UUID idEspacioTrabajo,
     @NotNull(message = "El saldo actual no puede ser nulo")
     @ValidSaldoActual
     Float saldoActual

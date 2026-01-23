@@ -2,7 +2,7 @@ import { apiClient } from '@/lib/api-client'
 import type { TarjetaDTORequest, TarjetaDTOResponse, CuotaCredito } from '@/types'
 
 export const tarjetaService = {
-  async listarTarjetas(idEspacioTrabajo: number): Promise<TarjetaDTOResponse[]> {
+  async listarTarjetas(idEspacioTrabajo: string): Promise<TarjetaDTOResponse[]> {
     const { data } = await apiClient.get<TarjetaDTOResponse[]>(`/comprascredito/tarjetas/${idEspacioTrabajo}`)
     return data
   },

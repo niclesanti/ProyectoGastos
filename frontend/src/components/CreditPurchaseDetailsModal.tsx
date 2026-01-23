@@ -14,8 +14,6 @@ import {
   Calendar,
   Store,
   CreditCard,
-  Copy,
-  CheckCircle2,
   ListChecks,
   Building2,
   Wallet,
@@ -54,8 +52,6 @@ export function CreditPurchaseDetailsModal({
   open,
   onOpenChange,
 }: CreditPurchaseDetailsModalProps) {
-  const [copied, setCopied] = useState(false)
-
   if (!purchase) return null
 
   const formatCurrency = (amount: number) => {
@@ -64,21 +60,6 @@ export function CreditPurchaseDetailsModal({
       currency: 'ARS',
       minimumFractionDigits: 2,
     }).format(amount)
-  }
-
-  const handleCopyId = async () => {
-    try {
-      await navigator.clipboard.writeText(purchase.id)
-      setCopied(true)
-      toast.success('ID copiado', {
-        description: 'El ID de la compra ha sido copiado al portapapeles.',
-      })
-      setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      toast.error('Error al copiar', {
-        description: 'No se pudo copiar el ID al portapapeles.',
-      })
-    }
   }
 
   const porcentajePagado = Math.round((purchase.cuotasPagadas / purchase.cantidadCuotas) * 100)
@@ -218,31 +199,10 @@ export function CreditPurchaseDetailsModal({
             {/* Audit Footer */}
             <Separator />
             <div className="space-y-1 text-xs text-muted-foreground">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-0.5 flex-1">
-                  <p>Espacio: <span className="font-medium text-foreground">{purchase.nombreEspacioTrabajo}</span></p>
-                  <p>Registrado por: <span className="font-medium text-foreground">{purchase.nombreCompletoAuditoria}</span></p>
-                  <p>Fecha creación: <span className="font-medium text-foreground">{format(parseISO(purchase.fechaCreacion), "dd/MM/yyyy HH:mm", { locale: es })}</span></p>
-                  <p className="pt-1">ID: <span className="font-mono">{purchase.id}</span></p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCopyId}
-                  className="h-7 text-xs shrink-0"
-                >
-                  {copied ? (
-                    <>
-                      <CheckCircle2 className="mr-1 h-3 w-3" />
-                      Copiado
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="mr-1 h-3 w-3" />
-                      Copiar ID
-                    </>
-                  )}
-                </Button>
+              <div className="space-y-0.5">
+                <p>Espacio: <span className="font-medium text-foreground">{purchase.nombreEspacioTrabajo}</span></p>
+                <p>Registrado por: <span className="font-medium text-foreground">{purchase.nombreCompletoAuditoria}</span></p>
+                <p>Fecha creación: <span className="font-medium text-foreground">{format(parseISO(purchase.fechaCreacion), "dd/MM/yyyy HH:mm", { locale: es })}</span></p>
               </div>
             </div>
           </div>

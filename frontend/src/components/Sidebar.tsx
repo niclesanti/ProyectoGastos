@@ -9,7 +9,6 @@ import {
   LogOut,
   User,
   Plus,
-  TrendingUp,
   TrendingDown,
   ArrowRightLeft,
   Receipt,
@@ -38,7 +37,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store/app-store'
 import { TransactionModal } from '@/components/TransactionModal'
 import { AccountTransferModal } from '@/components/AccountTransferModal'
@@ -59,7 +57,7 @@ export function AppSidebar() {
   const { currentWorkspace, setCurrentWorkspace } = useAppStore()
   
   // Cargar espacios de trabajo desde el backend con TanStack Query
-  const { data: workspaces = [], isLoading: isLoadingWorkspaces } = useWorkspaces(user?.id)
+  const { data: workspaces = [], isLoading: isLoadingWorkspaces } = useWorkspaces(user?.id?.toString())
   
   const [transactionModalOpen, setTransactionModalOpen] = useState(false)
   const [accountTransferModalOpen, setAccountTransferModalOpen] = useState(false)

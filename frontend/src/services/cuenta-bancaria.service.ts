@@ -5,7 +5,7 @@ import type {
 } from '@/types'
 
 export const cuentaBancariaService = {
-  async listarCuentas(idEspacioTrabajo: number): Promise<CuentaBancaria[]> {
+  async listarCuentas(idEspacioTrabajo: string): Promise<CuentaBancaria[]> {
     const { data } = await apiClient.get<CuentaBancaria[]>(`/cuentabancaria/listar/${idEspacioTrabajo}`)
     return data
   },

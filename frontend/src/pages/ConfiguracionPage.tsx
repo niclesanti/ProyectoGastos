@@ -161,7 +161,6 @@ export function ConfiguracionPage() {
       {
         email: values.email,
         idEspacioTrabajo: espacioActual.id,
-        idUsuarioAdmin: usuario.id,
       },
       {
         onSuccess: () => {
