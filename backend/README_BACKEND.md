@@ -280,7 +280,9 @@ backend/
 │   │   │   │   └── ResumenScheduler.java
 │   │   │   ├── service/                   # Capa de servicios
 │   │   │   │   ├── *Service.java          # Interfaces
-│   │   │   │   └── *ServiceImpl.java      # Implementaciones
+│   │   │   │   ├── *ServiceImpl.java      # Implementaciones
+│   │   │   │   ├── SecurityService.java   # Servicio de seguridad y autorización
+│   │   │   │   └── SecurityServiceImpl.java
 │   │   │   ├── validation/                # Validadores personalizados
 │   │   │   │   ├── Valid*.java            # Anotaciones
 │   │   │   │   └── *Validator.java        # Implementaciones
@@ -595,6 +597,182 @@ El sistema implementa un modelo de seguridad basado en:
 8. Backend → Redirige a: frontend/
 9. Frontend → Usuario autenticado
 ```
+
+### Protección contra Vulnerabilidades IDOR
+
+El sistema implementa **protección completa contra IDOR (Insecure Direct Object Reference)**, una vulnerabilidad crítica que permitiría a usuarios autenticados acceder a recursos de otros usuarios mediante la manipulación de IDs.
+
+#### ¿Qué es IDOR?
+
+IDOR ocurre cuando una aplicación expone referencias directas a objetos internos (IDs) sin validar que el usuario autenticado tiene permiso para acceder a ellos. 
+
+**Ejemplo de ataque:**
+```
+Usuario A tiene EspacioTrabajo ID: a3b8c9d4-...
+Usuario B intenta: GET /api/transaccion/buscar?espacioId=a3b8c9d4-...
+Sin protección: Usuario B accede a datos financieros de Usuario A ❌
+Con protección: Sistema rechaza la petición con error 403 ✅
+```
+
+#### Implementación de la Protección
+
+##### 1. SecurityService - Validación Centralizada
+
+Se implementó `SecurityService` como componente central de autorización:
+
+```java
+@Service
+public interface SecurityService {
+    // Obtener usuario autenticado desde el contexto de Spring Security
+    UUID getAuthenticatedUserId();
+    
+    // Validar acceso a espacio de trabajo (participante)
+    void validateWorkspaceAccess(UUID workspaceId);
+    
+    // Validar permisos de administrador
+    void validateWorkspaceAdmin(UUID workspaceId);
+    
+    // Validar ownership de recursos específicos
+    void validateTransactionOwnership(Long transactionId);
+    void validateCompraCreditoOwnership(Long compraCreditoId);
+    void validateCuentaBancariaOwnership(Long cuentaBancariaId);
+    void validateTarjetaOwnership(Long tarjetaId);
+}
+```
+
+##### 2. Cambio de IDs Secuenciales a UUIDs
+
+Para prevenir ataques de enumeración, se cambió el tipo de ID de `Long` (secuencial) a `UUID` (no predecible) en las entidades principales:
+
+- **Usuario**: `UUID` (128 bits, 2^122 combinaciones posibles)
+- **EspacioTrabajo**: `UUID` (imposible de adivinar)
+
+**Antes (Vulnerable):**
+```
+GET /api/espaciotrabajo/listar/1
+GET /api/espaciotrabajo/listar/2  ← Fácil de enumerar
+GET /api/espaciotrabajo/listar/3
+```
+
+**Después (Seguro):**
+```
+GET /api/espaciotrabajo/listar
+↳ Solo devuelve espacios del usuario autenticado
+```
+
+##### 3. Validación en Controladores
+
+Todos los endpoints críticos validan permisos ANTES de procesar la petición:
+
+```java
+@PostMapping("/registrar")
+public ResponseEntity<?> registrarTransaccion(@RequestBody TransaccionDTORequest dto) {
+    // Validar que el usuario tiene acceso al espacio de trabajo
+    securityService.validateWorkspaceAccess(dto.idEspacioTrabajo());
+    
+    // Procesar solo si tiene permisos
+    return ResponseEntity.ok(transaccionService.registrarTransaccion(dto));
+}
+
+@DeleteMapping("/remover/{id}")
+public ResponseEntity<Void> removerTransaccion(@PathVariable Long id) {
+    // Validar que la transacción pertenece a un espacio del usuario
+    securityService.validateTransactionOwnership(id);
+    
+    transaccionService.removerTransaccion(id);
+    return ResponseEntity.ok().build();
+}
+```
+
+##### 4. Eliminación de Parámetros Inseguros
+
+Se eliminaron endpoints que aceptaban IDs de usuario como parámetros:
+
+**Antes (Vulnerable):**
+```java
+@GetMapping("/listar/{idUsuario}")
+public ResponseEntity<?> listar(@PathVariable Long idUsuario) {
+    // ❌ Cualquier usuario autenticado puede pedir datos de otro
+    return ResponseEntity.ok(service.listarPorUsuario(idUsuario));
+}
+```
+
+**Después (Seguro):**
+```java
+@GetMapping("/listar")
+public ResponseEntity<?> listarMisEspacios() {
+    // ✅ Solo obtiene espacios del usuario autenticado
+    UUID userId = securityService.getAuthenticatedUserId();
+    return ResponseEntity.ok(service.listarPorUsuario(userId));
+}
+```
+
+##### 5. Validación en Múltiples Capas
+
+**Capa Controller:**
+- Validación inicial de acceso al espacio de trabajo
+- Obtención del usuario autenticado desde SecurityContext
+
+**Capa Service:**
+- Validación adicional antes de operaciones críticas
+- Verificación de ownership en eliminaciones/modificaciones
+
+**Capa Repository:**
+- Queries que incluyen filtros por `usuariosParticipantes`
+- Joins automáticos para validar pertenencia
+
+##### 6. Manejo de Excepciones de Seguridad
+
+```java
+@RestControllerAdvice
+public class ControllerAdvisor {
+    
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ExceptionInfo> handleUnauthorized(UnauthorizedException ex) {
+        // 401: Usuario no autenticado
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(new ExceptionInfo(ex.getMessage()));
+    }
+    
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ExceptionInfo> handleForbidden(ForbiddenException ex) {
+        // 403: Usuario autenticado pero sin permisos
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body(new ExceptionInfo(ex.getMessage()));
+    }
+}
+```
+
+#### Endpoints Protegidos
+
+Todos estos endpoints están protegidos contra IDOR:
+
+| Endpoint | Tipo Validación | Método SecurityService |
+|----------|-----------------|------------------------|
+| `POST /api/transaccion/registrar` | Workspace Access | `validateWorkspaceAccess()` |
+| `DELETE /api/transaccion/remover/{id}` | Transaction Ownership | `validateTransactionOwnership()` |
+| `GET /api/espaciotrabajo/listar` | User Context | `getAuthenticatedUserId()` |
+| `PUT /api/espaciotrabajo/compartir/{email}/{id}` | Admin Rights | `validateWorkspaceAdmin()` |
+| `POST /api/compracredito/registrar` | Workspace Access | `validateWorkspaceAccess()` |
+| `DELETE /api/compracredito/{id}` | Compra Ownership | `validateCompraCreditoOwnership()` |
+| `GET /api/cuentabancaria/listar/{idEspacio}` | Workspace Access | `validateWorkspaceAccess()` |
+| `GET /api/dashboard/stats/{idEspacio}` | Workspace Access | `validateWorkspaceAccess()` |
+
+#### Beneficios de la Implementación
+
+✅ **Prevención de Acceso No Autorizado**: Usuarios no pueden acceder a recursos de otros usuarios  
+✅ **Auditoría Completa**: Todos los intentos de acceso no autorizado son registrados en logs  
+✅ **Código Centralizado**: Lógica de seguridad en un solo lugar (SecurityService)  
+✅ **Reutilizable**: Métodos de validación compartidos entre controladores  
+✅ **Mensajes Claros**: Errores 401/403 con mensajes descriptivos para debugging  
+✅ **Enumeración Prevista**: UUIDs impiden adivinar IDs válidos  
+✅ **Compliance**: Cumple con OWASP Top 10 (A01: Broken Access Control)  
+
+#### Referencias Técnicas
+
+- **OWASP A01:2021 – Broken Access Control**: https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+- **CWE-639**: Authorization Bypass Through User-Controlled Key
+- **IDOR Prevention Cheat Sheet**: https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html
 
 ### Validaciones Personalizadas
 

@@ -19,6 +19,7 @@
 - [Responsive Design](#-responsive-design)
 - [Optimización y Performance](#-optimización-y-performance)
 - [Despliegue con Docker](#-despliegue-con-docker)
+- [Seguridad y Autenticación](#-seguridad-y-autenticación)
 - [Mejores Prácticas](#-mejores-prácticas)
 
 ---
@@ -1110,6 +1111,209 @@ docker run -d -p 80:80 --name finanzas-frontend finanzas-frontend:1.0.0
 # Con Docker Compose
 docker-compose up -d frontend
 ```
+
+---
+
+## 🔒 Seguridad y Autenticación
+
+### Modelo de Seguridad
+
+El frontend trabaja en conjunto con el backend para implementar un modelo de seguridad robusto que previene vulnerabilidades críticas como **IDOR (Insecure Direct Object Reference)**.
+
+### Autenticación OAuth2
+
+#### Flujo de Autenticación
+
+```
+1. Usuario → LoginPage → Clic en "Iniciar sesión con Google"
+2. Frontend → Redirige a: /api/oauth2/authorization/google
+3. Backend → Redirige a: Google OAuth2
+4. Usuario → Autoriza la aplicación en Google
+5. Google → Callback a: /api/login/oauth2/code/google
+6. Backend → Crea/actualiza usuario y establece sesión HTTP
+7. Backend → Redirige a: frontend /
+8. Frontend → ProtectedRoute verifica autenticación
+9. Frontend → Carga datos del usuario autenticado
+```
+
+#### AuthContext
+
+El contexto de autenticación (`src/contexts/AuthContext.tsx`) gestiona:
+- Estado del usuario autenticado
+- Loading states durante verificación
+- Redirección automática a `/login` si no autenticado
+- Logout y limpieza de sesión
+
+```typescript
+const { user, loading, logout } = useAuth();
+
+if (loading) return <LoadingSpinner />;
+if (!user) return <Navigate to="/login" />;
+```
+
+### Protección contra IDOR
+
+#### ¿Qué es IDOR?
+
+IDOR es una vulnerabilidad que permite a usuarios autenticados acceder a recursos de otros usuarios manipulando IDs en las peticiones. El sistema implementa protección completa en el backend que el frontend respeta.
+
+#### Prácticas de Seguridad en el Frontend
+
+##### 1. No Exponer IDs de Usuario
+
+**❌ Incorrecto (Vulnerable):**
+```typescript
+// NO hacer esto - permite manipulación de IDs
+const fetchWorkspaces = (userId: string) => {
+  return apiClient.get(`/api/espaciotrabajo/listar/${userId}`);
+};
+```
+
+**✅ Correcto (Seguro):**
+```typescript
+// El backend obtiene el userId del contexto de seguridad
+const fetchWorkspaces = () => {
+  return apiClient.get('/api/espaciotrabajo/listar');
+};
+```
+
+##### 2. Validación en Backend
+
+El frontend **nunca** debe ser la única línea de defensa. Todas las validaciones de permisos ocurren en el backend:
+
+```typescript
+// Frontend envía solo el ID del espacio de trabajo
+const registerTransaction = (transaction: TransactionRequest) => {
+  // El backend valida que el usuario tiene acceso al workspace
+  return apiClient.post('/api/transaccion/registrar', transaction);
+};
+
+// Backend valida automáticamente:
+// securityService.validateWorkspaceAccess(transaction.idEspacioTrabajo)
+```
+
+##### 3. Manejo de Errores de Autorización
+
+El cliente Axios (`src/lib/api-client.ts`) intercepta errores de autorización:
+
+```typescript
+apiClient.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      // Usuario no autenticado → Redirigir a login
+      window.location.href = '/login';
+    }
+    if (error.response?.status === 403) {
+      // Usuario sin permisos → Mostrar error
+      toast.error('No tienes permisos para realizar esta acción');
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+##### 4. Caché por Usuario
+
+El estado en Zustand almacena datos en caché **por espacio de trabajo**, no por usuario individual:
+
+```typescript
+interface AppState {
+  // Caché de dashboards por ID de espacio (UUID)
+  dashboardCache: Map<string, {
+    data: DashboardData;
+    timestamp: number;
+  }>;
+  
+  // El espacio seleccionado determina qué datos se muestran
+  selectedWorkspace: EspacioTrabajo | null;
+}
+```
+
+El backend valida que el usuario tiene acceso al espacio antes de devolver cualquier dato.
+
+##### 5. No Confiar en el Cliente
+
+```typescript
+// ❌ NO validar permisos solo en frontend
+const deleteTransaction = (id: number) => {
+  if (user.isAdmin) { // ← Inseguro, fácil de manipular
+    return apiClient.delete(`/api/transaccion/remover/${id}`);
+  }
+};
+
+// ✅ Enviar la petición y dejar que el backend valide
+const deleteTransaction = (id: number) => {
+  // Backend ejecuta: securityService.validateTransactionOwnership(id)
+  return apiClient.delete(`/api/transaccion/remover/${id}`);
+};
+```
+
+### Sesiones HTTP
+
+El sistema utiliza sesiones HTTP con cookies `httpOnly` y `secure` en producción:
+- **httpOnly**: JavaScript no puede acceder a la cookie de sesión
+- **secure**: Cookie solo se envía por HTTPS
+- **sameSite**: Protección contra CSRF
+
+### Mejores Prácticas Implementadas
+
+✅ **No exponer IDs de usuario**: Endpoints obtienen el usuario del contexto de seguridad  
+✅ **Validación en backend**: Todas las operaciones críticas validan permisos en el servidor  
+✅ **Interceptores de errores**: Manejo automático de 401/403  
+✅ **ProtectedRoute**: Todas las rutas sensibles están protegidas  
+✅ **Caché aislada**: Datos en caché solo de recursos accesibles  
+✅ **Sesiones seguras**: Cookies httpOnly y secure  
+✅ **Sin tokens en localStorage**: Sesiones HTTP en lugar de JWT en cliente  
+
+### Recomendaciones para Desarrolladores
+
+#### Al Crear Nuevos Endpoints
+
+1. **Nunca enviar IDs de usuario como parámetros**
+   ```typescript
+   // ❌ NO
+   get(`/api/resource/${userId}`)
+   
+   // ✅ SÍ
+   get('/api/resource')  // Backend obtiene userId del contexto
+   ```
+
+2. **Validar workspace access en endpoints que usan workspaceId**
+   ```typescript
+   // El backend debe llamar:
+   securityService.validateWorkspaceAccess(workspaceId)
+   ```
+
+3. **Manejar errores 403 de forma apropiada**
+   ```typescript
+   try {
+     await deleteResource(id);
+     toast.success('Recurso eliminado');
+   } catch (error) {
+     if (error.response?.status === 403) {
+       toast.error('No tienes permisos para eliminar este recurso');
+     }
+   }
+   ```
+
+4. **No ocultar elementos basándose solo en roles del frontend**
+   ```typescript
+   // El botón puede ocultarse para UX
+   {user.isAdmin && <DeleteButton />}
+   
+   // Pero el backend SIEMPRE debe validar:
+   const handleDelete = async () => {
+     // Backend valida permisos de admin independientemente
+     await deleteResource(id);
+   };
+   ```
+
+### Recursos de Seguridad
+
+- **OWASP Top 10**: https://owasp.org/Top10/
+- **IDOR Prevention**: https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html
+- **React Security**: https://react.dev/learn/keeping-components-pure#side-effects-unintended-consequences
 
 ---
 
