@@ -24,7 +24,7 @@ public class CompraCredito {
     @Column(name = "fecha_compra", nullable = false)
     private LocalDate fechaCompra;
 
-    @Column(name = "monto_total", nullable = false)
+    @Column(name = "monto_total", nullable = false, columnDefinition = "NUMERIC(15,2)")
     private Float montoTotal;
 
     @Column(name = "cantidad_cuotas", nullable = false)

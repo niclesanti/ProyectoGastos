@@ -42,7 +42,7 @@ public class Resumen {
     @Column(name = "estado", nullable = false)
     private EstadoResumen estado;
 
-    @Column(name = "monto_total", nullable = false)
+    @Column(name = "monto_total", nullable = false, columnDefinition = "NUMERIC(15,2)")
     private Float montoTotal;
 
     @ManyToOne

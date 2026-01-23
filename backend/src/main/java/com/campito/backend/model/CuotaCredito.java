@@ -26,7 +26,7 @@ public class CuotaCredito {
     @Column(name = "fecha_vencimiento", nullable = false)
     private LocalDate fechaVencimiento;
 
-    @Column(name = "monto_cuota", nullable = false)
+    @Column(name = "monto_cuota", nullable = false, columnDefinition = "NUMERIC(15,2)")
     private Float montoCuota;
 
     @Column(name = "pagada", nullable = false)

@@ -29,7 +29,7 @@ public class EspacioTrabajo {
     @Column(name = "nombre", nullable = false, length = 50)
     private String nombre;
 
-    @Column(name = "saldo", nullable = false)
+    @Column(name = "saldo", nullable = false, columnDefinition = "NUMERIC(15,2)")
     private Float saldo;// Asignar saldo inicial a 0.0f
 
     @ManyToOne

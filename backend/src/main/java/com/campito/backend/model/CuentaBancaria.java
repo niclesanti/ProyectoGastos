@@ -37,7 +37,7 @@ public class CuentaBancaria {
     @Column(name = "entidad_financiera", nullable = false, length = 50)
     private String entidadFinanciera;
 
-    @Column(name = "saldo_actual", nullable = false)
+    @Column(name = "saldo_actual", nullable = false, columnDefinition = "NUMERIC(15,2)")
     private Float saldoActual;
     
     @ManyToOne

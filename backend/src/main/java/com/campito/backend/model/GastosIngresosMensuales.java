@@ -36,10 +36,10 @@ public class GastosIngresosMensuales {
     @Column(name = "mes", nullable = false)
     private Integer mes;
 
-    @Column(name = "gastos", nullable = false)
+    @Column(name = "gastos", nullable = false, columnDefinition = "NUMERIC(15,2)")
     private Float gastos;
 
-    @Column(name = "ingresos", nullable = false)
+    @Column(name = "ingresos", nullable = false, columnDefinition = "NUMERIC(15,2)")
     private Float ingresos;
 
     @ManyToOne
