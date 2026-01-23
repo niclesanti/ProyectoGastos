@@ -3,12 +3,12 @@ import { apiClient } from '@/lib/api-client'
 import { EspacioTrabajoResponse, EspacioTrabajoRequest } from '@/types/workspace'
 
 // Hook para LISTAR espacios de trabajo (GET)
-export const useWorkspaces = (userId: number | undefined) => {
+export const useWorkspaces = (userId: string | undefined) => {
   return useQuery({
     queryKey: ['workspaces', userId], // El caché se identifica por este ID
     queryFn: async () => {
       const { data } = await apiClient.get<EspacioTrabajoResponse[]>(
-        `/espaciotrabajo/listar/${userId}`
+        `/espaciotrabajo/listar`
       )
       return data
     },
@@ -44,14 +44,12 @@ export const useShareWorkspace = () => {
     mutationFn: async ({
       email,
       idEspacioTrabajo,
-      idUsuarioAdmin,
     }: {
       email: string
-      idEspacioTrabajo: number
-      idUsuarioAdmin: number
+      idEspacioTrabajo: string  // UUID
     }) => {
       const { data } = await apiClient.put<void>(
-        `/espaciotrabajo/compartir/${email}/${idEspacioTrabajo}/${idUsuarioAdmin}`
+        `/espaciotrabajo/compartir/${email}/${idEspacioTrabajo}`
       )
       return data
     },

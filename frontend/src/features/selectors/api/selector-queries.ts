@@ -55,7 +55,7 @@ export const useBuscarTransacciones = () => {
   })
 }
 
-export const useMotivosTransaccion = (idEspacioTrabajo: number | undefined) => {
+export const useMotivosTransaccion = (idEspacioTrabajo: string | undefined) => {
   return useQuery({
     queryKey: ['motivos-transaccion', idEspacioTrabajo],
     queryFn: () => transaccionService.listarMotivos(idEspacioTrabajo!),
@@ -64,7 +64,7 @@ export const useMotivosTransaccion = (idEspacioTrabajo: number | undefined) => {
   })
 }
 
-export const useContactosTransaccion = (idEspacioTrabajo: number | undefined) => {
+export const useContactosTransaccion = (idEspacioTrabajo: string | undefined) => {
   return useQuery({
     queryKey: ['contactos-transaccion', idEspacioTrabajo],
     queryFn: () => transaccionService.listarContactos(idEspacioTrabajo!),
@@ -75,7 +75,7 @@ export const useContactosTransaccion = (idEspacioTrabajo: number | undefined) =>
 
 // ============ MOTIVOS ============
 
-export const useMotivos = (idEspacioTrabajo: number | undefined) => {
+export const useMotivos = (idEspacioTrabajo: string | undefined) => {
   return useQuery({
     queryKey: ['motivos', idEspacioTrabajo],
     queryFn: () => motivoService.listarMotivos(idEspacioTrabajo!),
@@ -98,7 +98,7 @@ export const useCreateMotivo = () => {
 
 // ============ CONTACTOS ============
 
-export const useContactos = (idEspacioTrabajo: number | undefined) => {
+export const useContactos = (idEspacioTrabajo: string | undefined) => {
   return useQuery({
     queryKey: ['contactos', idEspacioTrabajo],
     queryFn: () => contactoService.listarContactos(idEspacioTrabajo!),
@@ -120,7 +120,7 @@ export const useCreateContacto = () => {
 
 // ============ CUENTAS BANCARIAS ============
 
-export const useCuentasBancarias = (idEspacioTrabajo: number | undefined) => {
+export const useCuentasBancarias = (idEspacioTrabajo: string | undefined) => {
   return useQuery({
     queryKey: ['cuentas', idEspacioTrabajo],
     queryFn: () => cuentaBancariaService.listarCuentas(idEspacioTrabajo!),
@@ -167,7 +167,7 @@ export const useTransferenciaCuentas = () => {
 
 // ============ TARJETAS ============
 
-export const useTarjetas = (idEspacioTrabajo: number | undefined) => {
+export const useTarjetas = (idEspacioTrabajo: string | undefined) => {
   return useQuery({
     queryKey: ['tarjetas', idEspacioTrabajo],
     queryFn: () => tarjetaService.listarTarjetas(idEspacioTrabajo!),

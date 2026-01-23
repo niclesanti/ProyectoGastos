@@ -1,5 +1,6 @@
 package com.campito.backend.dto;
 
+import java.util.UUID;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -17,7 +18,7 @@ public record TransaccionBusquedaDTO(
     @Size(max = 50, message = "El nombre de contacto no puede exceder los 50 caracteres")
     String contacto,
     @NotNull(message = "El ID del espacio de trabajo no puede ser nulo")
-    Long idEspacioTrabajo
+    UUID idEspacioTrabajo
 ) {
 
 }

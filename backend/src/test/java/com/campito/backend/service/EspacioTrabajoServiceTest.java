@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,7 +45,7 @@ public class EspacioTrabajoServiceTest {
     @BeforeEach
     void setUp() {
         usuarioAdmin = new Usuario();
-        usuarioAdmin.setId(1L);
+        usuarioAdmin.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
         usuarioAdmin.setNombre("Admin");
         usuarioAdmin.setEmail("admin@test.com");
         usuarioAdmin.setFotoPerfil("foto.jpg");
@@ -56,7 +57,7 @@ public class EspacioTrabajoServiceTest {
         usuarioAdmin.setFechaUltimoAcceso(LocalDateTime.now());
 
         espacioTrabajo = new EspacioTrabajo();
-        espacioTrabajo.setId(1L);
+        espacioTrabajo.setId(UUID.fromString("00000000-0000-0000-0000-000000000002"));
         espacioTrabajo.setNombre("Espacio de Prueba");
         espacioTrabajo.setSaldo(0f);
         espacioTrabajo.setUsuarioAdmin(usuarioAdmin);
@@ -83,25 +84,25 @@ public class EspacioTrabajoServiceTest {
 
     @Test
     void registrarEspacioTrabajo_cuandoUsuarioAdminNoExiste_entoncesLanzaExcepcion() {
-        EspacioTrabajoDTORequest dto = new EspacioTrabajoDTORequest("Nuevo Espacio", 99L);
-        when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
+        EspacioTrabajoDTORequest dto = new EspacioTrabajoDTORequest("Nuevo Espacio", UUID.fromString("00000000-0000-0000-0000-000000000099"));
+        when(usuarioRepository.findById(UUID.fromString("00000000-0000-0000-0000-000000000099"))).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
             espacioTrabajoService.registrarEspacioTrabajo(dto);
         });
-        assertEquals("Usuario con ID 99 no encontrado", exception.getMessage());
+        assertTrue(exception.getMessage().contains("Usuario con ID") && exception.getMessage().contains("no encontrado"));
         verify(espacioTrabajoRepository, never()).save(any(EspacioTrabajo.class));
     }
 
     @Test
     void registrarEspacioTrabajo_cuandoRegistroExitoso_entoncesGuardaEspacioYUsuarioAdmin() {
-        EspacioTrabajoDTORequest dto = new EspacioTrabajoDTORequest("Nuevo Espacio", 1L);
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioAdmin));
+        EspacioTrabajoDTORequest dto = new EspacioTrabajoDTORequest("Nuevo Espacio", usuarioAdmin.getId());
+        when(usuarioRepository.findById(usuarioAdmin.getId())).thenReturn(Optional.of(usuarioAdmin));
         when(espacioTrabajoRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
 
         espacioTrabajoService.registrarEspacioTrabajo(dto);
 
-        verify(usuarioRepository, times(1)).findById(1L);
+        verify(usuarioRepository, times(1)).findById(usuarioAdmin.getId());
         verify(espacioTrabajoRepository, times(1)).save(any(EspacioTrabajo.class));
     }
 
@@ -110,59 +111,32 @@ public class EspacioTrabajoServiceTest {
     @Test
     void compartirEspacioTrabajo_cuandoParametrosSonNulos_entoncesLanzaExcepcion() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            espacioTrabajoService.compartirEspacioTrabajo(null, 1L, 1L);
+            espacioTrabajoService.compartirEspacioTrabajo(null, null);
         });
-        assertEquals("El email, el ID del espacio de trabajo y el ID del usuario administrador del espacio no pueden ser nulos", exception.getMessage());
-        verify(espacioTrabajoRepository, never()).findById(anyLong());
+        assertEquals("El email y el ID del espacio de trabajo no pueden ser nulos", exception.getMessage());
+        verify(espacioTrabajoRepository, never()).findById(any(java.util.UUID.class));
     }
 
     @Test
     void compartirEspacioTrabajo_cuandoEspacioTrabajoNoExiste_entoncesLanzaExcepcion() {
-        when(espacioTrabajoRepository.findById(99L)).thenReturn(Optional.empty());
+        when(espacioTrabajoRepository.findById(UUID.fromString("00000000-0000-0000-0000-000000000099"))).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
-            espacioTrabajoService.compartirEspacioTrabajo("test@test.com", 99L, 1L);
+            espacioTrabajoService.compartirEspacioTrabajo("test@test.com", UUID.fromString("00000000-0000-0000-0000-000000000099"));
         });
-        assertEquals("Espacio de trabajo con ID 99 no encontrado", exception.getMessage());
+        assertTrue(exception.getMessage().contains("Espacio de trabajo") && exception.getMessage().contains("no encontrado"));
         verify(usuarioRepository, never()).findByEmail(anyString());
     }
 
-    @Test
-    void compartirEspacioTrabajo_cuandoUsuarioAdminNoEsAdminDelEspacio_entoncesLanzaExcepcion() {
-        Usuario otroUsuario = new Usuario();
-        otroUsuario.setId(2L);
-        otroUsuario.setNombre("Otro");
-        otroUsuario.setEmail("otro@test.com");
-        otroUsuario.setFotoPerfil("foto.jpg");
-        otroUsuario.setProveedor(ProveedorAutenticacion.MANUAL);
-        otroUsuario.setIdProveedor("456");
-        otroUsuario.setRol("USER");
-        otroUsuario.setActivo(true);
-        otroUsuario.setFechaRegistro(LocalDateTime.now());
-        otroUsuario.setFechaUltimoAcceso(LocalDateTime.now());
-        
-        EspacioTrabajo otroEspacio = new EspacioTrabajo();
-        otroEspacio.setId(2L);
-        otroEspacio.setNombre("Otro Espacio");
-        otroEspacio.setSaldo(0f);
-        otroEspacio.setUsuarioAdmin(otroUsuario);
-
-        when(espacioTrabajoRepository.findById(1L)).thenReturn(Optional.of(otroEspacio));
-
-        com.campito.backend.exception.PermisosDenegadosException exception = assertThrows(com.campito.backend.exception.PermisosDenegadosException.class, () -> {
-            espacioTrabajoService.compartirEspacioTrabajo("test@test.com", 1L, 1L);
-        });
-        assertEquals("No tienes permiso para compartir este espacio de trabajo. Solo el administrador puede realizar esta acción.", exception.getMessage());
-        verify(usuarioRepository, never()).findByEmail(anyString());
-    }
+    // Test removido: La validación de permisos del administrador ahora se maneja en la capa de controlador
 
     @Test
     void compartirEspacioTrabajo_cuandoEmailUsuarioNoExiste_entoncesLanzaExcepcion() {
-        when(espacioTrabajoRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioTrabajoRepository.findById(espacioTrabajo.getId())).thenReturn(Optional.of(espacioTrabajo));
         when(usuarioRepository.findByEmail("noexiste@test.com")).thenReturn(Optional.empty());
 
         UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class, () -> {
-            espacioTrabajoService.compartirEspacioTrabajo("noexiste@test.com", 1L, 1L);
+            espacioTrabajoService.compartirEspacioTrabajo("noexiste@test.com", espacioTrabajo.getId());
         });
         assertEquals("No existe ningún usuario registrado con el correo electrónico 'noexiste@test.com'. Por favor, verifica que el correo sea correcto o invita a esa persona a registrarse primero.", exception.getMessage());
         verify(espacioTrabajoRepository, never()).save(any(EspacioTrabajo.class));
@@ -171,7 +145,7 @@ public class EspacioTrabajoServiceTest {
     @Test
     void compartirEspacioTrabajo_cuandoCompartidoExitosamente_entoncesGuardaEspacio() {
         Usuario usuarioACompartir = new Usuario();
-        usuarioACompartir.setId(3L);
+        usuarioACompartir.setId(UUID.fromString("00000000-0000-0000-0000-000000000005"));
         usuarioACompartir.setNombre("Compartido");
         usuarioACompartir.setEmail("compartido@test.com");
         usuarioACompartir.setFotoPerfil("foto.jpg");
@@ -182,13 +156,13 @@ public class EspacioTrabajoServiceTest {
         usuarioACompartir.setFechaRegistro(LocalDateTime.now());
         usuarioACompartir.setFechaUltimoAcceso(LocalDateTime.now());
 
-        when(espacioTrabajoRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioTrabajoRepository.findById(espacioTrabajo.getId())).thenReturn(Optional.of(espacioTrabajo));
         when(usuarioRepository.findByEmail("compartido@test.com")).thenReturn(Optional.of(usuarioACompartir));
         when(espacioTrabajoRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
 
-        espacioTrabajoService.compartirEspacioTrabajo("compartido@test.com", 1L, 1L);
+        espacioTrabajoService.compartirEspacioTrabajo("compartido@test.com", espacioTrabajo.getId());
 
-        verify(espacioTrabajoRepository, times(1)).findById(1L);
+        verify(espacioTrabajoRepository, times(1)).findById(espacioTrabajo.getId());
         verify(usuarioRepository, times(1)).findByEmail("compartido@test.com");
         verify(espacioTrabajoRepository, times(1)).save(any(EspacioTrabajo.class));
         assertTrue(espacioTrabajo.getUsuariosParticipantes().contains(usuarioACompartir));

@@ -1,5 +1,6 @@
 package com.campito.backend.dto;
 
+import java.util.UUID;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -27,7 +28,7 @@ public record TarjetaDTORequest(
     @Max(value = 29, message = "El maximo valor es 29")
     Integer diaVencimientoPago,
     @NotNull(message = "El ID del espacio de trabajo no puede ser nulo")
-    Long espacioTrabajoId
+    UUID espacioTrabajoId
 ) {
 
 }

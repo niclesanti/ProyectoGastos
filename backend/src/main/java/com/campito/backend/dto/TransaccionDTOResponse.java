@@ -2,6 +2,7 @@ package com.campito.backend.dto;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import com.campito.backend.model.TipoTransaccion;
 
@@ -13,7 +14,7 @@ public record TransaccionDTOResponse(
     String descripcion,
     String nombreCompletoAuditoria,
     LocalDateTime fechaCreacion,
-    Long idEspacioTrabajo,
+    UUID idEspacioTrabajo,
     String nombreEspacioTrabajo,
     Long idMotivo,
     String nombreMotivo,

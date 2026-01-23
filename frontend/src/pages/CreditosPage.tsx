@@ -213,7 +213,7 @@ function CreditCardComponent({ card }: { card: TarjetaDTOResponse }) {
 }
 
 // Modal de registro
-function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: number }) {
+function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: string }) {
   const [open, setOpen] = useState(false)
   const createTarjetaMutation = useCreateTarjeta()
 

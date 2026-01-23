@@ -1,6 +1,7 @@
 package com.campito.backend.dto;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 import com.campito.backend.model.TipoTransaccion;
 import com.campito.backend.validation.ValidDescripcion;
@@ -29,7 +30,7 @@ public record TransaccionDTORequest(
     @Size(max = 100, message = "El nombre completo del usuario no puede exceder los 100 caracteres")
     String nombreCompletoAuditoria,
     @NotNull(message = "El ID del espacio de trabajo no puede ser nulo")
-    Long idEspacioTrabajo,
+    UUID idEspacioTrabajo,
     @NotNull(message = "El ID del motivo no puede ser nulo")
     Long idMotivo,
     Long idContacto,

@@ -1,6 +1,7 @@
 package com.campito.backend.dto;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 import com.campito.backend.validation.ValidDescripcion;
 import com.campito.backend.validation.ValidMonto;
@@ -31,7 +32,7 @@ public record CompraCreditoDTORequest(
     @NotBlank(message = "El nombre completo no puede estar vacío")
     String nombreCompletoAuditoria,
     @NotNull(message = "El ID del espacio de trabajo no puede ser nulo")
-    Long espacioTrabajoId,
+    UUID espacioTrabajoId,
     @NotNull(message = "El ID del motivo de la transacción no puede ser nulo")
     Long motivoId,
     Long comercioId,

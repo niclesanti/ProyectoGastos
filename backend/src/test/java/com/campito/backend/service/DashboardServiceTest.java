@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,7 +59,7 @@ class DashboardServiceTest {
     private DashboardServiceImpl dashboardService;
 
     @Captor
-    private ArgumentCaptor<Long> longCaptor;
+    private ArgumentCaptor<java.util.UUID> uuidCaptor;
 
     @Captor
     private ArgumentCaptor<LocalDate> dateCaptorStart;
@@ -71,7 +72,7 @@ class DashboardServiceTest {
     @BeforeEach
     void setUp() {
         espacio = new EspacioTrabajo();
-        espacio.setId(1L);
+        espacio.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
         espacio.setSaldo(123.45f);
     }
 
@@ -81,28 +82,28 @@ class DashboardServiceTest {
 
     @Test
     void obtenerDashboardStats_espacioNoExiste_lanzaEntityNotFound() {
-        when(espacioRepository.findById(1L)).thenReturn(Optional.empty());
+        when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () -> dashboardService.obtenerDashboardStats(1L));
+        assertThrows(EntityNotFoundException.class, () -> dashboardService.obtenerDashboardStats(espacio.getId()));
 
-        verify(espacioRepository).findById(1L);
+        verify(espacioRepository).findById(espacio.getId());
         verifyNoMoreInteractions(espacioRepository, dashboardRepository, cuotaCreditoRepository, tarjetaRepository, gastosIngresosMensualesRepository);
     }
 
     @Test
     void obtenerDashboardStats_gastosNoEncontrado_completaConCerosYCalculaOtrosCampos() {
-        when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacio));
+        when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
 
         // No gastosIngresosMensuales para el mes actual
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(anyLong(), anyInt(), anyInt()))
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(any(java.util.UUID.class), anyInt(), anyInt()))
             .thenReturn(Optional.empty());
 
-        when(cuotaCreditoRepository.calcularDeudaTotalPendiente(1L)).thenReturn(500.0f);
-        when(dashboardRepository.findDistribucionGastos(eq(1L), any(LocalDate.class))).thenReturn(new ArrayList<>());
-        when(tarjetaRepository.findByEspacioTrabajo_Id(1L)).thenReturn(new ArrayList<>());
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(eq(1L), anyList())).thenReturn(new ArrayList<>());
+        when(cuotaCreditoRepository.calcularDeudaTotalPendiente(espacio.getId())).thenReturn(500.0f);
+        when(dashboardRepository.findDistribucionGastos(eq(espacio.getId()), any(LocalDate.class))).thenReturn(new ArrayList<>());
+        when(tarjetaRepository.findByEspacioTrabajo_Id(espacio.getId())).thenReturn(new ArrayList<>());
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(eq(espacio.getId()), anyList())).thenReturn(new ArrayList<>());
 
-        DashboardStatsDTO stats = dashboardService.obtenerDashboardStats(1L);
+        DashboardStatsDTO stats = dashboardService.obtenerDashboardStats(espacio.getId());
 
         assertNotNull(stats);
         assertEquals(espacio.getSaldo(), stats.balanceTotal());
@@ -119,7 +120,7 @@ class DashboardServiceTest {
 
     @Test
     void obtenerDashboardStats_conDatos_mapeaValoresResumenYFlujoYDistribucion() {
-        when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacio));
+        when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
 
         // Simular que tenemos registro de gastos para dos meses dentro de los últimos 12
         LocalDate now = LocalDate.now();
@@ -150,25 +151,24 @@ class DashboardServiceTest {
                 .espacioTrabajo(espacio)
                 .build();
 
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(1L, ultimosMeses))
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(espacio.getId(), ultimosMeses))
                 .thenReturn(List.of(g1, g2));
 
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(eq(1L), anyInt(), anyInt()))
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(eq(espacio.getId()), anyInt(), anyInt()))
                 .thenReturn(Optional.of(g1));
 
-        when(cuotaCreditoRepository.calcularDeudaTotalPendiente(1L)).thenReturn(250.5f);
+        when(cuotaCreditoRepository.calcularDeudaTotalPendiente(espacio.getId())).thenReturn(250.5f);
 
         // Distribucion de gastos
         DistribucionGastoDTO distribMock = mock(DistribucionGastoDTO.class);
-        when(dashboardRepository.findDistribucionGastos(eq(1L), any(LocalDate.class))).thenReturn(List.of(distribMock));
+        when(dashboardRepository.findDistribucionGastos(eq(espacio.getId()), any(LocalDate.class))).thenReturn(List.of(distribMock));
 
         // Tarjeta y cuotas pendientes -> resumen mensual
         Tarjeta tarjeta = new Tarjeta();
         tarjeta.setId(20L);
         tarjeta.setDiaCierre(5);
         tarjeta.setDiaVencimientoPago(10);
-        when(tarjetaRepository.findByEspacioTrabajo_Id(1L)).thenReturn(List.of(tarjeta));
-
+        when(tarjetaRepository.findByEspacioTrabajo_Id(espacio.getId())).thenReturn(List.of(tarjeta));
         CuotaCredito cuota1 = new CuotaCredito();
         cuota1.setMontoCuota(120.0f);
         CuotaCredito cuota2 = new CuotaCredito();
@@ -178,7 +178,7 @@ class DashboardServiceTest {
         when(cuotaCreditoRepository.findByTarjetaSinResumenEnRango(eq(20L), any(LocalDate.class), any(LocalDate.class)))
                 .thenReturn(List.of(cuota1, cuota2));
 
-        DashboardStatsDTO stats = dashboardService.obtenerDashboardStats(1L);
+        DashboardStatsDTO stats = dashboardService.obtenerDashboardStats(espacio.getId());
 
         assertNotNull(stats);
         assertEquals(espacio.getSaldo(), stats.balanceTotal());
@@ -201,16 +201,16 @@ class DashboardServiceTest {
 
     @Test
     void obtenerDashboardStats_sinTarjetas_resumenMensualCero() {
-        when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacio));
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(eq(1L), anyInt(), anyInt()))
+        when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(eq(espacio.getId()), anyInt(), anyInt()))
                 .thenReturn(Optional.of(GastosIngresosMensuales.builder().anio(LocalDate.now().getYear()).mes(LocalDate.now().getMonthValue()).gastos(10f).ingresos(20f).espacioTrabajo(espacio).build()));
 
-        when(cuotaCreditoRepository.calcularDeudaTotalPendiente(1L)).thenReturn(0.0f);
-        when(dashboardRepository.findDistribucionGastos(eq(1L), any(LocalDate.class))).thenReturn(List.of());
-        when(tarjetaRepository.findByEspacioTrabajo_Id(1L)).thenReturn(List.of());
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(eq(1L), anyList())).thenReturn(new ArrayList<>());
+        when(cuotaCreditoRepository.calcularDeudaTotalPendiente(espacio.getId())).thenReturn(0.0f);
+        when(dashboardRepository.findDistribucionGastos(eq(espacio.getId()), any(LocalDate.class))).thenReturn(List.of());
+        when(tarjetaRepository.findByEspacioTrabajo_Id(espacio.getId())).thenReturn(List.of());
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(eq(espacio.getId()), anyList())).thenReturn(new ArrayList<>());
 
-        DashboardStatsDTO stats = dashboardService.obtenerDashboardStats(1L);
+        DashboardStatsDTO stats = dashboardService.obtenerDashboardStats(espacio.getId());
 
         assertNotNull(stats);
         assertEquals(0.0f, stats.resumenMensual());
@@ -218,13 +218,13 @@ class DashboardServiceTest {
 
     @Test
     void obtenerDashboardStats_whenDebtCalcThrows_propagatesException() {
-        when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacio));
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(eq(1L), anyInt(), anyInt()))
+        when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(eq(espacio.getId()), anyInt(), anyInt()))
                 .thenReturn(Optional.of(GastosIngresosMensuales.builder().anio(LocalDate.now().getYear()).mes(LocalDate.now().getMonthValue()).gastos(10f).ingresos(20f).espacioTrabajo(espacio).build()));
 
-        when(cuotaCreditoRepository.calcularDeudaTotalPendiente(1L)).thenThrow(new RuntimeException("DB error"));
+        when(cuotaCreditoRepository.calcularDeudaTotalPendiente(espacio.getId())).thenThrow(new RuntimeException("DB error"));
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> dashboardService.obtenerDashboardStats(1L));
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> dashboardService.obtenerDashboardStats(espacio.getId()));
         assertEquals("DB error", ex.getMessage());
     }
 

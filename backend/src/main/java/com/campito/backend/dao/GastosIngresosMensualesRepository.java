@@ -2,6 +2,7 @@ package com.campito.backend.dao;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -13,7 +14,7 @@ import com.campito.backend.model.GastosIngresosMensuales;
 @Repository
 public interface GastosIngresosMensualesRepository extends JpaRepository<GastosIngresosMensuales, Long> {
 
-    Optional<GastosIngresosMensuales> findByEspacioTrabajo_IdAndAnioAndMes(Long espacioTrabajoId, Integer anio, Integer mes);
+    Optional<GastosIngresosMensuales> findByEspacioTrabajo_IdAndAnioAndMes(UUID espacioTrabajoId, Integer anio, Integer mes);
 
     /**
      * Busca todos los registros de gastos e ingresos mensuales para un espacio de trabajo
@@ -27,6 +28,6 @@ public interface GastosIngresosMensualesRepository extends JpaRepository<GastosI
            "AND CONCAT(CAST(g.anio AS string), '-', CASE WHEN g.mes < 10 THEN CONCAT('0', CAST(g.mes AS string)) ELSE CAST(g.mes AS string) END) IN :anioMeses " +
            "ORDER BY g.anio DESC, g.mes DESC")
     List<GastosIngresosMensuales> findByEspacioTrabajoAndMeses(
-        @Param("espacioTrabajoId") Long espacioTrabajoId,
+        @Param("espacioTrabajoId") UUID espacioTrabajoId,
         @Param("anioMeses") List<String> anioMeses);
 } 

@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -260,7 +261,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<CompraCreditoDTOResponse> listarComprasCreditoDebeCuotas(Long idEspacioTrabajo) {
+    public List<CompraCreditoDTOResponse> listarComprasCreditoDebeCuotas(UUID idEspacioTrabajo) {
 
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de listar compras crédito con ID de espacio nulo.");
@@ -289,7 +290,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<CompraCreditoDTOResponse> BuscarComprasCredito(Long idEspacioTrabajo) {
+    public List<CompraCreditoDTOResponse> BuscarComprasCredito(UUID idEspacioTrabajo) {
 
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de buscar compras crédito con ID de espacio nulo.");
@@ -354,7 +355,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<TarjetaDTOResponse> listarTarjetas(Long idEspacioTrabajo) {
+    public List<TarjetaDTOResponse> listarTarjetas(UUID idEspacioTrabajo) {
 
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de listar tarjetas con ID de espacio nulo.");
@@ -594,7 +595,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<ResumenDTOResponse> listarResumenesPorEspacioTrabajo(Long idEspacioTrabajo) {
+    public List<ResumenDTOResponse> listarResumenesPorEspacioTrabajo(UUID idEspacioTrabajo) {
 
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de listar tarjetas con ID de espacio nulo.");

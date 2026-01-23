@@ -1,10 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowUpRight, ArrowDownRight, DollarSign, CreditCard, AlertCircle, Wallet, Loader2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
-import { useAppStore } from '@/store/app-store'
-import { useEffect, useState } from 'react'
+
 
 interface StatsCardProps {
   title: string
@@ -61,16 +60,6 @@ export function StatsCard({ title, value, change, description, icon, trend, isLo
 
 export function DashboardStats() {
   const { stats, isLoading } = useDashboardStats()
-  const comprasPendientes = useAppStore((state) => state.comprasPendientes)
-  const currentWorkspace = useAppStore((state) => state.currentWorkspace)
-  const [cantidadCompras, setCantidadCompras] = useState(0)
-
-  useEffect(() => {
-    if (currentWorkspace?.id) {
-      const compras = comprasPendientes.get(currentWorkspace.id)
-      setCantidadCompras(compras?.data?.length || 0)
-    }
-  }, [comprasPendientes, currentWorkspace])
 
   return (
     <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">

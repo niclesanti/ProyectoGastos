@@ -1,6 +1,7 @@
 package com.campito.backend.service;
 
 import java.util.List;
+import java.util.UUID;
 
 import com.campito.backend.dto.ContactoDTORequest;
 import com.campito.backend.dto.ContactoDTOResponse;
@@ -16,7 +17,7 @@ public interface TransaccionService {
     public List<TransaccionDTOResponse> buscarTransaccion(TransaccionBusquedaDTO datosBusqueda);
     public ContactoDTOResponse registrarContactoTransferencia(ContactoDTORequest contactoDTO);
     public MotivoDTOResponse nuevoMotivoTransaccion(MotivoDTORequest motivoDTO);
-    public List<ContactoDTOResponse> listarContactos(Long idEspacioTrabajo);
-    public List<MotivoDTOResponse> listarMotivos(Long idEspacioTrabajo);
-    public List<TransaccionDTOResponse> buscarTransaccionesRecientes(Long idEspacioTrabajo);
+    public List<ContactoDTOResponse> listarContactos(UUID idEspacioTrabajo);
+    public List<MotivoDTOResponse> listarMotivos(UUID idEspacioTrabajo);
+    public List<TransaccionDTOResponse> buscarTransaccionesRecientes(UUID idEspacioTrabajo);
 }

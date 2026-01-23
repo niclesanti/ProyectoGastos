@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -65,10 +66,16 @@ public class TransaccionServiceTest {
     private ContactoTransferencia contactoTransferencia;
     private Usuario usuarioAdmin;
 
+    // UUIDs para pruebas
+    private UUID usuarioId;
+    private UUID espacioId;
+    private UUID motivoId;
+    private UUID contactoId;
+
     @BeforeEach
     void setUp() {
         usuarioAdmin = new Usuario();
-        usuarioAdmin.setId(1L);
+        usuarioAdmin.setId(usuarioId = UUID.fromString("00000000-0000-0000-0000-000000000001"));
         usuarioAdmin.setNombre("Admin");
         usuarioAdmin.setEmail("admin@test.com");
         usuarioAdmin.setFotoPerfil("foto.jpg");
@@ -80,7 +87,7 @@ public class TransaccionServiceTest {
         usuarioAdmin.setFechaUltimoAcceso(LocalDateTime.now());
 
         espacioTrabajo = new EspacioTrabajo();
-        espacioTrabajo.setId(1L);
+        espacioTrabajo.setId(espacioId = UUID.fromString("00000000-0000-0000-0000-000000000002"));
         espacioTrabajo.setNombre("Espacio de Prueba");
         espacioTrabajo.setSaldo(1000.0f);
         espacioTrabajo.setUsuarioAdmin(usuarioAdmin);
@@ -155,7 +162,7 @@ public class TransaccionServiceTest {
 
         // Default: no GastosIngresosMensuales record for current year/month unless test overrides
         // Lenient because not every test needs a monthly registro; tests will override when necessary
-        lenient().when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(anyLong(), anyInt(), anyInt()))
+        lenient().when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(any(UUID.class), anyInt(), anyInt()))
                 .thenReturn(Optional.empty());
     }
 
@@ -174,20 +181,20 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarTransaccion_cuandoEspacioTrabajoNoExiste_entoncesLanzaExcepcion() {
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 99L, 1L, null, null);
-        when(espacioRepository.findById(99L)).thenReturn(Optional.empty());
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", UUID.fromString("00000000-0000-0000-0000-000000000099"), 1L, null, null);
+        when(espacioRepository.findById(UUID.fromString("00000000-0000-0000-0000-000000000099"))).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
             transaccionService.registrarTransaccion(dto);
         });
-        assertEquals("Espacio de trabajo con ID 99 no encontrado", exception.getMessage());
+        assertEquals("Espacio de trabajo con ID 00000000-0000-0000-0000-000000000099 no encontrado", exception.getMessage());
         verify(transaccionRepository, never()).save(any(Transaccion.class));
     }
 
     @Test
     void registrarTransaccion_cuandoMotivoNoExiste_entoncesLanzaExcepcion() {
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, 99L, null, null);
-        when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 99L, null, null);
+        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(99L)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
@@ -199,8 +206,8 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarTransaccion_cuandoIdContactoExistePeroContactoNoExiste_entoncesLanzaExcepcion() {
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, 1L, 99L, null);
-        when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 1L, 99L, null);
+        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(contactoRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -213,8 +220,8 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarTransaccion_cuandoOpcionCorrecta_entoncesRegistroExitoso() {
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, 1L, 1L, null);
-        when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 1L, 1L, null);
+        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(contactoRepository.findById(1L)).thenReturn(Optional.of(contactoTransferencia));
         when(contactoRepository.save(any(ContactoTransferencia.class))).thenAnswer(inv -> {
@@ -250,9 +257,9 @@ public class TransaccionServiceTest {
         cuentaBancaria.setId(1L);
         cuentaBancaria.setSaldoActual(500.0f);
 
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", 1L, 1L, 1L, 1L);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 1L, 1L, 1L);
 
-        when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(contactoRepository.findById(1L)).thenReturn(Optional.of(contactoTransferencia));
         when(contactoRepository.save(any(ContactoTransferencia.class))).thenAnswer(inv -> {
@@ -298,16 +305,16 @@ public class TransaccionServiceTest {
                 .espacioTrabajo(espacioTrabajo)
                 .build();
 
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 200f, TipoTransaccion.INGRESO, "Venta mayor", "Auditor", 1L, 1L, null, null);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 200f, TipoTransaccion.INGRESO, "Venta mayor", "Auditor", espacioId, 1L, null, null);
 
-        when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> {
             MotivoTransaccion m = inv.getArgument(0);
             m.setId(1L);
             return m;
         });
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(1L, año, mes)).thenReturn(Optional.of(registro));
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(espacioId, año, mes)).thenReturn(Optional.of(registro));
         when(transaccionRepository.save(any(Transaccion.class))).thenAnswer(invocation -> {
             Transaccion t = invocation.getArgument(0);
             t.setId(1L);
@@ -329,9 +336,9 @@ public class TransaccionServiceTest {
     @Test
     void registrarTransaccion_cuandoRegistroMensualAusente_entoncesCreaRegistro() {
 
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Venta pequena", "Auditor", 1L, 1L, null, null);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Venta pequena", "Auditor", espacioId, 1L, null, null);
 
-        when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> {
             MotivoTransaccion m = inv.getArgument(0);
@@ -399,7 +406,7 @@ public class TransaccionServiceTest {
         when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
         doNothing().when(transaccionRepository).delete(any(Transaccion.class));
         when(espacioRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(1L, año, mes)).thenReturn(Optional.of(registro));
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(espacioId, año, mes)).thenReturn(Optional.of(registro));
 
         transaccionService.removerTransaccion(1L);
 
@@ -438,7 +445,7 @@ public class TransaccionServiceTest {
         doNothing().when(transaccionRepository).delete(any(Transaccion.class));
         when(espacioRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
         when(cuentaBancariaRepository.save(any(CuentaBancaria.class))).thenReturn(cuentaBancaria);
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(1L, año, mes)).thenReturn(Optional.of(registro));
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(espacioId, año, mes)).thenReturn(Optional.of(registro));
 
         // Act
         transaccionService.removerTransaccion(1L);
@@ -481,7 +488,7 @@ public class TransaccionServiceTest {
         doNothing().when(transaccionRepository).delete(any(Transaccion.class));
         when(espacioRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
         when(cuentaBancariaRepository.save(any(CuentaBancaria.class))).thenReturn(cuentaBancaria);
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(1L, año, mes)).thenReturn(Optional.of(registro));
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(espacioId, año, mes)).thenReturn(Optional.of(registro));
 
         // Act
         transaccionService.removerTransaccion(1L);
@@ -522,7 +529,7 @@ public class TransaccionServiceTest {
             .build();
 
         when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(1L, año, mes)).thenReturn(Optional.of(registro));
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(espacioId, año, mes)).thenReturn(Optional.of(registro));
 
         // Act & Assert
         assertThrows(com.campito.backend.exception.SaldoInsuficienteException.class, () -> transaccionService.removerTransaccion(1L));
@@ -544,7 +551,7 @@ public class TransaccionServiceTest {
 
     @Test
     void buscarTransaccion_cuandoAnioNuloYMesNoNulo_entoncesLanzaExcepcion() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(1, null, null, null, 1L);
+        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(1, null, null, null, espacioId);
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             transaccionService.buscarTransaccion(dto);
         });
@@ -554,7 +561,7 @@ public class TransaccionServiceTest {
 
     @Test
     void buscarTransaccion_cuandoBusquedaConAnio_entoncesBusquedaExitosa() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, 2023, null, null, 1L);
+        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, 2023, null, null, espacioId);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
             .monto(100f)
@@ -578,7 +585,7 @@ public class TransaccionServiceTest {
 
     @Test
     void buscarTransaccion_cuandoBusquedaConAnioYMes_entoncesBusquedaExitosa() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(1, 2023, null, null, 1L);
+        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(1, 2023, null, null, espacioId);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
             .monto(100f)
@@ -602,7 +609,7 @@ public class TransaccionServiceTest {
 
     @Test
     void buscarTransaccion_cuandoBusquedaConContacto_entoncesBusquedaExitosa() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, "Cliente A", 1L);
+        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, "Cliente A", espacioId);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
             .monto(100f)
@@ -627,7 +634,7 @@ public class TransaccionServiceTest {
 
     @Test
     void buscarTransaccion_cuandoBusquedaConMotivo_entoncesBusquedaExitosa() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, "Venta", null, 1L);
+        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, "Venta", null, espacioId);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
             .monto(100f)
@@ -651,7 +658,7 @@ public class TransaccionServiceTest {
 
     @Test
     void buscarTransaccion_cuandoBusquedaSinFiltros_entoncesBusquedaExitosa() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, null, 1L);
+        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, null, espacioId);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
             .monto(100f)
@@ -675,7 +682,7 @@ public class TransaccionServiceTest {
 
     @Test
     void buscarTransaccion_cuandoBusquedaSinResultados_entoncesRetornaListaVacia() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, null, 1L);
+        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, null, espacioId);
         when(transaccionRepository.findAll(any(Specification.class))).thenReturn(Collections.emptyList());
 
         List<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
@@ -700,21 +707,21 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarContactoTransferencia_cuandoEspacioTrabajoNoExiste_entoncesLanzaExcepcion() {
-        ContactoDTORequest dto = new ContactoDTORequest("Nombre Contacto", 99L);
-        when(espacioRepository.findById(99L)).thenReturn(Optional.empty());
+        ContactoDTORequest dto = new ContactoDTORequest("Nombre Contacto", UUID.fromString("00000000-0000-0000-0000-000000000099"));
+        when(espacioRepository.findById(UUID.fromString("00000000-0000-0000-0000-000000000099"))).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
             transaccionService.registrarContactoTransferencia(dto);
         });
-        assertEquals("Espacio de trabajo con ID 99 no encontrado", exception.getMessage());
+        assertEquals("Espacio de trabajo con ID 00000000-0000-0000-0000-000000000099 no encontrado", exception.getMessage());
         verify(contactoRepository, never()).save(any(ContactoTransferencia.class));
     }
 
     @Test
     void registrarContactoTransferencia_cuandoOpcionCorrecta_entoncesRegistroExitoso() {
-        ContactoDTORequest dto = new ContactoDTORequest("Nuevo Contacto", 1L);
-        when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
-        when(contactoRepository.findFirstByNombreAndEspacioTrabajo_Id("Nuevo Contacto", 1L))
+        ContactoDTORequest dto = new ContactoDTORequest("Nuevo Contacto", espacioId);
+        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
+        when(contactoRepository.findFirstByNombreAndEspacioTrabajo_Id("Nuevo Contacto", espacioId))
                 .thenReturn(Optional.empty());
         when(contactoRepository.save(any(ContactoTransferencia.class))).thenAnswer(invocation -> {
             ContactoTransferencia contacto = invocation.getArgument(0);
@@ -732,12 +739,12 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarContactoTransferencia_cuandoContactoDuplicado_entoncesLanzaExcepcion() {
-        ContactoDTORequest dto = new ContactoDTORequest("Contacto Existente", 1L);
+        ContactoDTORequest dto = new ContactoDTORequest("Contacto Existente", espacioId);
         ContactoTransferencia contactoExistente = new ContactoTransferencia();
         contactoExistente.setId(10L);
         contactoExistente.setNombre("Contacto Existente");
         
-        when(contactoRepository.findFirstByNombreAndEspacioTrabajo_Id("Contacto Existente", 1L))
+        when(contactoRepository.findFirstByNombreAndEspacioTrabajo_Id("Contacto Existente", espacioId))
                 .thenReturn(Optional.of(contactoExistente));
 
         com.campito.backend.exception.EntidadDuplicadaException exception = 
@@ -764,21 +771,21 @@ public class TransaccionServiceTest {
 
     @Test
     void nuevoMotivoTransaccion_cuandoEspacioTrabajoNoExiste_entoncesLanzaExcepcion() {
-        MotivoDTORequest dto = new MotivoDTORequest("Nuevo Motivo", 99L);
-        when(espacioRepository.findById(99L)).thenReturn(Optional.empty());
+        MotivoDTORequest dto = new MotivoDTORequest("Nuevo Motivo", UUID.fromString("00000000-0000-0000-0000-000000000099"));
+        when(espacioRepository.findById(UUID.fromString("00000000-0000-0000-0000-000000000099"))).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
             transaccionService.nuevoMotivoTransaccion(dto);
         });
-        assertEquals("Espacio de trabajo con ID 99 no encontrado", exception.getMessage());
+        assertEquals("Espacio de trabajo con ID 00000000-0000-0000-0000-000000000099 no encontrado", exception.getMessage());
         verify(motivoRepository, never()).save(any(MotivoTransaccion.class));
     }
 
     @Test
     void nuevoMotivoTransaccion_cuandoOpcionCorrecta_entoncesRegistroExitoso() {
-        MotivoDTORequest dto = new MotivoDTORequest("Nuevo Motivo", 1L);
-        when(espacioRepository.findById(1L)).thenReturn(Optional.of(espacioTrabajo));
-        when(motivoRepository.findFirstByMotivoAndEspacioTrabajo_Id("Nuevo Motivo", 1L))
+        MotivoDTORequest dto = new MotivoDTORequest("Nuevo Motivo", espacioId);
+        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
+        when(motivoRepository.findFirstByMotivoAndEspacioTrabajo_Id("Nuevo Motivo", espacioId))
                 .thenReturn(Optional.empty());
         when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(invocation -> {
             MotivoTransaccion motivo = invocation.getArgument(0);
@@ -796,12 +803,12 @@ public class TransaccionServiceTest {
 
     @Test
     void nuevoMotivoTransaccion_cuandoMotivoDuplicado_entoncesLanzaExcepcion() {
-        MotivoDTORequest dto = new MotivoDTORequest("Motivo Existente", 1L);
+        MotivoDTORequest dto = new MotivoDTORequest("Motivo Existente", espacioId);
         MotivoTransaccion motivoExistente = new MotivoTransaccion();
         motivoExistente.setId(10L);
         motivoExistente.setMotivo("Motivo Existente");
         
-        when(motivoRepository.findFirstByMotivoAndEspacioTrabajo_Id("Motivo Existente", 1L))
+        when(motivoRepository.findFirstByMotivoAndEspacioTrabajo_Id("Motivo Existente", espacioId))
                 .thenReturn(Optional.of(motivoExistente));
 
         com.campito.backend.exception.EntidadDuplicadaException exception = 
@@ -821,34 +828,34 @@ public class TransaccionServiceTest {
             transaccionService.listarContactos(null);
         });
         assertEquals("El id del espacio de trabajo no puede ser nulo", exception.getMessage());
-        verify(contactoRepository, never()).findByEspacioTrabajo_Id(anyLong());
+        verify(contactoRepository, never()).findByEspacioTrabajo_Id(any(UUID.class));
     }
 
     @Test
     void listarContactos_cuandoNoExistenContactos_entoncesRetornaListaVacia() {
-        when(contactoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L)).thenReturn(Collections.emptyList());
+        when(contactoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId)).thenReturn(Collections.emptyList());
 
-        List<ContactoDTOResponse> result = transaccionService.listarContactos(1L);
+        List<ContactoDTOResponse> result = transaccionService.listarContactos(espacioId);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
-        verify(contactoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L);
+        verify(contactoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId);
     }
 
     @Test
     void listarContactos_cuandoExistenContactos_entoncesRetornaListaConContactos() {
         List<ContactoTransferencia> contactos = new ArrayList<>();
         contactos.add(contactoTransferencia);
-        when(contactoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L)).thenReturn(contactos);
+        when(contactoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId)).thenReturn(contactos);
 
-        List<ContactoDTOResponse> result = transaccionService.listarContactos(1L);
+        List<ContactoDTOResponse> result = transaccionService.listarContactos(espacioId);
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
         assertEquals(1, result.size());
         assertEquals(contactoTransferencia.getId(), result.get(0).id());
         assertEquals(contactoTransferencia.getNombre(), result.get(0).nombre());
-        verify(contactoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L);
+        verify(contactoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId);
     }
 
     // Tests para listarMotivos
@@ -859,34 +866,34 @@ public class TransaccionServiceTest {
             transaccionService.listarMotivos(null);
         });
         assertEquals("El id del espacio de trabajo no puede ser nulo", exception.getMessage());
-        verify(motivoRepository, never()).findByEspacioTrabajo_Id(anyLong());
+        verify(motivoRepository, never()).findByEspacioTrabajo_Id(any(UUID.class));
     }
 
     @Test
     void listarMotivos_cuandoNoExistenMotivos_entoncesRetornaListaVacia() {
-        when(motivoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L)).thenReturn(Collections.emptyList());
+        when(motivoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId)).thenReturn(Collections.emptyList());
 
-        List<MotivoDTOResponse> result = transaccionService.listarMotivos(1L);
+        List<MotivoDTOResponse> result = transaccionService.listarMotivos(espacioId);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
-        verify(motivoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L);
+        verify(motivoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId);
     }
 
     @Test
     void listarMotivos_cuandoExistenMotivos_entoncesRetornaListaConMotivos() {
         List<MotivoTransaccion> motivos = new ArrayList<>();
         motivos.add(motivoTransaccion);
-        when(motivoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L)).thenReturn(motivos);
+        when(motivoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId)).thenReturn(motivos);
 
-        List<MotivoDTOResponse> result = transaccionService.listarMotivos(1L);
+        List<MotivoDTOResponse> result = transaccionService.listarMotivos(espacioId);
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
         assertEquals(1, result.size());
         assertEquals(motivoTransaccion.getId(), result.get(0).id());
         assertEquals(motivoTransaccion.getMotivo(), result.get(0).motivo());
-        verify(motivoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(1L);
+        verify(motivoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId);
     }
 
     // Tests para buscarTransaccionesRecientes
@@ -904,7 +911,7 @@ public class TransaccionServiceTest {
     void buscarTransaccionesRecientes_cuandoNoExistenTransacciones_entoncesRetornaListaVacia() {
         when(transaccionRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
 
-        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccionesRecientes(1L);
+        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccionesRecientes(espacioId);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
@@ -932,7 +939,7 @@ public class TransaccionServiceTest {
 
         when(transaccionRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(transacciones.subList(0, 6)));
 
-        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccionesRecientes(1L);
+        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccionesRecientes(espacioId);
 
         assertNotNull(result);
         assertFalse(result.isEmpty());

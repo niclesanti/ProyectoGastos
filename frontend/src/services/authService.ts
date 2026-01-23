@@ -1,7 +1,7 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
 export interface User {
-  id: number
+  id: string  // UUID
   nombre: string
   email: string
   fotoPerfil: string

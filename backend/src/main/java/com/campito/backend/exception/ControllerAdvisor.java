@@ -130,4 +130,28 @@ public class ControllerAdvisor {
         );
         return new ResponseEntity<>(exceptionInfo, HttpStatus.UNPROCESSABLE_ENTITY);
     }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ExceptionInfo> handleUnauthorizedException(UnauthorizedException ex, WebRequest request) {
+        logger.warn("Intento de acceso no autorizado: {} - Request: {}", ex.getMessage(), request.getDescription(false));
+        ExceptionInfo exceptionInfo = new ExceptionInfo(
+                ex.getMessage(),
+                request.getDescription(false),
+                String.valueOf(System.currentTimeMillis()),
+                HttpStatus.UNAUTHORIZED.value()
+        );
+        return new ResponseEntity<>(exceptionInfo, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ExceptionInfo> handleForbiddenException(ForbiddenException ex, WebRequest request) {
+        logger.warn("Acceso denegado por permisos insuficientes: {} - Request: {}", ex.getMessage(), request.getDescription(false));
+        ExceptionInfo exceptionInfo = new ExceptionInfo(
+                ex.getMessage(),
+                request.getDescription(false),
+                String.valueOf(System.currentTimeMillis()),
+                HttpStatus.FORBIDDEN.value()
+        );
+        return new ResponseEntity<>(exceptionInfo, HttpStatus.FORBIDDEN);
+    }
 }

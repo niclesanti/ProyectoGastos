@@ -30,10 +30,10 @@ interface AppState {
   workspaces: EspacioTrabajo[]
   
   // Dashboard data with cache
-  recentTransactions: Map<number, DashboardCache>
-  bankAccounts: Map<number, CuentasCache>
-  comprasPendientes: Map<number, ComprasPendientesCache>
-  dashboardStats: Map<number, DashboardStatsCache>
+  recentTransactions: Map<string, DashboardCache>
+  bankAccounts: Map<string, CuentasCache>
+  comprasPendientes: Map<string, ComprasPendientesCache>
+  dashboardStats: Map<string, DashboardStatsCache>
   
   // Actions
   setUser: (user: Usuario | null) => void
@@ -41,15 +41,15 @@ interface AppState {
   setWorkspaces: (workspaces: EspacioTrabajo[]) => void
   
   // Dashboard actions with cache
-  loadRecentTransactions: (idEspacio: number, forceRefresh?: boolean) => Promise<TransaccionDTOResponse[]>
-  loadBankAccounts: (idEspacio: number, forceRefresh?: boolean) => Promise<CuentaBancaria[]>
-  loadComprasPendientes: (idEspacio: number, forceRefresh?: boolean) => Promise<CompraCreditoDTOResponse[]>
-  loadDashboardStats: (idEspacio: number, forceRefresh?: boolean) => Promise<DashboardStatsDTO>
-  invalidateRecentTransactions: (idEspacio: number) => void
-  invalidateBankAccounts: (idEspacio: number) => void
-  invalidateComprasPendientes: (idEspacio: number) => void
-  invalidateDashboardStats: (idEspacio: number) => void
-  invalidateDashboardCache: (idEspacio: number) => void
+  loadRecentTransactions: (idEspacio: string, forceRefresh?: boolean) => Promise<TransaccionDTOResponse[]>
+  loadBankAccounts: (idEspacio: string, forceRefresh?: boolean) => Promise<CuentaBancaria[]>
+  loadComprasPendientes: (idEspacio: string, forceRefresh?: boolean) => Promise<CompraCreditoDTOResponse[]>
+  loadDashboardStats: (idEspacio: string, forceRefresh?: boolean) => Promise<DashboardStatsDTO>
+  invalidateRecentTransactions: (idEspacio: string) => void
+  invalidateBankAccounts: (idEspacio: string) => void
+  invalidateComprasPendientes: (idEspacio: string) => void
+  invalidateDashboardStats: (idEspacio: string) => void
+  invalidateDashboardCache: (idEspacio: string) => void
 }
 
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
@@ -71,7 +71,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setCurrentWorkspace: (workspace) => set({ currentWorkspace: workspace }),
   setWorkspaces: (workspaces) => set({ workspaces }),
   
-  loadRecentTransactions: async (idEspacio: number, forceRefresh = false) => {
+  loadRecentTransactions: async (idEspacio: string, forceRefresh = false) => {
     const cache = get().recentTransactions.get(idEspacio)
     
     // Si existe caché válido y no se fuerza el refresh, retornar del caché
@@ -93,7 +93,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     return data
   },
   
-  loadBankAccounts: async (idEspacio: number, forceRefresh = false) => {
+  loadBankAccounts: async (idEspacio: string, forceRefresh = false) => {
     const cache = get().bankAccounts.get(idEspacio)
     
     // Si existe caché válido y no se fuerza el refresh, retornar del caché
@@ -115,7 +115,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     return data
   },
   
-  loadComprasPendientes: async (idEspacio: number, forceRefresh = false) => {
+  loadComprasPendientes: async (idEspacio: string, forceRefresh = false) => {
     const cache = get().comprasPendientes.get(idEspacio)
     
     // Si existe caché válido y no se fuerza el refresh, retornar del caché
@@ -137,7 +137,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     return data
   },
   
-  invalidateRecentTransactions: (idEspacio: number) => {
+  invalidateRecentTransactions: (idEspacio: string) => {
     set((state) => {
       const newCache = new Map(state.recentTransactions)
       newCache.delete(idEspacio)
@@ -145,7 +145,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     })
   },
   
-  invalidateBankAccounts: (idEspacio: number) => {
+  invalidateBankAccounts: (idEspacio: string) => {
     set((state) => {
       const newCache = new Map(state.bankAccounts)
       newCache.delete(idEspacio)
@@ -153,7 +153,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     })
   },
   
-  invalidateComprasPendientes: (idEspacio: number) => {
+  invalidateComprasPendientes: (idEspacio: string) => {
     set((state) => {
       const newCache = new Map(state.comprasPendientes)
       newCache.delete(idEspacio)
@@ -161,7 +161,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     })
   },
   
-  loadDashboardStats: async (idEspacio: number, forceRefresh = false) => {
+  loadDashboardStats: async (idEspacio: string, forceRefresh = false) => {
     const cache = get().dashboardStats.get(idEspacio)
     
     // Si existe caché válido y no se fuerza el refresh, retornar del caché
@@ -183,7 +183,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     return data
   },
   
-  invalidateDashboardStats: (idEspacio: number) => {
+  invalidateDashboardStats: (idEspacio: string) => {
     set((state) => {
       const newCache = new Map(state.dashboardStats)
       newCache.delete(idEspacio)
@@ -191,7 +191,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     })
   },
   
-  invalidateDashboardCache: (idEspacio: number) => {
+  invalidateDashboardCache: (idEspacio: string) => {
     get().invalidateRecentTransactions(idEspacio)
     get().invalidateBankAccounts(idEspacio)
     get().invalidateComprasPendientes(idEspacio)

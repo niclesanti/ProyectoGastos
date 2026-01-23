@@ -1,10 +1,12 @@
 package com.campito.backend.dto;
 
+import java.util.UUID;
+
 public record EspacioTrabajoDTOResponse(
-    Long id,
+    UUID id,
     String nombre,
     Float saldo,
-    Long usuarioAdminId
+    UUID usuarioAdminId
 ) {
 
 }

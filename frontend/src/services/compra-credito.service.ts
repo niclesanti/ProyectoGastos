@@ -7,7 +7,7 @@ export const compraCreditoService = {
     return data
   },
 
-  async listarComprasPendientes(idEspacioTrabajo: number): Promise<CompraCreditoDTOResponse[]> {
+  async listarComprasPendientes(idEspacioTrabajo: string): Promise<CompraCreditoDTOResponse[]> {
     const { data } = await apiClient.get<CompraCreditoDTOResponse[]>(`/comprascredito/pendientes/${idEspacioTrabajo}`)
     return data
   },
@@ -26,7 +26,7 @@ export const compraCreditoService = {
     fecha: string // formato 'yyyy-MM-dd'
     monto: number
     nombreCompletoAuditoria: string
-    idEspacioTrabajo: number
+    idEspacioTrabajo: string  // UUID
     idCuentaBancaria?: number
   }): Promise<void> {
     await apiClient.post('/comprascredito/pagar-resumen', request)

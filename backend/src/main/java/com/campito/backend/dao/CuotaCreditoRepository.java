@@ -2,6 +2,7 @@ package com.campito.backend.dao;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -30,7 +31,7 @@ public interface CuotaCreditoRepository extends JpaRepository<CuotaCredito, Long
            "JOIN c.compraCredito cc " +
            "WHERE cc.espacioTrabajo.id = :idEspacioTrabajo " +
            "AND c.pagada = false")
-    Float calcularDeudaTotalPendiente(@Param("idEspacioTrabajo") Long idEspacioTrabajo);
+    Float calcularDeudaTotalPendiente(@Param("idEspacioTrabajo") UUID idEspacioTrabajo);
     
     /**
      * Busca cuotas sin resumen asociado para una tarjeta en un rango de fechas.

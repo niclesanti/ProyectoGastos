@@ -15,7 +15,7 @@ export const transaccionService = {
     return data
   },
 
-  async buscarTransaccionesRecientes(idEspacio: number): Promise<TransaccionDTOResponse[]> {
+  async buscarTransaccionesRecientes(idEspacio: string): Promise<TransaccionDTOResponse[]> {
     const { data } = await apiClient.get<TransaccionDTOResponse[]>(`/transaccion/buscarRecientes/${idEspacio}`)
     return data
   },
@@ -29,17 +29,17 @@ export const transaccionService = {
     return data
   },
 
-  async listarMotivos(idEspacioTrabajo: number): Promise<MotivoTransaccion[]> {
+  async listarMotivos(idEspacioTrabajo: string): Promise<MotivoTransaccion[]> {
     const { data } = await apiClient.get<MotivoTransaccion[]>(`/transaccion/motivo/listar/${idEspacioTrabajo}`)
     return data
   },
 
-  async listarContactos(idEspacioTrabajo: number): Promise<ContactoTransferencia[]> {
+  async listarContactos(idEspacioTrabajo: string): Promise<ContactoTransferencia[]> {
     const { data } = await apiClient.get<ContactoTransferencia[]>(`/transaccion/contacto/listar/${idEspacioTrabajo}`)
     return data
   },
 
-  async obtenerDashboardStats(idEspacio: number): Promise<DashboardStatsDTO> {
+  async obtenerDashboardStats(idEspacio: string): Promise<DashboardStatsDTO> {
     const { data } = await apiClient.get<DashboardStatsDTO>(`/dashboard/stats/${idEspacio}`)
     return data
   },

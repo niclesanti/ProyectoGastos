@@ -98,7 +98,7 @@ export function UpcomingPayments() {
     },
     {
       accessorKey: "nombreComercio",
-      header: ({ column }) => <div className="hidden md:table-cell">Comercio</div>,
+      header: () => <div className="hidden md:table-cell">Comercio</div>,
       enableHiding: true,
       cell: ({ row }) => {
         const comercio = row.getValue("nombreComercio") as string | undefined

@@ -1,6 +1,7 @@
 package com.campito.backend.controller;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,7 @@ import com.campito.backend.dto.EspacioTrabajoDTORequest;
 import com.campito.backend.dto.EspacioTrabajoDTOResponse;
 import com.campito.backend.dto.UsuarioDTOResponse;
 import com.campito.backend.service.EspacioTrabajoService;
+import com.campito.backend.service.SecurityService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -37,6 +39,7 @@ import lombok.RequiredArgsConstructor;
 public class EspacioTrabajoController {
 
     private final EspacioTrabajoService espacioTrabajoService;
+    private final SecurityService securityService;
 
     @Operation(
         summary = "Registrar un nuevo espacio de trabajo",
@@ -57,12 +60,13 @@ public class EspacioTrabajoController {
 
     @Operation(
         summary = "Compartir espacio de trabajo",
-        description = "Permite compartir un espacio de trabajo con un usuario."
+        description = "Permite compartir un espacio de trabajo con un usuario. Solo el administrador puede compartir."
     )
     @ApiResponse(responseCode = "200", description = "Espacio de trabajo compartido correctamente")
     @ApiResponse(responseCode = "400", description = "Error al compartir el espacio de trabajo")
+    @ApiResponse(responseCode = "403", description = "No tienes permisos de administrador")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-    @PutMapping("/compartir/{email}/{idEspacioTrabajo}/{idUsuarioAdmin}")
+    @PutMapping("/compartir/{email}/{idEspacioTrabajo}")
     public ResponseEntity<Void> compartirEspacioTrabajo(
             @PathVariable 
             @NotBlank(message = "El email no puede estar vacío")
@@ -73,25 +77,29 @@ public class EspacioTrabajoController {
                 message = "El email solo puede contener letras, números, @, punto, guiones y barra baja"
             )
             String email,
-            @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo,
-            @PathVariable @NotNull(message = "El id del usuario admin es obligatorio") Long idUsuarioAdmin) {
-            
-        espacioTrabajoService.compartirEspacioTrabajo(email, idEspacioTrabajo, idUsuarioAdmin);
+            @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
+        
+        // Validar que el usuario autenticado es el admin del espacio
+        securityService.validateWorkspaceAdmin(idEspacioTrabajo);
+        
+        espacioTrabajoService.compartirEspacioTrabajo(email, idEspacioTrabajo);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @Operation(
-        summary = "Listar espacios de trabajo según usuario",
-        description = "Permite listar todos los espacios de trabajo donde participa un usuario."
+        summary = "Listar mis espacios de trabajo",
+        description = "Permite listar todos los espacios de trabajo donde participa el usuario autenticado."
     )
     @ApiResponse(responseCode = "200", description = "Espacios de trabajo listados correctamente")
-    @ApiResponse(responseCode = "400", description = "Error al listar los espacios de trabajo")
+    @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-    @GetMapping("/listar/{idUsuario}")
-    public ResponseEntity<List<EspacioTrabajoDTOResponse>> listarEspaciosTrabajoPorUsuario(
-        @PathVariable @NotNull(message = "El id del usuario es obligatorio") Long idUsuario) {
+    @GetMapping("/listar")
+    public ResponseEntity<List<EspacioTrabajoDTOResponse>> listarMisEspaciosTrabajo() {
         
-        List<EspacioTrabajoDTOResponse> espacios = espacioTrabajoService.listarEspaciosTrabajoPorUsuario(idUsuario);
+        // Obtener el ID del usuario autenticado desde el contexto de seguridad
+        UUID userId = securityService.getAuthenticatedUserId();
+        
+        List<EspacioTrabajoDTOResponse> espacios = espacioTrabajoService.listarEspaciosTrabajoPorUsuario(userId);
         return new ResponseEntity<>(espacios, HttpStatus.OK);
     }
 
@@ -100,11 +108,15 @@ public class EspacioTrabajoController {
         description = "Permite obtener una lista de todos los usuarios que son miembros de un espacio de trabajo específico."
     )
     @ApiResponse(responseCode = "200", description = "Miembros del espacio de trabajo obtenidos correctamente")
-    @ApiResponse(responseCode = "400", description = "Error al obtener los miembros del espacio de trabajo")
+    @ApiResponse(responseCode = "403", description = "No tienes acceso a este espacio de trabajo")
+    @ApiResponse(responseCode = "404", description = "Espacio de trabajo no encontrado")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @GetMapping("/miembros/{idEspacioTrabajo}")
     public ResponseEntity<List<UsuarioDTOResponse>> obtenerMiembrosEspacioTrabajo(
-        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") Long idEspacioTrabajo) {
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
+        
+        // Validar que el usuario autenticado tiene acceso al espacio
+        securityService.validateWorkspaceAccess(idEspacioTrabajo);
         
         List<UsuarioDTOResponse> miembros = espacioTrabajoService.obtenerMiembrosEspacioTrabajo(idEspacioTrabajo);
         return new ResponseEntity<>(miembros, HttpStatus.OK);

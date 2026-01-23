@@ -5,10 +5,11 @@ import org.springframework.stereotype.Repository;
 
 import com.campito.backend.model.Usuario;
 import java.util.Optional;
+import java.util.UUID;
 import com.campito.backend.model.ProveedorAutenticacion;
 
 @Repository
-public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
+public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
 
     Optional<Usuario> findByEmailAndProveedor(String email, ProveedorAutenticacion proveedor);
     

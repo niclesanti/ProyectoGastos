@@ -6,14 +6,14 @@ export enum TipoTransaccion {
 
 // Entidades Base
 export interface Usuario {
-  id: number
+  id: string  // UUID
   nombre: string
   email: string
   picture?: string
 }
 
 export interface EspacioTrabajo {
-  id: number
+  id: string  // UUID
   nombre: string
   saldo: number
   usuarioAdmin: Usuario
@@ -27,7 +27,7 @@ export enum RolMiembro {
 }
 
 export interface MiembroEspacio {
-  id: number
+  id: string  // UUID
   nombre: string
   email: string
   fotoPerfil?: string
@@ -36,7 +36,7 @@ export interface MiembroEspacio {
 export interface InvitacionMiembroDTORequest {
   email: string
   rol: RolMiembro
-  espacioTrabajoId: number
+  espacioTrabajoId: string  // UUID
 }
 
 export interface MotivoTransaccion {
@@ -82,7 +82,7 @@ export interface TransaccionDTOResponse {
   descripcion?: string
   nombreCompletoAuditoria: string
   fechaCreacion: string // LocalDateTime
-  idEspacioTrabajo: number
+  idEspacioTrabajo: string  // UUID
   nombreEspacioTrabajo: string
   idMotivo: number
   nombreMotivo: string
@@ -98,7 +98,7 @@ export interface TransaccionDTORequest {
   fecha: string // ISO date string
   descripcion?: string
   nombreCompletoAuditoria: string
-  idEspacioTrabajo: number
+  idEspacioTrabajo: string  // UUID
   idMotivo: number
   idContacto?: number
   idCuentaBancaria?: number
@@ -107,23 +107,23 @@ export interface TransaccionDTORequest {
 export interface CuentaBancariaDTORequest {
   nombre: string
   entidadFinanciera: string
-  idEspacioTrabajo: number
+  idEspacioTrabajo: string  // UUID
   saldoActual: number
 }
 
 export interface EspacioTrabajoDTORequest {
   nombre: string
-  saldo?: number
+  idUsuarioAdmin: string  // UUID - requerido
 }
 
 export interface MotivoTransaccionDTORequest {
   motivo: string
-  idEspacioTrabajo: number
+  idEspacioTrabajo: string  // UUID
 }
 
 export interface ContactoDTORequest {
   nombre: string
-  idEspacioTrabajo: number
+  idEspacioTrabajo: string  // UUID
 }
 
 export interface TransaccionBusquedaDTO {
@@ -131,7 +131,7 @@ export interface TransaccionBusquedaDTO {
   anio?: number | null
   motivo?: string | null
   contacto?: string | null
-  idEspacioTrabajo: number
+  idEspacioTrabajo: string  // UUID
 }
 
 export interface TarjetaDTORequest {
@@ -140,7 +140,7 @@ export interface TarjetaDTORequest {
   redDePago: string
   diaCierre: number
   diaVencimientoPago: number
-  espacioTrabajoId: number
+  espacioTrabajoId: string  // UUID
 }
 
 export interface TarjetaDTOResponse {
@@ -150,7 +150,7 @@ export interface TarjetaDTOResponse {
   redDePago: string
   diaCierre: number
   diaVencimientoPago: number
-  espacioTrabajoId: number
+  espacioTrabajoId: string  // UUID
 }
 
 export interface CompraCreditoDTORequest {
@@ -159,7 +159,7 @@ export interface CompraCreditoDTORequest {
   cantidadCuotas: number
   descripcion?: string
   nombreCompletoAuditoria: string
-  espacioTrabajoId: number
+  espacioTrabajoId: string  // UUID
   motivoId: number
   comercioId?: number
   tarjetaId: number
@@ -177,7 +177,7 @@ export interface Tarjeta {
   redDePago: string
   diaCierre: number
   diaVencimientoPago: number
-  espacioTrabajoId: number
+  espacioTrabajoId: string  // UUID
 }
 
 // DTOs Response
@@ -253,7 +253,7 @@ export interface CompraCreditoDTOResponse {
   descripcion?: string
   nombreCompletoAuditoria: string
   fechaCreacion: string
-  espacioTrabajoId: number
+  espacioTrabajoId: string  // UUID
   nombreEspacioTrabajo: string
   motivoId: number
   nombreMotivo: string
