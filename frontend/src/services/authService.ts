@@ -25,6 +25,10 @@ class AuthService {
    */
   async checkAuthStatus(): Promise<AuthStatus> {
     try {
+      console.log('🔍 [AuthService] Verificando estado de autenticación...')
+      console.log('🌐 [AuthService] API URL:', API_URL)
+      console.log('🍪 [AuthService] Cookies disponibles:', document.cookie)
+      
       const response = await fetch(`${API_URL}/api/auth/status`, {
         method: 'GET',
         credentials: 'include', // Importante: incluir cookies
@@ -33,14 +37,19 @@ class AuthService {
         },
       })
 
+      console.log('📡 [AuthService] Response status:', response.status)
+      console.log('📋 [AuthService] Response headers:', Object.fromEntries(response.headers.entries()))
+
       if (!response.ok) {
+        console.warn('⚠️  [AuthService] Usuario no autenticado (status:', response.status, ')')
         return { authenticated: false, user: null }
       }
 
       const data = await response.json()
+      console.log('✅ [AuthService] Usuario autenticado:', data)
       return data
     } catch (error) {
-      console.error('Error checking auth status:', error)
+      console.error('❌ [AuthService] Error checking auth status:', error)
       return { authenticated: false, user: null }
     }
   }

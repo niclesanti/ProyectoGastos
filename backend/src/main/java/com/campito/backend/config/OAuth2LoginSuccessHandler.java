@@ -1,7 +1,6 @@
 package com.campito.backend.config;
 
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -16,7 +15,7 @@ import java.io.IOException;
 
 /**
  * Handler personalizado para manejar el éxito de la autenticación OAuth2.
- * Configura las cookies de sesión con los atributos necesarios para cross-domain (SameSite=None; Secure).
+ * Spring Boot se encarga de configurar las cookies según application-prod.properties.
  */
 @Component
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
@@ -31,31 +30,19 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
                                        HttpServletResponse response,
                                        Authentication authentication) throws IOException, ServletException {
         
-        logger.info("Usuario autenticado exitosamente: {}", authentication.getName());
+        logger.info("🔐 Usuario autenticado exitosamente: {}", authentication.getName());
         
-        // Obtener o crear sesión
+        // Obtener o crear sesión (Spring Boot configurará la cookie automáticamente)
         HttpSession session = request.getSession(true);
         String sessionId = session.getId();
         
-        logger.info("Session ID creado: {}", sessionId);
-        logger.info("Frontend URL configurado: {}", frontendUrl);
+        logger.info("📝 Session ID creado: {}", sessionId);
+        logger.info("🌍 Frontend URL configurado: {}", frontendUrl);
+        logger.info("🍪 Cookie JSESSIONID será configurada automáticamente por Spring Boot con SameSite=None y Secure");
         
-        // Configurar cookie JSESSIONID manualmente con atributos cross-domain
-        Cookie sessionCookie = new Cookie("JSESSIONID", sessionId);
-        sessionCookie.setPath("/");
-        sessionCookie.setHttpOnly(true);
-        sessionCookie.setSecure(true); // HTTPS obligatorio
-        sessionCookie.setMaxAge(60 * 60 * 24); // 24 horas
-        
-        // Agregar atributos SameSite=None para cross-domain
-        String cookieValue = String.format("JSESSIONID=%s; Path=/; HttpOnly; Secure; SameSite=None", sessionId);
-        response.addHeader("Set-Cookie", cookieValue);
-        
-        logger.info("Cookie de sesión configurada con SameSite=None y Secure");
-        
-        // Redirigir al frontend
-        String targetUrl = frontendUrl + "/";
-        logger.info("Redirigiendo a: {}", targetUrl);
+        // Redirigir a página de callback en el frontend para evitar timing issues
+        String targetUrl = frontendUrl + "/oauth-callback";
+        logger.info("➡️  Redirigiendo a callback page: {}", targetUrl);
         
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }

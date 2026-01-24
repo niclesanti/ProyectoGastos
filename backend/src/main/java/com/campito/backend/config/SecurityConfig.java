@@ -76,25 +76,30 @@ public class SecurityConfig {
                                               FilterChain filterChain) throws ServletException, IOException {
                     filterChain.doFilter(request, response);
                     
-                    // Configurar cookies de sesión con atributos de seguridad para cross-domain
+                    // Modificar todas las cookies Set-Cookie para incluir SameSite=None y Secure
                     Collection<String> headers = response.getHeaders("Set-Cookie");
-                    boolean firstHeader = true;
-                    for (String header : headers) {
-                        if (header.contains("JSESSIONID")) {
-                            String newHeader = header;
-                            if (!header.contains("SameSite=None")) {
-                                newHeader = header + "; SameSite=None";
-                            }
-                            if (!header.contains("Secure")) {
-                                newHeader = newHeader + "; Secure";
+                    if (!headers.isEmpty()) {
+                        // Limpiar headers existentes
+                        response.setHeader("Set-Cookie", "");
+                        
+                        // Agregar headers modificados
+                        for (String header : headers) {
+                            String modifiedHeader = header;
+                            
+                            // Solo modificar si es JSESSIONID
+                            if (header.contains("JSESSIONID")) {
+                                // Agregar SameSite=None si no existe
+                                if (!modifiedHeader.contains("SameSite")) {
+                                    modifiedHeader = modifiedHeader + "; SameSite=None";
+                                }
+                                
+                                // Agregar Secure si no existe
+                                if (!modifiedHeader.contains("Secure")) {
+                                    modifiedHeader = modifiedHeader + "; Secure";
+                                }
                             }
                             
-                            if (firstHeader) {
-                                response.setHeader("Set-Cookie", newHeader);
-                                firstHeader = false;
-                            } else {
-                                response.addHeader("Set-Cookie", newHeader);
-                            }
+                            response.addHeader("Set-Cookie", modifiedHeader);
                         }
                     }
                 }

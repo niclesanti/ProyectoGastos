@@ -7,11 +7,13 @@ import { MovimientosPage } from '@/pages/MovimientosPage'
 import { CreditosPage } from '@/pages/CreditosPage'
 import { ConfiguracionPage } from '@/pages/ConfiguracionPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { OAuthCallback } from '@/pages/OAuthCallback'
 import { Toaster } from 'sonner'
 
 const router = createBrowserRouter(
   [
     { path: '/login', element: <LoginPage /> },
+    { path: '/oauth-callback', element: <OAuthCallback /> },
     {
       path: '/',
       element: (
