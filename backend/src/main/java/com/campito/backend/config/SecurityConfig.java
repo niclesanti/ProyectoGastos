@@ -1,20 +1,29 @@
 package com.campito.backend.config;
 
 import com.campito.backend.service.CustomOidcUserService;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.OncePerRequestFilter;
 
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 
 @Configuration
 @EnableWebSecurity
@@ -22,6 +31,9 @@ public class SecurityConfig {
 
     @Autowired
     private CustomOidcUserService customOidcUserService;
+
+    @Autowired
+    private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
@@ -50,6 +62,43 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
+            // Configurar gestión de sesión para cross-domain
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                .sessionFixation().migrateSession()
+                .maximumSessions(1)
+            )
+            // Filtro para agregar atributos SameSite=None a las cookies
+            .addFilterBefore(new OncePerRequestFilter() {
+                @Override
+                protected void doFilterInternal(HttpServletRequest request,
+                                              HttpServletResponse response,
+                                              FilterChain filterChain) throws ServletException, IOException {
+                    filterChain.doFilter(request, response);
+                    
+                    // Configurar cookies de sesión con atributos de seguridad para cross-domain
+                    Collection<String> headers = response.getHeaders("Set-Cookie");
+                    boolean firstHeader = true;
+                    for (String header : headers) {
+                        if (header.contains("JSESSIONID")) {
+                            String newHeader = header;
+                            if (!header.contains("SameSite=None")) {
+                                newHeader = header + "; SameSite=None";
+                            }
+                            if (!header.contains("Secure")) {
+                                newHeader = newHeader + "; Secure";
+                            }
+                            
+                            if (firstHeader) {
+                                response.setHeader("Set-Cookie", newHeader);
+                                firstHeader = false;
+                            } else {
+                                response.addHeader("Set-Cookie", newHeader);
+                            }
+                        }
+                    }
+                }
+            }, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/",
@@ -70,7 +119,7 @@ public class SecurityConfig {
                 .userInfoEndpoint(userInfo -> userInfo
                     .oidcUserService(customOidcUserService)
                 )
-                .defaultSuccessUrl(frontendUrl + "/", true)
+                .successHandler(oAuth2LoginSuccessHandler)
                 .failureUrl(frontendUrl + "/login?error=true")
             )
             .logout(logout -> logout
