@@ -1118,38 +1118,455 @@ docker-compose up -d frontend
 
 ### Modelo de Seguridad
 
-El frontend trabaja en conjunto con el backend para implementar un modelo de seguridad robusto que previene vulnerabilidades críticas como **IDOR (Insecure Direct Object Reference)**.
+El frontend implementa un modelo de seguridad moderno basado en **JWT (JSON Web Tokens)** que trabaja en conjunto con el backend para prevenir vulnerabilidades críticas como **IDOR (Insecure Direct Object Reference)**.
 
-### Autenticación OAuth2
+---
 
-#### Flujo de Autenticación
+### Autenticación JWT
 
-```
-1. Usuario → LoginPage → Clic en "Iniciar sesión con Google"
-2. Frontend → Redirige a: /api/oauth2/authorization/google
-3. Backend → Redirige a: Google OAuth2
-4. Usuario → Autoriza la aplicación en Google
-5. Google → Callback a: /api/login/oauth2/code/google
-6. Backend → Crea/actualiza usuario y establece sesión HTTP
-7. Backend → Redirige a: frontend /
-8. Frontend → ProtectedRoute verifica autenticación
-9. Frontend → Carga datos del usuario autenticado
-```
+#### ¿Por qué JWT en lugar de Cookies de Sesión?
 
-#### AuthContext
+En arquitecturas distribuidas (frontend en un hosting y backend en otro), las **sesiones basadas en cookies NO funcionan** debido a:
+- Políticas de **SameSite** que bloquean cookies cross-domain
+- Complejidad extrema de CORS para cookies entre dominios
 
-El contexto de autenticación (`src/contexts/AuthContext.tsx`) gestiona:
-- Estado del usuario autenticado
-- Loading states durante verificación
-- Redirección automática a `/login` si no autenticado
-- Logout y limpieza de sesión
+**JWT resuelve estos problemas:**
+- ✅ **Stateless**: No requiere sesiones en el servidor
+- ✅ **Cross-domain**: Funciona perfectamente entre dominios
+- ✅ **Portable**: Se envía en headers HTTP estándar
+- ✅ **Seguro**: Token firmado que no puede ser modificado
+
+#### Componentes de la Implementación JWT
+
+##### 1. authService.ts - Gestión de Tokens
+
+**Ubicación**: `src/services/authService.ts`
+
+Servicio que maneja la autenticación OAuth2 y el ciclo de vida del token JWT.
 
 ```typescript
-const { user, loading, logout } = useAuth();
+class AuthService {
+  /**
+   * Inicia el flujo OAuth2 con Google
+   */
+  loginWithGoogle(): void {
+    // Redirige al backend que maneja OAuth2
+    window.location.href = `${API_URL}/oauth2/authorization/google`
+  }
 
-if (loading) return <LoadingSpinner />;
-if (!user) return <Navigate to="/login" />;
+  /**
+   * Verifica el estado de autenticación del usuario
+   * Envía el token JWT almacenado en localStorage
+   */
+  async checkAuthStatus(): Promise<AuthStatus> {
+    const token = localStorage.getItem('auth_token')
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    }
+    
+    // Si hay token, agregarlo al header Authorization
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    
+    const response = await fetch(`${API_URL}/api/auth/status`, {
+      method: 'GET',
+      credentials: 'include', // Por compatibilidad
+      headers,
+    })
+
+    if (!response.ok) {
+      // Token inválido o expirado - limpiar
+      localStorage.removeItem('auth_token')
+      return { authenticated: false, user: null }
+    }
+
+    const data = await response.json()
+    
+    // Si el backend devuelve un nuevo token, actualizarlo
+    if (data.token) {
+      localStorage.setItem('auth_token', data.token)
+    }
+    
+    return data
+  }
+
+  /**
+   * Cierra sesión del usuario
+   * Limpia el token de localStorage
+   */
+  async logout(): Promise<void> {
+    // Limpiar token
+    localStorage.removeItem('auth_token')
+    
+    await fetch(`${API_URL}/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+    
+    window.location.href = '/login'
+  }
+}
 ```
+
+**Características:**
+- Almacena token en `localStorage` con clave `auth_token`
+- Envía token en header `Authorization: Bearer <token>`
+- Limpia token automáticamente si es inválido (401)
+- Actualiza token si el backend devuelve uno nuevo
+
+##### 2. api-client.ts - Axios con JWT
+
+**Ubicación**: `src/lib/api-client.ts`
+
+Cliente Axios configurado con interceptores para agregar automáticamente el token JWT a todas las peticiones.
+
+```typescript
+import axios from 'axios'
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+
+export const apiClient = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+  withCredentials: true, // Mantener por compatibilidad
+})
+
+// ⚡ INTERCEPTOR DE REQUEST: Agregar JWT automáticamente
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('auth_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// ⚡ INTERCEPTOR DE RESPONSE: Manejar errores de autenticación
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Token inválido o expirado
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth_token')
+      window.location.href = '/login'
+    }
+    
+    // Mensajes de error personalizados
+    if (error.response?.data?.message) {
+      error.message = error.response.data.message
+    }
+    
+    return Promise.reject(error)
+  }
+)
+```
+
+**Flujo de los Interceptores:**
+
+**Request Interceptor:**
+1. Antes de cada petición HTTP, captura la configuración
+2. Lee el token de `localStorage`
+3. Si existe, lo agrega al header `Authorization: Bearer <token>`
+4. La petición se envía con el token
+
+**Response Interceptor:**
+1. Captura todas las respuestas HTTP
+2. Si hay error 401 (No Autorizado):
+   - Limpia el token de `localStorage`
+   - Redirige al usuario al login
+3. Extrae mensajes de error personalizados del backend
+
+##### 3. OAuthCallback.tsx - Captura del Token
+
+**Ubicación**: `src/pages/OAuthCallback.tsx`
+
+Página especial que captura el token JWT de la URL después de OAuth2.
+
+```typescript
+import { useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
+
+export function OAuthCallback() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { refreshAuth } = useAuth()
+
+  useEffect(() => {
+    const handleCallback = async () => {
+      // 1. Obtener token JWT de la URL (?token=xyz)
+      const token = searchParams.get('token')
+      
+      if (token) {
+        console.log('✅ Token JWT recibido, almacenando...')
+        
+        // 2. Guardar en localStorage
+        localStorage.setItem('auth_token', token)
+        
+        // 3. Refrescar estado de autenticación
+        await refreshAuth()
+        
+        // 4. Redirigir al dashboard
+        navigate('/', { replace: true })
+      } else {
+        console.error('❌ No se recibió token en la URL')
+        navigate('/login?error=true', { replace: true })
+      }
+    }
+
+    handleCallback()
+  }, [navigate, refreshAuth, searchParams])
+
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+        <p className="text-muted-foreground">Completando autenticación...</p>
+      </div>
+    </div>
+  )
+}
+```
+
+**¿Por qué el token viene en la URL?**
+- Es una redirección de servidor (backend → frontend)
+- No se pueden usar cookies cross-domain
+- La URL es el único canal seguro para esta redirección
+- El token se guarda inmediatamente en `localStorage` y se limpia la URL con `replace: true`
+
+##### 4. AuthContext - Estado de Autenticación
+
+**Ubicación**: `src/contexts/AuthContext.tsx`
+
+Context de React que gestiona el estado global de autenticación.
+
+```typescript
+interface AuthContextType {
+  user: User | null
+  loading: boolean
+  refreshAuth: () => Promise<void>
+  logout: () => Promise<void>
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Verificar autenticación al cargar la app
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { authenticated, user } = await authService.checkAuthStatus()
+      setUser(authenticated ? user : null)
+      setLoading(false)
+    }
+    checkAuth()
+  }, [])
+
+  const refreshAuth = async () => {
+    const { authenticated, user } = await authService.checkAuthStatus()
+    setUser(authenticated ? user : null)
+  }
+
+  const logout = async () => {
+    await authService.logout()
+    setUser(null)
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, loading, refreshAuth, logout }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+```
+
+**Uso en componentes:**
+```typescript
+const { user, loading, logout } = useAuth()
+
+if (loading) return <LoadingSpinner />
+if (!user) return <Navigate to="/login" />
+
+return <Dashboard user={user} onLogout={logout} />
+```
+
+##### 5. ProtectedRoute - Protección de Rutas
+
+**Ubicación**: `src/components/ProtectedRoute.tsx`
+
+Componente HOC que protege rutas privadas.
+
+```typescript
+export function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <>{children}</>
+}
+```
+
+**Uso en router:**
+```typescript
+{
+  path: '/',
+  element: (
+    <ProtectedRoute>
+      <DashboardLayout />
+    </ProtectedRoute>
+  ),
+  children: [
+    { index: true, element: <DashboardPage /> },
+    { path: 'movimientos', element: <MovimientosPage /> },
+    // ...
+  ]
+}
+```
+
+#### Flujo Completo de Autenticación
+
+```
+1. Usuario → /login → Click "Continuar con Google"
+   ↓
+2. authService.loginWithGoogle()
+   └─ Redirige a: backend/oauth2/authorization/google
+   ↓
+3. Backend → Redirige a: Google OAuth2
+   ↓
+4. Usuario → Autoriza en Google
+   ↓
+5. Google → Callback a: backend/login/oauth2/code/google
+   ↓
+6. Backend → Procesa OAuth2:
+   ├─ CustomOidcUserService guarda/actualiza usuario
+   ├─ OAuth2AuthenticationSuccessHandler genera JWT
+   └─ Redirige a: frontend/oauth-callback?token=<JWT>
+   ↓
+7. Frontend → OAuthCallback:
+   ├─ Extrae token de URL (searchParams.get('token'))
+   ├─ Guarda en localStorage: auth_token
+   ├─ Llama a refreshAuth()
+   └─ Redirige al dashboard (replace: true)
+   ↓
+8. Frontend → Todas las peticiones subsecuentes:
+   ├─ Interceptor de Axios lee token de localStorage
+   ├─ Agrega header: Authorization: Bearer <token>
+   └─ Backend valida con JwtAuthenticationFilter
+   ↓
+9. ✅ Usuario autenticado durante 7 días
+```
+
+#### Seguridad del Token
+
+**Almacenamiento:**
+- **localStorage**: Clave `auth_token`
+- **No en cookies**: Evita problemas de SameSite y CORS
+- **No en sessionStorage**: Queremos persistencia
+
+**Validaciones:**
+- Backend valida firma digital (HMAC-SHA256)
+- Backend verifica fecha de expiración (7 días)
+- Backend comprueba que el usuario existe y está activo
+- Frontend limpia token automáticamente si es inválido (401)
+
+**Expiración:**
+- Token expira después de 7 días (configurable en backend)
+- Usuario debe volver a hacer login después de expiración
+- Logout limpia el token inmediatamente
+
+**Revocación:**
+- `logout()`: Elimina token de `localStorage` y redirige a `/login`
+- Backend puede marcar usuario como inactivo (`activo=false`)
+
+#### Configuración
+
+##### Variables de Entorno
+
+**.env.local o .env.production:**
+```bash
+VITE_API_URL=https://tu-backend.com
+```
+
+**Desarrollo:**
+```bash
+VITE_API_URL=http://localhost:8080
+```
+
+##### Rutas del Frontend
+
+**Públicas (sin autenticación):**
+- `/login` - LoginPage
+- `/oauth-callback` - OAuthCallback (captura token)
+
+**Protegidas (requieren JWT válido):**
+- `/` - DashboardPage
+- `/movimientos` - MovimientosPage
+- `/creditos` - CreditosPage
+- `/configuracion` - ConfiguracionPage
+
+##### vercel.json - Client-side Routing
+
+**Ubicación**: `frontend/vercel.json`
+
+**⚠️ CRÍTICO**: Este archivo es **obligatorio** para que React Router funcione en Vercel.
+
+```json
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+```
+
+**¿Por qué es necesario?**
+- Sin este archivo, Vercel intenta buscar archivos físicos para rutas como `/oauth-callback`
+- Al no encontrarlos, devuelve **404 NOT_FOUND**
+- El rewrite hace que todas las rutas sirvan `index.html`
+- React Router se encarga del routing en el cliente
+
+#### Troubleshooting
+
+**Error 404 después de login en producción**
+- **Causa**: Falta `vercel.json` con rewrites
+- **Solución**: Crear `vercel.json` y redeploy
+
+**Token no se envía en peticiones**
+- **Causa**: No está guardado en `localStorage`
+- **Solución**: Verificar que OAuthCallback lo guarde correctamente
+- **Debug**: Abrir DevTools → Application → Local Storage → Buscar `auth_token`
+
+**Usuario se desautentica inmediatamente**
+- **Causa**: Token inválido o expirado
+- **Solución**: Hacer logout y login nuevamente
+- **Debug**: Abrir DevTools → Network → Ver status 401
+
+**Login funciona en local pero no en producción**
+- **Causa**: Variable `VITE_API_URL` no configurada en Vercel
+- **Solución**: Configurar en Vercel → Settings → Environment Variables
+
+**Cookies no funcionan**
+- **Respuesta**: Correcto, ya no usamos cookies. JWT se envía en headers.
+- **Acción**: Verificar que `withCredentials: true` esté presente pero ignorar si las cookies no funcionan
+
+---
 
 ### Protección contra IDOR
 

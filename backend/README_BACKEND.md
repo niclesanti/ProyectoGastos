@@ -577,26 +577,390 @@ docker-compose down -v
 
 ### Estrategia de Seguridad
 
-El sistema implementa un modelo de seguridad basado en:
+El sistema implementa un modelo de seguridad moderno y robusto basado en:
 
-1. **OAuth2**: Autenticación delegada a proveedores externos
-2. **Spring Security**: Gestión de sesiones y autorización
-3. **CORS**: Configuración para permitir peticiones del frontend
-4. **HTTPS**: Recomendado en producción
+1. **JWT (JSON Web Tokens)**: Autenticación sin estado (stateless)
+2. **OAuth2**: Autenticación delegada a proveedores externos (Google)
+3. **Spring Security**: Gestión de autorización y protección de endpoints
+4. **CORS**: Configuración para arquitecturas distribuidas (frontend en un hosting, backend en otro hosting)
+5. **HTTPS**: Obligatorio en producción
 
-### Flujo de Autenticación
+---
+
+### Autenticación JWT
+
+#### ¿Por qué JWT en lugar de Sesiones?
+
+En arquitecturas distribuidas modernas (frontend en un hosting, backend en otro hosting), las **sesiones basadas en cookies NO funcionan** debido a:
+- Políticas de **SameSite** que bloquean cookies cross-domain
+- Cookies generadas en hosting backend no accesibles desde el hosting frontend.
+- Complejidad de configuración CORS para cookies
+
+**JWT resuelve estos problemas:**
+- ✅ **Stateless**: No requiere almacenamiento de sesiones en el servidor
+- ✅ **Cross-domain**: Funciona perfectamente entre dominios diferentes
+- ✅ **Escalable**: Ideal para múltiples instancias de backend
+- ✅ **Seguro**: Tokens firmados digitalmente que no pueden ser modificados
+
+#### Componentes de la Implementación JWT
+
+##### 1. JwtTokenProvider
+
+**Ubicación**: `src/main/java/com/campito/backend/security/JwtTokenProvider.java`
+
+Componente responsable de generar y validar tokens JWT.
+
+```java
+@Component
+public class JwtTokenProvider {
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+    
+    @Value("${jwt.expiration}")
+    private long jwtExpirationMs; // 7 días por defecto
+    
+    // Genera token JWT para un usuario
+    public String generateToken(UUID userId, String email) {
+        Date expiryDate = new Date(now + jwtExpirationMs);
+        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        
+        return Jwts.builder()
+                .subject(userId.toString())
+                .claim("email", email)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(key)
+                .compact();
+    }
+    
+    // Valida token JWT
+    public boolean validateToken(String token) {
+        try {
+            parseToken(token);
+            return true;
+        } catch (JwtException ex) {
+            logger.error("Token inválido o expirado");
+            return false;
+        }
+    }
+}
+```
+
+**Características:**
+- Firma tokens con algoritmo **HS256** (HMAC-SHA256)
+- Claims incluidos: `subject` (userId), `email`, `issuedAt`, `expiration`
+- Expiry configurable (por defecto 7 días)
+- Validación robusta con manejo de excepciones
+
+##### 2. JwtAuthenticationFilter
+
+**Ubicación**: `src/main/java/com/campito/backend/security/JwtAuthenticationFilter.java`
+
+Filtro que intercepta todas las peticiones HTTP y valida el token JWT.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    
+    private final JwtTokenProvider jwtTokenProvider;
+    private final UsuarioRepository usuarioRepository;
+    
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, 
+                                    HttpServletResponse response, 
+                                    FilterChain filterChain) {
+        try {
+            // 1. Extraer JWT del header Authorization
+            String jwt = getJwtFromRequest(request);
+            
+            // 2. Validar token
+            if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
+                UUID userId = jwtTokenProvider.getUserIdFromToken(jwt);
+                
+                // 3. Buscar usuario en BD
+                Usuario usuario = usuarioRepository.findById(userId).orElse(null);
+                
+                // 4. Verificar que esté activo
+                if (usuario != null && Boolean.TRUE.equals(usuario.getActivo())) {
+                    // 5. Crear principal personalizado
+                    CustomOAuth2User customUser = new CustomOAuth2User(
+                        Collections.emptyMap(), "sub", usuario
+                    );
+                    
+                    // 6. Establecer autenticación en contexto de Spring Security
+                    UsernamePasswordAuthenticationToken authentication = 
+                        new UsernamePasswordAuthenticationToken(
+                            customUser, null, 
+                            Collections.singletonList(new SimpleGrantedAuthority(usuario.getRol()))
+                        );
+                    
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+            }
+        } catch (Exception ex) {
+            logger.error("No se pudo autenticar usuario", ex);
+        }
+        
+        filterChain.doFilter(request, response);
+    }
+    
+    private String getJwtFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7); // Remover "Bearer "
+        }
+        return null;
+    }
+}
+```
+
+**Flujo del Filtro:**
+1. Extrae el token del header `Authorization: Bearer <token>`
+2. Valida el token (firma, expiry)
+3. Extrae el userId del token
+4. Busca el usuario en la base de datos
+5. Verifica que el usuario esté activo
+6. Establece la autenticación en el contexto de Spring Security
+
+##### 3. OAuth2AuthenticationSuccessHandler
+
+**Ubicación**: `src/main/java/com/campito/backend/security/OAuth2AuthenticationSuccessHandler.java`
+
+Handler que captura el éxito de OAuth2 y genera el token JWT.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
+    
+    private final JwtTokenProvider jwtTokenProvider;
+    
+    @Value("${frontend.url}")
+    private String frontendUrl;
+    
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request,
+                                        HttpServletResponse response,
+                                        Authentication authentication) throws IOException {
+        
+        // 1. Obtener usuario autenticado de OAuth2
+        CustomOAuth2User customUser = (CustomOAuth2User) authentication.getPrincipal();
+        
+        // 2. Generar token JWT
+        String token = jwtTokenProvider.generateToken(
+            customUser.getUsuario().getId(),
+            customUser.getUsuario().getEmail()
+        );
+        
+        // 3. Redirigir al frontend con el token en la URL
+        String targetUrl = UriComponentsBuilder
+                .fromUriString(frontendUrl + "/oauth-callback")
+                .queryParam("token", token)
+                .build()
+                .toUriString();
+        
+        getRedirectStrategy().sendRedirect(request, response, targetUrl);
+    }
+}
+```
+
+**¿Por qué pasar el token en la URL?**
+- Es una redirección de servidor (backend → frontend)
+- El frontend no tiene acceso a cookies cross-domain
+- La URL es el único canal seguro para transferir el token en esta redirección
+- El frontend inmediatamente lo guarda en `localStorage` y limpia la URL
+
+##### 4. SecurityConfig - Configuración STATELESS
+
+**Ubicación**: `src/main/java/com/campito/backend/config/SecurityConfig.java`
+
+```java
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+    
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    
+    @Autowired
+    private OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf -> csrf.disable())
+            // ⚡ CLAVE: Sesiones STATELESS (sin estado)
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/auth/**", "/oauth2/**", "/login/oauth2/**")
+                .permitAll()
+                .anyRequest().authenticated()
+            )
+            .oauth2Login(oauth2 -> oauth2
+                .userInfoEndpoint(userInfo -> userInfo
+                    .oidcUserService(customOidcUserService)
+                )
+                .successHandler(oAuth2AuthenticationSuccessHandler)
+            )
+            // ⚡ Agregar filtro JWT ANTES del filtro de autenticación de Spring
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        
+        return http.build();
+    }
+}
+```
+
+**Cambios clave:**
+- `SessionCreationPolicy.STATELESS`: No crea ni usa sesiones HTTP
+- JWT Filter agregado antes del filtro de autenticación estándar
+- OAuth2 ahora usa el `OAuth2AuthenticationSuccessHandler` personalizado
+
+#### Configuración en application.properties
+
+##### application-prod.properties
+
+```properties
+# JWT Configuration
+jwt.secret=${JWT_SECRET:produccion_jwt_secret_temporal_cambiar_urgente_minimo_256_bits_1234567890}
+jwt.expiration=604800000  # 7 días en milisegundos
+```
+
+**⚠️ IMPORTANTE:**
+- `JWT_SECRET` **DEBE** configurarse como variable de entorno en producción (Render, AWS, etc.)
+- El valor por defecto es temporal y **NO seguro** para producción
+- Generar secret seguro con: `openssl rand -base64 32` (Linux/Mac) o `[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))` (PowerShell)
+- Mínimo 256 bits (32 bytes) para HS256
+
+##### application-dev.properties
+
+```properties
+# JWT Configuration (desarrollo)
+jwt.secret=${JWT_SECRET:desarrollo_secreto_jwt_super_seguro_minimo_256_bits_12345678901234567890}
+jwt.expiration=604800000
+```
+
+#### Flujo Completo de Autenticación OAuth2 + JWT
 
 ```
-1. Usuario → Botón "Login con Google"
-2. Frontend → Redirige a: backend/oauth2/authorization/google
+1. Usuario → /login → Click "Continuar con Google"
+   ↓
+2. Frontend → Redirige a: /oauth2/authorization/google
+   ↓
 3. Backend → Redirige a: Google OAuth2
+   ↓
 4. Usuario → Autoriza en Google
-5. Google → Callback a: backend/login/oauth2/code/google
-6. Backend → Procesa usuario (crea/actualiza en BD)
-7. Backend → Establece sesión
-8. Backend → Redirige a: frontend/
-9. Frontend → Usuario autenticado
+   ↓
+5. Google → Callback a: /login/oauth2/code/google
+   ↓
+6. Backend → CustomOidcUserService:
+   ├─ Busca/crea usuario en PostgreSQL
+   ├─ Actualiza fecha de último acceso
+   └─ Devuelve CustomOAuth2User
+   ↓
+7. Backend → OAuth2AuthenticationSuccessHandler:
+   ├─ Genera token JWT (firmado con secret)
+   └─ Redirige a: frontend/oauth-callback?token=<JWT>
+   ↓
+8. Frontend → Captura token de URL
+   ├─ Guarda en localStorage: auth_token
+   └─ Redirige al dashboard
+   ↓
+9. Frontend → Todas las peticiones subsecuentes:
+   ├─ Incluye header: Authorization: Bearer <token>
+   └─ Backend valida con JwtAuthenticationFilter
+   ↓
+10. ✅ Usuario autenticado durante 7 días (o hasta logout)
 ```
+
+#### Endpoints Protegidos
+
+Todos los endpoints excepto los explícitamente públicos requieren un JWT válido:
+
+**Públicos (sin autenticación):**
+- `/api/auth/**` - Verificación de estado de autenticación
+- `/oauth2/**` - OAuth2 authorization
+- `/login/oauth2/**` - OAuth2 callback
+
+**Protegidos (requieren JWT):**
+- `/swagger-ui/**` - Documentación API (Swagger UI)
+- `/v3/api-docs/**` - OpenAPI spec
+- `/api/transaccion/**`
+- `/api/espaciotrabajo/**`
+- `/api/dashboard/**`
+- `/api/tarjetas/**`
+- `/api/compras-credito/**`
+- Y todos los demás endpoints de la API
+
+#### Seguridad del Token JWT
+
+**Almacenamiento:**
+- Backend: Secret en variable de entorno `JWT_SECRET`
+- Frontend: Token en `localStorage` (no en cookies para evitar problemas cross-domain)
+
+**Validaciones:**
+- Firma digital (HMAC-SHA256)
+- Fecha de expiración (7 días)
+- Usuario existe y está activo
+- Token no ha sido modificado
+
+**Rotación:**
+- Se recomienda rotar `JWT_SECRET` cada 3-6 meses
+- Al cambiar el secret, todos los tokens anteriores se invalidan
+
+**Revocación:**
+- Logout: Frontend elimina el token de `localStorage`
+- Desactivación: Backend marca usuario como `activo=false`
+
+#### Variables de Entorno Requeridas
+
+**Producción (Render, AWS, etc.):**
+```bash
+# OAuth2
+GOOGLE_CLIENT_ID=<client_id_de_google_console>
+GOOGLE_CLIENT_SECRET=<client_secret_de_google_console>
+FRONTEND_URL=https://tu-frontend.com
+
+# JWT (CRÍTICO)
+JWT_SECRET=<generar_con_openssl_rand_base64_32>
+
+# Base de datos
+SPRING_DATASOURCE_URL=jdbc:postgresql://...
+SPRING_DATASOURCE_USERNAME=...
+SPRING_DATASOURCE_PASSWORD=...
+```
+
+**Desarrollo (local):**
+```bash
+# .env o docker-compose.yml
+GOOGLE_CLIENT_ID=<tu_client_id>
+GOOGLE_CLIENT_SECRET=<tu_client_secret>
+FRONTEND_URL=http://localhost:3100
+# JWT_SECRET usa valor por defecto de application-dev.properties
+```
+
+#### Troubleshooting JWT
+
+**Error: "Could not resolve placeholder 'JWT_SECRET'"**
+- **Causa**: Variable de entorno `JWT_SECRET` no configurada en producción
+- **Solución**: Agregar `JWT_SECRET` en el panel de variables de entorno del hosting
+
+**Error: "Token JWT inválido"**
+- **Causa**: Secret no coincide o token modificado
+- **Solución**: Verificar que `JWT_SECRET` sea el mismo que se usó para generar el token
+
+**Usuario se desautentica después de 7 días**
+- **Causa**: Token expiró (comportamiento esperado)
+- **Solución**: Usuario debe volver a hacer login
+
+**Token no se envía en peticiones**
+- **Causa**: Problema en el frontend (ver README_FRONTEND.md)
+- **Solución**: Verificar que el token esté en `localStorage` y se agregue al header
+
+---
 
 ### Protección contra Vulnerabilidades IDOR
 

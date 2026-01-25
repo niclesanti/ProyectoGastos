@@ -73,9 +73,6 @@ public class SecurityConfig {
                     "/logo.png",
                     "/logo_login.png",
                     "/manifest.json",
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html",
                     "/api/auth/**",
                     "/oauth2/**",
                     "/login/oauth2/**"

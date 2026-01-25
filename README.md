@@ -76,6 +76,7 @@ Sistema Full-Stack profesional para la gestión integral de finanzas personales 
 **Seguridad y Autenticación**
 - 🔐 Spring Security + OAuth2
 - 🔑 Google OAuth 2.0
+- 🎫 JWT (JSON Web Tokens)
 
 **Herramientas**
 - 🗺️ MapStruct 1.5.5 (Mapeo DTO/Entidad)
