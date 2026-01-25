@@ -23,8 +23,8 @@ export function StatsCard({ title, value, change, description, icon, trend, isLo
 
   return (
     <Card className="relative">
-      <CardContent className="p-4 sm:p-6">
-        <div className="absolute top-4 right-4 text-muted-foreground">
+      <CardContent className="p-3 md:p-6">
+        <div className="absolute top-3 right-3 md:top-4 md:right-4 text-muted-foreground opacity-20 md:opacity-100">
           {icon}
         </div>
         <div className="text-left">
@@ -35,9 +35,9 @@ export function StatsCard({ title, value, change, description, icon, trend, isLo
             </div>
           ) : (
             <>
-              <p className="text-sm font-medium text-muted-foreground mb-2">{title}</p>
+              <p className="text-xs md:text-sm font-medium text-muted-foreground mb-1 md:mb-2">{title}</p>
               <div className="flex items-baseline gap-2">
-                <h3 className={`text-2xl font-bold ${valueClass}`}>{formattedValue}</h3>
+                <h3 className={`text-lg md:text-2xl font-bold ${valueClass}`}>{formattedValue}</h3>
                 {change !== undefined && (
                   <Badge variant={trend === 'up' ? 'success' : 'warning'} className="text-xs">
                     {trend === 'up' ? (
@@ -49,7 +49,7 @@ export function StatsCard({ title, value, change, description, icon, trend, isLo
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">{description}</p>
+              <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 md:mt-1">{description}</p>
             </>
           )}
         </div>
@@ -62,7 +62,7 @@ export function DashboardStats() {
   const { stats, isLoading } = useDashboardStats()
 
   return (
-    <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 grid-cols-2 md:gap-6 lg:grid-cols-4">
       <StatsCard
         title="Balance total"
         value={stats?.balanceTotal || 0}
