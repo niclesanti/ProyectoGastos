@@ -1,5 +1,7 @@
 package com.campito.backend.config;
 
+import com.campito.backend.security.JwtAuthenticationFilter;
+import com.campito.backend.security.OAuth2AuthenticationSuccessHandler;
 import com.campito.backend.service.CustomOidcUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -7,9 +9,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -22,6 +26,12 @@ public class SecurityConfig {
 
     @Autowired
     private CustomOidcUserService customOidcUserService;
+
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Autowired
+    private OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
@@ -50,6 +60,10 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
+            // Autenticación sin estado (stateless) usando JWT
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/",
@@ -62,7 +76,9 @@ public class SecurityConfig {
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
-                    "/api/auth/**"
+                    "/api/auth/**",
+                    "/oauth2/**",
+                    "/login/oauth2/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
@@ -70,7 +86,7 @@ public class SecurityConfig {
                 .userInfoEndpoint(userInfo -> userInfo
                     .oidcUserService(customOidcUserService)
                 )
-                .defaultSuccessUrl(frontendUrl + "/", true)
+                .successHandler(oAuth2AuthenticationSuccessHandler)
                 .failureUrl(frontendUrl + "/login?error=true")
             )
             .logout(logout -> logout
@@ -79,7 +95,10 @@ public class SecurityConfig {
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")
                 .permitAll()
-            );
+            )
+            // Agregar el filtro JWT antes del filtro de autenticación de Spring
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        
         return http.build();
     }
 }

@@ -10,6 +10,7 @@ export interface User {
 export interface AuthStatus {
   authenticated: boolean
   user: User | null
+  token?: string
 }
 
 class AuthService {
@@ -27,26 +28,42 @@ class AuthService {
     try {
       console.log('🔍 [AuthService] Verificando estado de autenticación...')
       console.log('🌐 [AuthService] API URL:', API_URL)
-      console.log('🍪 [AuthService] Cookies disponibles:', document.cookie)
+      
+      const token = localStorage.getItem('auth_token')
+      console.log('🔑 [AuthService] Token en localStorage:', token ? 'Presente' : 'Ausente')
+      
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      }
+      
+      // Si hay token, agregarlo al header Authorization
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
       
       const response = await fetch(`${API_URL}/api/auth/status`, {
         method: 'GET',
-        credentials: 'include', // Importante: incluir cookies
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        credentials: 'include', // Mantener por compatibilidad
+        headers,
       })
 
       console.log('📡 [AuthService] Response status:', response.status)
-      console.log('📋 [AuthService] Response headers:', Object.fromEntries(response.headers.entries()))
 
       if (!response.ok) {
         console.warn('⚠️  [AuthService] Usuario no autenticado (status:', response.status, ')')
+        // Limpiar token inválido
+        localStorage.removeItem('auth_token')
         return { authenticated: false, user: null }
       }
 
       const data = await response.json()
       console.log('✅ [AuthService] Usuario autenticado:', data)
+      
+      // Si el backend devuelve un nuevo token, actualizarlo
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token)
+      }
+      
       return data
     } catch (error) {
       console.error('❌ [AuthService] Error checking auth status:', error)
@@ -83,6 +100,9 @@ class AuthService {
    */
   async logout(): Promise<void> {
     try {
+      // Limpiar el token de localStorage
+      localStorage.removeItem('auth_token')
+      
       await fetch(`${API_URL}/logout`, {
         method: 'POST',
         credentials: 'include',
