@@ -12,10 +12,12 @@ import {
   TrendingDown,
   ArrowRightLeft,
   Receipt,
+  Wallet,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useWorkspaces } from '@/features/workspaces/api/workspace-queries'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import {
   Sidebar,
   SidebarContent,
@@ -78,6 +80,20 @@ export function AppSidebar() {
     <>
       <Sidebar collapsible="icon">
       <SidebarHeader>
+        {/* Logo y Título de la App */}
+        <div className="flex items-center gap-3 px-2 py-2">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => navigate('/')}
+          >
+            <img src="/logo.png" alt="Logo" className="h-5 w-5" />
+          </Button>
+          <span className="font-bold text-lg">Finanzas</span>
+        </div>
+        
+        <SidebarSeparator />
+
         {/* Workspace Switcher */}
         <SidebarMenu>
           <SidebarMenuItem>
