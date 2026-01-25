@@ -23,10 +23,12 @@ openssl rand -base64 32
 ```
 
 ### 2️⃣ **Render → Environment Variables**
-Agregar variable:
+Agregar variable **OBLIGATORIA**:
 ```
 JWT_SECRET=<pegar_el_secreto_generado>
 ```
+
+**⚠️ CRÍTICO**: Si no configuras esta variable, el backend usará un valor temporal por defecto que **NO ES SEGURO** para producción. Debes configurar tu propio secret único.
 
 ### 3️⃣ **Google Console → Credentials**
 URL: https://console.cloud.google.com/apis/credentials
