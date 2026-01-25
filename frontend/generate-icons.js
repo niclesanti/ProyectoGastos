@@ -30,9 +30,13 @@ const icons = [
   { name: 'apple-touch-icon-120x120.png', size: 120 },
   { name: 'apple-touch-icon-76x76.png', size: 76 },
   
-  // Android/Chrome
-  { name: 'icon-192.png', size: 192 },
-  { name: 'icon-512.png', size: 512 },
+  // Android/Chrome (fondo transparente)
+  { name: 'icon-192.png', size: 192, transparent: true },
+  { name: 'icon-512.png', size: 512, transparent: true },
+  
+  // Android Maskable (fondo oscuro con padding)
+  { name: 'icon-192-maskable.png', size: 192, maskable: true },
+  { name: 'icon-512-maskable.png', size: 512, maskable: true },
   
   // Windows Tiles
   { name: 'mstile-144x144.png', size: 144 },
@@ -59,15 +63,47 @@ async function generateIcons() {
     for (const icon of icons) {
       const outputPath = path.join(OUTPUT_DIR, icon.name);
       
-      await sharp(SOURCE_IMAGE)
-        .resize(icon.size, icon.size, {
-          fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 0 }
-        })
-        .png({ quality: 100, compressionLevel: 9 })
-        .toFile(outputPath);
-      
-      console.log(`✅ Generado: ${icon.name} (${icon.size}x${icon.size})`);
+      if (icon.maskable) {
+        // Para iconos maskable de Android: fondo oscuro (#2a2a2a) con 20% padding
+        const logoSize = Math.floor(icon.size * 0.6); // Logo ocupa 60% del espacio
+        const canvas = sharp({
+          create: {
+            width: icon.size,
+            height: icon.size,
+            channels: 4,
+            background: { r: 42, g: 42, b: 42, alpha: 1 } // Gris oscuro #2a2a2a
+          }
+        });
+
+        const logo = await sharp(SOURCE_IMAGE)
+          .resize(logoSize, logoSize, {
+            fit: 'contain',
+            background: { r: 0, g: 0, b: 0, alpha: 0 }
+          })
+          .toBuffer();
+
+        await canvas
+          .composite([{
+            input: logo,
+            top: Math.floor((icon.size - logoSize) / 2),
+            left: Math.floor((icon.size - logoSize) / 2)
+          }])
+          .png({ quality: 100, compressionLevel: 9 })
+          .toFile(outputPath);
+        
+        console.log(`✅ Generado (maskable): ${icon.name} (${icon.size}x${icon.size})`);
+      } else {
+        // Iconos normales con fondo transparente
+        await sharp(SOURCE_IMAGE)
+          .resize(icon.size, icon.size, {
+            fit: 'contain',
+            background: { r: 255, g: 255, b: 255, alpha: 0 }
+          })
+          .png({ quality: 100, compressionLevel: 9 })
+          .toFile(outputPath);
+        
+        console.log(`✅ Generado: ${icon.name} (${icon.size}x${icon.size})`);
+      }
     }
 
     // Generar favicon.ico (usando 32x32 como base)
