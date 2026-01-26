@@ -1,3 +1,5 @@
+import { authLog, sanitizeToken } from '@/utils/secureLogger'
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
 export interface User {
@@ -26,11 +28,11 @@ class AuthService {
    */
   async checkAuthStatus(): Promise<AuthStatus> {
     try {
-      console.log('🔍 [AuthService] Verificando estado de autenticación...')
-      console.log('🌐 [AuthService] API URL:', API_URL)
+      authLog.info('Verificando estado de autenticación...')
+      authLog.info('API URL:', { url: API_URL })
       
       const token = localStorage.getItem('auth_token')
-      console.log('🔑 [AuthService] Token en localStorage:', token ? 'Presente' : 'Ausente')
+      authLog.info('Token en localStorage:', { status: token ? 'Presente' : 'Ausente' })
       
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -47,17 +49,24 @@ class AuthService {
         headers,
       })
 
-      console.log('📡 [AuthService] Response status:', response.status)
+      authLog.info('Response status:', { status: response.status })
 
       if (!response.ok) {
-        console.warn('⚠️  [AuthService] Usuario no autenticado (status:', response.status, ')')
+        authLog.info('Usuario no autenticado', { status: response.status })
         // Limpiar token inválido
         localStorage.removeItem('auth_token')
         return { authenticated: false, user: null }
       }
 
       const data = await response.json()
-      console.log('✅ [AuthService] Usuario autenticado:', data)
+      
+      // ✅ SEGURIDAD: Sanitizar token antes de loguear
+      authLog.success('Usuario autenticado')
+      authLog.info('Datos de usuario:', {
+        authenticated: data.authenticated,
+        user: data.user,
+        token: sanitizeToken(data.token)
+      })
       
       // Si el backend devuelve un nuevo token, actualizarlo
       if (data.token) {
@@ -66,7 +75,7 @@ class AuthService {
       
       return data
     } catch (error) {
-      console.error('❌ [AuthService] Error checking auth status:', error)
+      authLog.error('Error verificando estado de autenticación:', error)
       return { authenticated: false, user: null }
     }
   }

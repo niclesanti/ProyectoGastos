@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { authLog } from '@/utils/secureLogger'
 
 /**
  * Página de callback después de autenticación OAuth2.
@@ -13,23 +14,24 @@ export function OAuthCallback() {
 
   useEffect(() => {
     const handleCallback = async () => {
-      console.log('🔄 [OAuthCallback] Procesando callback de OAuth2...')
+      authLog.info('Procesando callback de OAuth2...')
       
       // Obtener el token JWT de los parámetros de la URL
       const token = searchParams.get('token')
       
       if (token) {
-        console.log('✅ [OAuthCallback] Token JWT recibido, almacenando...')
+        // ✅ SEGURIDAD: NO loguear el token completo
+        authLog.success('Token JWT recibido, almacenando...')
         // Guardar el token en localStorage
         localStorage.setItem('auth_token', token)
         
-        console.log('🔄 [OAuthCallback] Refrescando autenticación...')
+        authLog.info('Refrescando autenticación...')
         await refreshAuth()
         
-        console.log('➡️  [OAuthCallback] Redirigiendo al dashboard...')
+        authLog.info('Redirigiendo al dashboard...')
         navigate('/', { replace: true })
       } else {
-        console.error('❌ [OAuthCallback] No se recibió token en la URL')
+        authLog.error('No se recibió token en la URL')
         navigate('/login?error=true', { replace: true })
       }
     }
