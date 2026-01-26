@@ -67,15 +67,12 @@ public class TransaccionServiceTest {
     private Usuario usuarioAdmin;
 
     // UUIDs para pruebas
-    private UUID usuarioId;
     private UUID espacioId;
-    private UUID motivoId;
-    private UUID contactoId;
 
     @BeforeEach
     void setUp() {
         usuarioAdmin = new Usuario();
-        usuarioAdmin.setId(usuarioId = UUID.fromString("00000000-0000-0000-0000-000000000001"));
+        usuarioAdmin.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
         usuarioAdmin.setNombre("Admin");
         usuarioAdmin.setEmail("admin@test.com");
         usuarioAdmin.setFotoPerfil("foto.jpg");

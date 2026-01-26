@@ -121,8 +121,6 @@ Sistema Full-Stack profesional para la gestión integral de finanzas personales 
 ### Infraestructura
 
 - 🐳 **Docker & Docker Compose**: Contenerización completa
-- ☁️ **Google Cloud Run**: Despliegue en producción
-- 🗄️ **Neon.tech**: PostgreSQL managed en cloud
 - 🛠️ **Maven**: Gestión de dependencias backend
 - 📦 **npm**: Gestión de dependencias frontend
 
