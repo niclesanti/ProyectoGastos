@@ -1,5 +1,7 @@
 package com.campito.backend.dto;
 
+import java.util.UUID;
+
 public record TarjetaDTOResponse(
     Long id,
     String numeroTarjeta,
@@ -7,7 +9,7 @@ public record TarjetaDTOResponse(
     String redDePago,
     Integer diaCierre,
     Integer diaVencimientoPago,
-    Long espacioTrabajoId
+    UUID espacioTrabajoId
 ) {
 
 }

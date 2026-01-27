@@ -26,7 +26,7 @@ public class CuotaCredito {
     @Column(name = "fecha_vencimiento", nullable = false)
     private LocalDate fechaVencimiento;
 
-    @Column(name = "monto_cuota", nullable = false)
+    @Column(name = "monto_cuota", nullable = false, columnDefinition = "NUMERIC(15,2)")
     private Float montoCuota;
 
     @Column(name = "pagada", nullable = false)
@@ -37,14 +37,11 @@ public class CuotaCredito {
     private CompraCredito compraCredito;
 
     @ManyToOne
-    @JoinColumn(name = "transaccion_id")
-    private Transaccion transaccionAsociada;
+    @JoinColumn(name = "resumen_id")
+    private Resumen resumenAsociado;
 
     public void pagarCuota() {
         this.pagada = true;
     }
 
-    public void asociarTransaccion(Transaccion transaccion) {
-        this.transaccionAsociada = transaccion;
-    }
 }

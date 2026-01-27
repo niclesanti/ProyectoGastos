@@ -29,6 +29,8 @@ public interface MotivoTransaccionMapper {
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "espacioTrabajo", ignore = true)
+    @Mapping(target = "fechaCreacion", ignore = true)
+    @Mapping(target = "fechaModificacion", ignore = true)
     MotivoTransaccion toEntity(MotivoDTORequest request);
 
     /**

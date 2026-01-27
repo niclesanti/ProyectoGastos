@@ -5,7 +5,7 @@
 ' ====================================================================
 
 class Usuario {
-  - id: Long
+  - id: UUID
   - nombre: String
   - email: String
   - fotoPerfil: String
@@ -18,9 +18,13 @@ class Usuario {
 }
 
 class EspacioTrabajo {
-  - id: Long
+  - id: UUID
   - nombre: String
   - saldo: Float
+  - fechaCreacion: LocalDateTime
+  - fechaModificacion: LocalDateTime
+  + actualizarSaldoNuevaTransaccion(monto: Float, tipo: TipoTransaccion): void
+  + actualizarSaldoEliminarTransaccion(monto: Float, tipo: TipoTransaccion): void
 }
 
 class CuentaBancaria {
@@ -28,6 +32,8 @@ class CuentaBancaria {
   - nombre: String
   - entidadFinanciera: String
   - saldoActual: Float
+  + actualizarSaldoNuevaTransaccion(monto: Float, tipo: TipoTransaccion): void
+  + actualizarSaldoEliminarTransaccion(monto: Float, tipo: TipoTransaccion): void
 }
 
 class Transaccion {
@@ -48,14 +54,6 @@ class MotivoTransaccion {
 class ContactoTransferencia {
   - id: Long
   - nombre: String
-}
-
-class Presupuesto {
-  - id: Long
-  - monto: Float
-  - periodoInicio: LocalDateTime
-  - periodoFin: LocalDateTime
-  - umbralAlerta: Float
 }
 
 class Tarjeta {
@@ -86,12 +84,28 @@ class CuotaCredito {
   - montoCuota: Float
   - pagada: boolean
   + pagarCuota(): void
+}
+
+class Resumen {
+  - id: Long
+  - anio: Integer
+  - mes: Integer
+  - fechaVencimiento: LocalDate
+  - estado: EstadoResumen
+  - montoTotal: Float
   + asociarTransaccion(transaccion: Transaccion): void
 }
 
-class Notificacion {
+class GastosIngresosMensuales {
   - id: Long
-  - mensaje: String
+  - anio: Integer
+  - mes: Integer
+  - gastos: Float
+  - ingresos: Float
+  + actualizarGastos(nuevoGasto: Float): void
+  + actualizarIngresos(nuevoIngreso: Float): void
+  + eliminarGastos(nuevoGasto: Float): void
+  + eliminarIngresos(nuevoIngreso: Float): void
 }
 
 class CustomOAuth2User {
@@ -109,34 +123,42 @@ enum ProveedorAutenticacion {
   GITHUB
 }
 
+enum EstadoResumen {
+  ABIERTO
+  CERRADO
+  PAGADO
+  PAGADO_PARCIAL
+}
+
 ' ====================================================================
 ' ASOCIACIONES ENTRE CLASES DEL MODELO
 ' ====================================================================
 
 Usuario "1" -- "0..*" EspacioTrabajo : "es admin de"
 Usuario "0..*" -- "0..*" EspacioTrabajo : "participa en"
-Usuario "1" -- "0..*" Notificacion : "recibe"
 
 EspacioTrabajo "1" -- "0..*" CuentaBancaria : "tiene"
 EspacioTrabajo "1" -- "0..*" Transaccion : "registra"
 EspacioTrabajo "1" -- "0..*" MotivoTransaccion : "define"
 EspacioTrabajo "1" -- "0..*" ContactoTransferencia : "registra"
-EspacioTrabajo "1" -- "0..*" Presupuesto : "asigna"
 EspacioTrabajo "1" -- "0..*" Tarjeta : "registra"
 EspacioTrabajo "1" -- "0..*" CompraCredito : "tiene"
+EspacioTrabajo "1" -- "0..*" GastosIngresosMensuales : "posee"
 
 Transaccion "0..*" -- "1" MotivoTransaccion : "tiene un"
 Transaccion "0..*" -- "0..1" ContactoTransferencia : "asociada a un"
 Transaccion "0..*" -- "0..1" CuentaBancaria : "afecta a"
-Transaccion "0..1" -- "0..*" CuotaCredito : "asociada a"
-
-Presupuesto "1" -- "0..1" MotivoTransaccion : "relacionado con"
 
 Tarjeta "1" -- "0..*" CompraCredito : "utiliza"
+Tarjeta "1" -- "0..*" Resumen : "genera"
 
 CompraCredito "1" -- "1..*" CuotaCredito : "genera"
 CompraCredito "0..*" -- "1" MotivoTransaccion : "categorizada por"
 CompraCredito "0..*" -- "0..1" ContactoTransferencia : "realizada en"
+
+CuotaCredito "0..*" -- "0..1" Resumen : "incluida en"
+
+Resumen "0..1" -- "0..1" Transaccion : "pagado con"
 
 ' ====================================================================
 ' DEFINICION DE DTOs (DATA TRANSFER OBJECTS)
@@ -147,6 +169,13 @@ class UsuarioDTO {
   - nombre: String
   - email: String
   + fromUsuario(usuario: Usuario): UsuarioDTO
+}
+
+class UsuarioDTOResponse {
+  - id: Long
+  - nombre: String
+  - email: String
+  - fotoPerfil: String
 }
 
 class EspacioTrabajoDTORequest {
@@ -294,11 +323,38 @@ class PagarResumenTarjetaRequest {
   - transaccion: TransaccionDTORequest
 }
 
-class DashboardInfoDTO {
-  - saldoEspacioTrabajo: Float
-  - ingresosGastosMes: List<IngresosGastosMesDTO>
+class ResumenDTOResponse {
+  - id: Long
+  - anio: Integer
+  - mes: Integer
+  - fechaVencimiento: LocalDate
+  - estado: EstadoResumen
+  - montoTotal: Float
+  - idTarjeta: Long
+  - numeroTarjeta: String
+  - entidadFinanciera: String
+  - redDePago: String
+  - idTransaccionAsociada: Long
+  - cantidadCuotas: Integer
+  - cuotas: List<CuotaResumenDTO>
+}
+
+class CuotaResumenDTO {
+  - id: Long
+  - numeroCuota: Integer
+  - montoCuota: Float
+  - descripcion: String
+  - totalCuotas: Integer
+  - motivo: String
+}
+
+class DashboardStatsDTO {
+  - balanceTotal: Float
+  - gastosMensuales: Float
+  - resumenMensual: Float
+  - deudaTotalPendiente: Float
+  - flujoMensual: List<IngresosGastosMesDTO>
   - distribucionGastos: List<DistribucionGastoDTO>
-  - saldosAcumuladosMes: List<SaldoAcumuladoMesDTO>
 }
 
 class IngresosGastosMesDTO {
@@ -342,6 +398,8 @@ interface TarjetaRepository <<repository>>
 interface CompraCreditoRepository <<repository>>
 interface CuotaCreditoRepository <<repository>>
 interface DashboardRepository <<repository>>
+interface ResumenRepository <<repository>>
+interface GastosIngresosMensualesRepository <<repository>>
 
 ' ====================================================================
 ' DEFINICION DE MAPPERS
@@ -355,34 +413,38 @@ interface ContactoTransferenciaMapper <<mapper>>
 interface TarjetaMapper <<mapper>>
 interface CompraCreditoMapper <<mapper>>
 interface CuotaCreditoMapper <<mapper>>
+interface UsuarioMapper <<mapper>>
+interface ResumenMapper <<mapper>>
 
 ' ====================================================================
 ' DEFINICION DE SERVICIOS
 ' ====================================================================
 
 interface EspacioTrabajoService <<service>> {
-  + registrarEspacioTrabajo(espacioTrabajoDTO: EspacioTrabajoDTORequest): void
-  + compartirEspacioTrabajo(email: String, idEspacioTrabajo: Long, idUsuarioAdmin: Long): void
-  + listarEspaciosTrabajoPorUsuario(idUsuario: Long): List<EspacioTrabajoDTOResponse>
+  + registrarEspacioTrabajo(espacioTrabajoDTO: EspacioTrabajoDTORequest, userId: UUID): void
+  + compartirEspacioTrabajo(email: String, idEspacioTrabajo: UUID): void
+  + listarEspaciosTrabajoPorUsuario(idUsuario: UUID): List<EspacioTrabajoDTOResponse>
+  + obtenerMiembrosEspacioTrabajo(idEspacioTrabajo: UUID): List<UsuarioDTOResponse>
 }
 
 class EspacioTrabajoServiceImpl <<service>> {
-  + registrarEspacioTrabajo(espacioTrabajoDTO: EspacioTrabajoDTORequest): void
-  + compartirEspacioTrabajo(email: String, idEspacioTrabajo: Long, idUsuarioAdmin: Long): void
-  + listarEspaciosTrabajoPorUsuario(idUsuario: Long): List<EspacioTrabajoDTOResponse>
+  + registrarEspacioTrabajo(espacioTrabajoDTO: EspacioTrabajoDTORequest, userId: UUID): void
+  + compartirEspacioTrabajo(email: String, idEspacioTrabajo: UUID): void
+  + listarEspaciosTrabajoPorUsuario(idUsuario: UUID): List<EspacioTrabajoDTOResponse>
+  + obtenerMiembrosEspacioTrabajo(idEspacioTrabajo: UUID): List<UsuarioDTOResponse>
 }
 
 interface CuentaBancariaService <<service>> {
   + crearCuentaBancaria(cuentaBancariaDTO: CuentaBancariaDTORequest): void
   + actualizarCuentaBancaria(id: Long, tipo: TipoTransaccion, monto: Float): CuentaBancaria
-  + listarCuentasBancarias(idEspacioTrabajo: Long): List<CuentaBancariaDTOResponse>
+  + listarCuentasBancarias(idEspacioTrabajo: UUID): List<CuentaBancariaDTOResponse>
   + transaccionEntreCuentas(idCuentaOrigen: Long, idCuentaDestino: Long, monto: Float): void
 }
 
 class CuentaBancariaServiceImpl <<service>> {
   + crearCuentaBancaria(cuentaBancariaDTO: CuentaBancariaDTORequest): void
   + actualizarCuentaBancaria(id: Long, tipo: TipoTransaccion, monto: Float): CuentaBancaria
-  + listarCuentasBancarias(idEspacioTrabajo: Long): List<CuentaBancariaDTOResponse>
+  + listarCuentasBancarias(idEspacioTrabajo: UUID): List<CuentaBancariaDTOResponse>
   + transaccionEntreCuentas(idCuentaOrigen: Long, idCuentaDestino: Long, monto: Float): void
 }
 
@@ -392,10 +454,9 @@ interface TransaccionService <<service>> {
   + buscarTransaccion(datosBusqueda: TransaccionBusquedaDTO): List<TransaccionDTOResponse>
   + registrarContactoTransferencia(contactoDTO: ContactoDTORequest): ContactoDTOResponse
   + nuevoMotivoTransaccion(motivoDTO: MotivoDTORequest): MotivoDTOResponse
-  + listarContactos(idEspacioTrabajo: Long): List<ContactoDTOResponse>
-  + listarMotivos(idEspacioTrabajo: Long): List<MotivoDTOResponse>
-  + buscarTransaccionesRecientes(idEspacioTrabajo: Long): List<TransaccionDTOResponse>
-  + obtenerDashboardInfo(idEspacio: Long): DashboardInfoDTO
+  + listarContactos(idEspacioTrabajo: UUID): List<ContactoDTOResponse>
+  + listarMotivos(idEspacioTrabajo: UUID): List<MotivoDTOResponse>
+  + buscarTransaccionesRecientes(idEspacioTrabajo: UUID): List<TransaccionDTOResponse>
 }
 
 class TransaccionServiceImpl <<service>> {
@@ -404,38 +465,73 @@ class TransaccionServiceImpl <<service>> {
   + buscarTransaccion(datosBusqueda: TransaccionBusquedaDTO): List<TransaccionDTOResponse>
   + registrarContactoTransferencia(contactoDTO: ContactoDTORequest): ContactoDTOResponse
   + nuevoMotivoTransaccion(motivoDTO: MotivoDTORequest): MotivoDTOResponse
-  + listarContactos(idEspacioTrabajo: Long): List<ContactoDTOResponse>
-  + listarMotivos(idEspacioTrabajo: Long): List<MotivoDTOResponse>
-  + buscarTransaccionesRecientes(idEspacioTrabajo: Long): List<TransaccionDTOResponse>
-  + obtenerDashboardInfo(idEspacio: Long): DashboardInfoDTO
+  + listarContactos(idEspacioTrabajo: UUID): List<ContactoDTOResponse>
+  + listarMotivos(idEspacioTrabajo: UUID): List<MotivoDTOResponse>
+  + buscarTransaccionesRecientes(idEspacioTrabajo: UUID): List<TransaccionDTOResponse>
 }
 
 interface CompraCreditoService <<service>> {
   + registrarCompraCredito(compraCreditoDTO: CompraCreditoDTORequest): CompraCreditoDTOResponse
   + removerCompraCredito(id: Long): void
-  + listarComprasCreditoDebeCuotas(idEspacioTrabajo: Long): List<CompraCreditoDTOResponse>
-  + BuscarComprasCredito(idEspacioTrabajo: Long): List<CompraCreditoDTOResponse>
+  + listarComprasCreditoDebeCuotas(idEspacioTrabajo: UUID): List<CompraCreditoDTOResponse>
+  + BuscarComprasCredito(idEspacioTrabajo: UUID): List<CompraCreditoDTOResponse>
   + registrarTarjeta(tarjetaDTO: TarjetaDTORequest): TarjetaDTOResponse
   + removerTarjeta(id: Long): void
-  + listarTarjetas(idEspacioTrabajo: Long): List<TarjetaDTOResponse>
+  + listarTarjetas(idEspacioTrabajo: UUID): List<TarjetaDTOResponse>
   + listarCuotasPorTarjeta(idTarjeta: Long): List<CuotaCreditoDTOResponse>
-  + pagarResumenTarjeta(cuotas: List<CuotaCreditoDTORequest>, transaccion: TransaccionDTORequest): void
+  + pagarResumenTarjeta(request: PagarResumenTarjetaRequest): void
+  + listarResumenesPorTarjeta(idTarjeta: Long): List<ResumenDTOResponse>
+  + listarResumenesPorEspacioTrabajo(idEspacioTrabajo: UUID): List<ResumenDTOResponse>
 }
 
 class CompraCreditoServiceImpl <<service>> {
   + registrarCompraCredito(compraCreditoDTO: CompraCreditoDTORequest): CompraCreditoDTOResponse
   + removerCompraCredito(id: Long): void
-  + listarComprasCreditoDebeCuotas(idEspacioTrabajo: Long): List<CompraCreditoDTOResponse>
-  + BuscarComprasCredito(idEspacioTrabajo: Long): List<CompraCreditoDTOResponse>
+  + listarComprasCreditoDebeCuotas(idEspacioTrabajo: UUID): List<CompraCreditoDTOResponse>
+  + BuscarComprasCredito(idEspacioTrabajo: UUID): List<CompraCreditoDTOResponse>
   + registrarTarjeta(tarjetaDTO: TarjetaDTORequest): TarjetaDTOResponse
   + removerTarjeta(id: Long): void
-  + listarTarjetas(idEspacioTrabajo: Long): List<TarjetaDTOResponse>
+  + listarTarjetas(idEspacioTrabajo: UUID): List<TarjetaDTOResponse>
   + listarCuotasPorTarjeta(idTarjeta: Long): List<CuotaCreditoDTOResponse>
-  + pagarResumenTarjeta(cuotas: List<CuotaCreditoDTORequest>, transaccion: TransaccionDTORequest): void
+  + pagarResumenTarjeta(request: PagarResumenTarjetaRequest): void
+  + listarResumenesPorTarjeta(idTarjeta: Long): List<ResumenDTOResponse>
+  + listarResumenesPorEspacioTrabajo(idEspacioTrabajo: UUID): List<ResumenDTOResponse>
+}
+
+interface DashboardService <<service>> {
+  + obtenerDashboardStats(idEspacio: UUID): DashboardStatsDTO
+}
+
+class DashboardServiceImpl <<service>> {
+  + obtenerDashboardStats(idEspacio: UUID): DashboardStatsDTO
 }
 
 class CustomOidcUserService <<service>> {
   + loadUser(userRequest: OidcUserRequest): OidcUser
+}
+
+interface SecurityService <<service>> {
+  + getAuthenticatedUserId(): UUID
+  + validateWorkspaceAccess(workspaceId: UUID): void
+  + validateWorkspaceAdmin(workspaceId: UUID): void
+  + validateTransactionOwnership(transactionId: Long): void
+  + validateCompraCreditoOwnership(compraCreditoId: Long): void
+  + validateCuentaBancariaOwnership(cuentaBancariaId: Long): void
+  + validateTarjetaOwnership(tarjetaId: Long): void
+  + hasWorkspaceAccess(workspaceId: UUID): boolean
+  + isWorkspaceAdmin(workspaceId: UUID): boolean
+}
+
+class SecurityServiceImpl <<service>> {
+  + getAuthenticatedUserId(): UUID
+  + validateWorkspaceAccess(workspaceId: UUID): void
+  + validateWorkspaceAdmin(workspaceId: UUID): void
+  + validateTransactionOwnership(transactionId: Long): void
+  + validateCompraCreditoOwnership(compraCreditoId: Long): void
+  + validateCuentaBancariaOwnership(cuentaBancariaId: Long): void
+  + validateTarjetaOwnership(tarjetaId: Long): void
+  + hasWorkspaceAccess(workspaceId: UUID): boolean
+  + isWorkspaceAdmin(workspaceId: UUID): boolean
 }
 
 ' ====================================================================
@@ -446,6 +542,8 @@ EspacioTrabajoServiceImpl ..|> EspacioTrabajoService
 CuentaBancariaServiceImpl ..|> CuentaBancariaService
 TransaccionServiceImpl ..|> TransaccionService
 CompraCreditoServiceImpl ..|> CompraCreditoService
+DashboardServiceImpl ..|> DashboardService
+SecurityServiceImpl ..|> SecurityService
 
 ' ====================================================================
 ' ASOCIACIONES CAPA SERVICIO -> REPOSITORIO
@@ -461,9 +559,9 @@ TransaccionServiceImpl ..> TransaccionRepository
 TransaccionServiceImpl ..> EspacioTrabajoRepository
 TransaccionServiceImpl ..> MotivoTransaccionRepository
 TransaccionServiceImpl ..> ContactoTransferenciaRepository
-TransaccionServiceImpl ..> DashboardRepository
 TransaccionServiceImpl ..> CuentaBancariaRepository
 TransaccionServiceImpl ..> CuentaBancariaService
+TransaccionServiceImpl ..> GastosIngresosMensualesRepository
 
 CompraCreditoServiceImpl ..> CompraCreditoRepository
 CompraCreditoServiceImpl ..> CuotaCreditoRepository
@@ -472,8 +570,20 @@ CompraCreditoServiceImpl ..> EspacioTrabajoRepository
 CompraCreditoServiceImpl ..> MotivoTransaccionRepository
 CompraCreditoServiceImpl ..> ContactoTransferenciaRepository
 CompraCreditoServiceImpl ..> TransaccionService
+CompraCreditoServiceImpl ..> ResumenRepository
+
+DashboardServiceImpl ..> DashboardRepository
+DashboardServiceImpl ..> EspacioTrabajoRepository
+DashboardServiceImpl ..> GastosIngresosMensualesRepository
+DashboardServiceImpl ..> ResumenRepository
 
 CustomOidcUserService ..> UsuarioRepository
+
+SecurityServiceImpl ..> EspacioTrabajoRepository
+SecurityServiceImpl ..> TransaccionRepository
+SecurityServiceImpl ..> CompraCreditoRepository
+SecurityServiceImpl ..> CuentaBancariaRepository
+SecurityServiceImpl ..> TarjetaRepository
 
 ' ====================================================================
 ' ASOCIACIONES CAPA SERVICIO -> MAPPER
@@ -487,6 +597,8 @@ TransaccionServiceImpl ..> ContactoTransferenciaMapper
 CompraCreditoServiceImpl ..> CompraCreditoMapper
 CompraCreditoServiceImpl ..> CuotaCreditoMapper
 CompraCreditoServiceImpl ..> TarjetaMapper
+CompraCreditoServiceImpl ..> ResumenMapper
+EspacioTrabajoServiceImpl ..> UsuarioMapper
 
 ' ====================================================================
 ' ASOCIACIONES CAPA REPOSITORIO -> MODELO
@@ -501,6 +613,8 @@ ContactoTransferenciaRepository ..> ContactoTransferencia
 TarjetaRepository ..> Tarjeta
 CompraCreditoRepository ..> CompraCredito
 CuotaCreditoRepository ..> CuotaCredito
+ResumenRepository ..> Resumen
+GastosIngresosMensualesRepository ..> GastosIngresosMensuales
 
 ' ====================================================================
 ' ASOCIACIONES CAPA MAPPER -> MODELO Y DTOs
@@ -537,5 +651,11 @@ CompraCreditoMapper ..> CompraCreditoDTOResponse
 CuotaCreditoMapper ..> CuotaCredito
 CuotaCreditoMapper ..> CuotaCreditoDTORequest
 CuotaCreditoMapper ..> CuotaCreditoDTOResponse
+
+UsuarioMapper ..> Usuario
+UsuarioMapper ..> UsuarioDTOResponse
+
+ResumenMapper ..> Resumen
+ResumenMapper ..> ResumenDTOResponse
 
 @enduml

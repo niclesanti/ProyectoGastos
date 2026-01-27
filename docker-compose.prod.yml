@@ -14,3 +14,9 @@ services:
       # DB_PASSWORD: password_db_prod
       # GOOGLE_CLIENT_ID: id_cliente_google_prod
       # GOOGLE_CLIENT_SECRET: secreto_cliente_google_prod
+
+  frontend:
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production

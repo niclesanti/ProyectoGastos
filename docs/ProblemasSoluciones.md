@@ -34,3 +34,26 @@ Estuve intentando implementar en la aplicación la autenticación de Google sin 
 ### Solución
 
 Finalmente, luego de muchas iteraciones con la IA y muchas hipótesis que fuimos armando y descartando, hallamos el problema. Le pedí a la IA que implemente algunos logs que nos permita ver que estaba pasando entre la aplicación y la base de datos. Luego de correr la aplicación e intentar autenticarme pude obtener un registro de todo lo que ocurría. Generé un archivo con todas las salidas del sistema para evaluarlo junto con la IA. Luego esta dió con la solución, basicamente se tuvo que modificar la clase service que se encargaba de la autenticación de usuario, para que esta extienda de OidcUserService y la clase de modelo CustomOAuth2User implemente OidcUser. Antes de esto, estas clases extendían e implementaban respectivamente otras cosas las cuales no tenían compatibilidad con los datos que me brindaba el servicio de google.
+
+## Problema 4: Problemas de precisión
+
+### Problema
+Este problema surge desde la concepción del diseño del software, puesto que no se tuvieron en cuenta algunas cuestiones desde el principio en cuanto a tipos de dato. 
+En un principio cuando el software se encontraba en etapa de diseño, producto del desconocimiento, se decidió utilizar para los saldos y montos el tipo de dato Float en Java y Real para la base de datos. No se tuvo en cuenta que estábamos desarrollando una aplicación financiera y requería un mayor nivel de precisión para que esta tenga un funcionamiento mas realista y profesional. Estas impresiciones se notan sobre todo en la ejecución de los casos de prueba, donde probamos los límites de la aplicación. Al ingresar montos o saldos muy grandes, al usar tipos de datos incorrecto para el dominio, se producen redondeos incorrectos o que no deberían suceder y los límites superiores de estos montos que se le permite ingresar a los usuarios no es lo suficientemente alto, limitado por el tipo de dato.
+
+### Solución
+
+Para solucionar esto, de decidió cambiar el tipo de dato de los montos y saldos tanto en el backend en Java como en la base de datos. En primer lugar se cambió el tipo de dato REAL en la base de datos por NUMERIC(15, 2) que permite almacenar 15 dígitos enteros y 2 decimales. Esta precisión está relativamente bien para el caso, aunque podría ser mayor, también priorizamos los costos de almacenamiento.
+Por lo pronto se agregó anotaciones para que el ORM mapea Float con NUMERIC, porque cambiar toda la logica de negocio requiere tiempo y se hará en una próxima iteración. Lo que sigue es cambiar el tipo de dato Float por BigDecimal. Con estos cambios deberíamos lograr mayor nivel de precisión.
+Finalmente la solución de estos problemas se traduce en un aprendizaje del costo que conlleva tomar malas decisiones de diseño, que serán tenidas en cuenta para desarrollos futuros.
+
+
+## Problema 4: Problemas de autenticación
+
+### Problema
+Luego de implementar el nuevo frontend separado del backend, utilizando React y TypeScript, tuve muchas dificultades para conectar el frontend con el backend y viceversa. 
+Se configuró lo CORS en un principio, pero al probar el despliegue en unos hosting de staging e intentar loguear un usuario, este se creaba en la base de datos, pero no redirigía al dashboard de la app, sino que volvía al login. Por lo tanto había un problema de comunicación entre el frontend y el backend.
+
+### Solución
+Al investigar detectamos que el problema era cross‑domain: las cookies de sesión no funcionaban entre el hosting del frontend y el backend (políticas SameSite/CORS). Para resolverlo migramos a un flujo basado en JWT: el backend genera un token al completar la autenticación (OAuth2) y redirige al frontend con el token en la URL; el frontend lo extrae, lo guarda en `localStorage` y un interceptor de Axios añade `Authorization: Bearer <token>` a cada petición. En el backend dejamos la configuración como stateless (`SessionCreationPolicy.STATELESS`) y añadimos un filtro para validar los JWT en cada petición. Con este cambio las redirecciones y la comunicación entre front y backend funcionaron correctamente y el usuario queda autenticado y redirigido al dashboard.
+

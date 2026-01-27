@@ -15,20 +15,29 @@ import org.springframework.web.bind.annotation.RestController;
 import com.campito.backend.dto.CuentaBancariaDTORequest;
 import com.campito.backend.dto.CuentaBancariaDTOResponse;
 import com.campito.backend.service.CuentaBancariaService;
+import com.campito.backend.service.SecurityService;
+import com.campito.backend.validation.ValidMonto;
+
+import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 
 @RestController
-@RequestMapping("/cuentabancaria")
+@RequestMapping("/api/cuentabancaria")
 @Tag(name = "CuentaBancaria", description = "Operaciones para la gestión de cuentas bancarias")
 @RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
+@Validated  // Habilita validación en @PathVariable
 public class CuentaBancariaController {
 
     private final CuentaBancariaService cuentaBancariaService;
+    private final SecurityService securityService;
 
     @Operation(
         summary = "Crear una nueva cuenta bancaria",
@@ -38,7 +47,12 @@ public class CuentaBancariaController {
     @ApiResponse(responseCode = "400", description = "Error al crear la cuenta bancaria")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @PostMapping("/crear")
-    public ResponseEntity<Void> crearCuentaBancaria(@Valid @RequestBody CuentaBancariaDTORequest cuentaBancariaDTO) {
+    public ResponseEntity<Void> crearCuentaBancaria(
+        @Valid 
+        @NotNull(message = "La cuenta bancaria es obligatoria") 
+        @RequestBody CuentaBancariaDTORequest cuentaBancariaDTO) {
+        
+        securityService.validateWorkspaceAccess(cuentaBancariaDTO.idEspacioTrabajo());
         cuentaBancariaService.crearCuentaBancaria(cuentaBancariaDTO);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
@@ -51,7 +65,10 @@ public class CuentaBancariaController {
     @ApiResponse(responseCode = "400", description = "Error al listar las cuentas bancarias")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @GetMapping("/listar/{idEspacioTrabajo}")
-    public ResponseEntity<List<CuentaBancariaDTOResponse>> listarCuentasBancarias(@PathVariable Long idEspacioTrabajo) {
+    public ResponseEntity<List<CuentaBancariaDTOResponse>> listarCuentasBancarias(
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
+        
+        securityService.validateWorkspaceAccess(idEspacioTrabajo);
         List<CuentaBancariaDTOResponse> cuentas = cuentaBancariaService.listarCuentasBancarias(idEspacioTrabajo);
         return new ResponseEntity<>(cuentas, HttpStatus.OK);
     }
@@ -64,7 +81,15 @@ public class CuentaBancariaController {
     @ApiResponse(responseCode = "400", description = "Error al realizar la transacción")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @PutMapping("/transaccion/{idCuentaOrigen}/{idCuentaDestino}/{monto}")
-    public ResponseEntity<Void> realizarTransaccion(@PathVariable Long idCuentaOrigen, @PathVariable Long idCuentaDestino, @PathVariable Float monto) {
+    public ResponseEntity<Void> realizarTransaccion(
+            @PathVariable @NotNull(message = "La cuenta de origen es obligatoria") Long idCuentaOrigen, 
+            @PathVariable @NotNull(message = "La cuenta de destino es obligatoria") Long idCuentaDestino, 
+            @PathVariable @NotNull(message = "El monto es obligatorio") 
+            @DecimalMin(value = "0.009", message = "El monto debe ser mayor a 0")
+            @ValidMonto Float monto) {
+            
+        securityService.validateCuentaBancariaOwnership(idCuentaOrigen);
+        securityService.validateCuentaBancariaOwnership(idCuentaDestino);
         cuentaBancariaService.transaccionEntreCuentas(idCuentaOrigen, idCuentaDestino, monto);
         return new ResponseEntity<>(HttpStatus.OK);
     }

@@ -9,7 +9,7 @@ public record CuotaCreditoDTOResponse(
     Float montoCuota,
     boolean pagada,
     Long idCompraCredito,
-    Long idTransaccionAsociada
+    Long idResumenAsociado
 ) {
 
 }

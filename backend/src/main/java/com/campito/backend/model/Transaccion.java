@@ -24,7 +24,7 @@ public class Transaccion {
     @Column(name = "tipo", nullable = false)
     private TipoTransaccion tipo;
 
-    @Column(name = "monto", nullable = false)
+    @Column(name = "monto", nullable = false, columnDefinition = "NUMERIC(15,2)")
     private Float monto;
 
     @Column(name = "fecha", nullable = false)

@@ -2,6 +2,7 @@ package com.campito.backend.dto;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public record CompraCreditoDTOResponse(
     Long id,
@@ -12,10 +13,16 @@ public record CompraCreditoDTOResponse(
     String descripcion,
     String nombreCompletoAuditoria,
     LocalDateTime fechaCreacion,
-    Long espacioTrabajoId,
+    UUID espacioTrabajoId,
+    String nombreEspacioTrabajo,
     Long motivoId,
+    String nombreMotivo,
     Long comercioId,
-    Long tarjetaId
+    String nombreComercio,
+    Long tarjetaId,
+    String numeroTarjeta,
+    String entidadFinanciera,
+    String redDePago
 ) {
 
 }

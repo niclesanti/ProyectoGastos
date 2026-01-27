@@ -32,6 +32,8 @@ public interface EspacioTrabajoMapper {
     @Mapping(target = "saldo", ignore = true)
     @Mapping(target = "usuarioAdmin", ignore = true)
     @Mapping(target = "usuariosParticipantes", ignore = true)
+    @Mapping(target = "fechaCreacion", ignore = true)
+    @Mapping(target = "fechaModificacion", ignore = true)
     EspacioTrabajo toEntity(EspacioTrabajoDTORequest request);
 
     /**
