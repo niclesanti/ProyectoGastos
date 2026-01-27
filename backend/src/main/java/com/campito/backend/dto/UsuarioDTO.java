@@ -1,9 +1,11 @@
 package com.campito.backend.dto;
 
+import java.util.UUID;
+
 import com.campito.backend.model.Usuario;
 
 public record UsuarioDTO(
-    Long id,
+    UUID id,
     String nombre,
     String email,
     String fotoPerfil

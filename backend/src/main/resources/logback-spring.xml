@@ -33,30 +33,27 @@
     -->
     <springProfile name="prod">
         <!--
-            En produccion, queremos logs estructurados (JSON) para un facil procesamiento
-            y una politica de rotacion de archivos para no llenar el disco.
+            En produccion, usamos solo logs de consola.
+            El appender JSON fue deshabilitado para evitar la dependencia de logstash-logback-encoder
+            en ambientes de staging/hosting como Render que capturan logs de consola automáticamente.
         -->
 
         <!--
-            Appender para escribir logs en formato JSON a un archivo con rotacion.
-            Esto es ideal para sistemas de recoleccion de logs como ELK, Splunk, etc.
-        -->
+            Appender JSON comentado - requiere dependencia net.logstash.logback:logstash-logback-encoder
+        
         <appender name="ROLLING_FILE_JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>logs/backend-prod.log</file>
             <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
             <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-                <!-- Rota diariamente -->
                 <fileNamePattern>logs/backend-prod.%d{yyyy-MM-dd}.log.gz</fileNamePattern>
-                <!-- Mantiene 30 dias de logs -->
                 <maxHistory>30</maxHistory>
-                <!-- Comprime los logs antiguos en formato .gz -->
                 <cleanHistoryOnStart>true</cleanHistoryOnStart>
             </rollingPolicy>
         </appender>
+        -->
 
         <!--
-            Appender de consola para produccion. Lo mantenemos por si se necesita depurar
-            directamente en el servidor, pero el principal es el archivo.
+            Appender de consola para produccion. Suficiente para staging en Render.
         -->
         <appender name="PROD_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
@@ -66,19 +63,16 @@
 
         <!--
             Configuracion del logger raiz (root).
-            Todos los logs iran al archivo JSON y a la consola de produccion.
+            Todos los logs iran solo a la consola.
         -->
         <root level="WARN">
-            <appender-ref ref="ROLLING_FILE_JSON" />
             <appender-ref ref="PROD_CONSOLE" />
         </root>
 
         <!--
-            Podemos ser mas especificos para nuestro paquete si es necesario.
-            Por ejemplo, si quisieramos que nuestro codigo tambien logueara DEBUG en produccion (no recomendado).
+            Logger especifico para nuestro paquete.
         -->
         <logger name="com.campito.backend" level="WARN" additivity="false">
-            <appender-ref ref="ROLLING_FILE_JSON" />
             <appender-ref ref="PROD_CONSOLE" />
         </logger>
 

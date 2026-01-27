@@ -1,24 +1,23 @@
 package com.campito.backend.service;
 
 import java.util.List;
+import java.util.UUID;
 
-import com.campito.backend.dto.ContactoDTO;
-import com.campito.backend.dto.ContactoListadoDTO;
-import com.campito.backend.dto.DashboardInfoDTO;
-import com.campito.backend.dto.MotivoDTO;
-import com.campito.backend.dto.MotivoListadoDTO;
+import com.campito.backend.dto.ContactoDTORequest;
+import com.campito.backend.dto.ContactoDTOResponse;
+import com.campito.backend.dto.MotivoDTORequest;
+import com.campito.backend.dto.MotivoDTOResponse;
 import com.campito.backend.dto.TransaccionBusquedaDTO;
-import com.campito.backend.dto.TransaccionDTO;
-import com.campito.backend.dto.TransaccionListadoDTO;
+import com.campito.backend.dto.TransaccionDTORequest;
+import com.campito.backend.dto.TransaccionDTOResponse;
 
 public interface TransaccionService {
-    public TransaccionDTO registrarTransaccion(TransaccionDTO transaccionDTO);
+    public TransaccionDTOResponse registrarTransaccion(TransaccionDTORequest transaccionDTO);
     public void removerTransaccion(Long id);
-    public List<TransaccionListadoDTO> buscarTransaccion(TransaccionBusquedaDTO datosBusqueda);
-    public ContactoDTO registrarContactoTransferencia(ContactoDTO contactoDTO);
-    public MotivoDTO nuevoMotivoTransaccion(MotivoDTO motivoDTO);
-    public List<ContactoListadoDTO> listarContactos(Long idEspacioTrabajo);
-    public List<MotivoListadoDTO> listarMotivos(Long idEspacioTrabajo);
-    public List<TransaccionListadoDTO> buscarTransaccionesRecientes(Long idEspacioTrabajo);
-    public DashboardInfoDTO obtenerDashboardInfo(Long idEspacio);
+    public List<TransaccionDTOResponse> buscarTransaccion(TransaccionBusquedaDTO datosBusqueda);
+    public ContactoDTOResponse registrarContactoTransferencia(ContactoDTORequest contactoDTO);
+    public MotivoDTOResponse nuevoMotivoTransaccion(MotivoDTORequest motivoDTO);
+    public List<ContactoDTOResponse> listarContactos(UUID idEspacioTrabajo);
+    public List<MotivoDTOResponse> listarMotivos(UUID idEspacioTrabajo);
+    public List<TransaccionDTOResponse> buscarTransaccionesRecientes(UUID idEspacioTrabajo);
 }

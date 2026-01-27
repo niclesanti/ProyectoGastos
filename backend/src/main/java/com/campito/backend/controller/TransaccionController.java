@@ -1,8 +1,8 @@
 package com.campito.backend.controller;
 
 import java.util.List;
+import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,19 +11,22 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.campito.backend.dto.ContactoDTO;
-import com.campito.backend.dto.ContactoListadoDTO;
-import com.campito.backend.dto.DashboardInfoDTO;
-import com.campito.backend.dto.MotivoDTO;
-import com.campito.backend.dto.MotivoListadoDTO;
+import com.campito.backend.dto.ContactoDTORequest;
+import com.campito.backend.dto.ContactoDTOResponse;
+import com.campito.backend.dto.MotivoDTORequest;
+import com.campito.backend.dto.MotivoDTOResponse;
 import com.campito.backend.dto.TransaccionBusquedaDTO;
-import com.campito.backend.dto.TransaccionDTO;
-import com.campito.backend.dto.TransaccionListadoDTO;
+import com.campito.backend.dto.TransaccionDTORequest;
+import com.campito.backend.dto.TransaccionDTOResponse;
 import com.campito.backend.service.TransaccionService;
+import com.campito.backend.service.SecurityService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.validation.annotation.Validated;
+import lombok.RequiredArgsConstructor;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,27 +34,33 @@ import org.springframework.http.ResponseEntity;
 
 
 @RestController
-@RequestMapping("/transaccion")
+@RequestMapping("/api/transaccion")
 @Tag(name = "Transaccion", description = "Operaciones para la gestión de transacciones")
+@RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
+@Validated
 public class TransaccionController {
 
     private final TransaccionService transaccionService;
-
-    @Autowired
-    public TransaccionController(TransaccionService transaccionService) {
-        this.transaccionService = transaccionService;
-    }
+    private final SecurityService securityService;
 
     @Operation(summary = "Registrar una nueva transacción",
                 description = "Permite registrar una nueva transacción en el sistema.",
                 responses = {
                     @ApiResponse(responseCode = "201", description = "Transacción registrada correctamente"),
                     @ApiResponse(responseCode = "400", description = "Error al registrar la transacción"),
+                    @ApiResponse(responseCode = "403", description = "No tienes acceso a este espacio de trabajo"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/registrar")
-    public ResponseEntity<TransaccionDTO> registrarTransaccion(@Valid @RequestBody TransaccionDTO transaccionDTO) {
-        TransaccionDTO nuevaTransaccion = transaccionService.registrarTransaccion(transaccionDTO);
+    public ResponseEntity<TransaccionDTOResponse> registrarTransaccion(
+        @Valid 
+        @NotNull(message = "El cuerpo de la transacción es obligatorio") 
+        @RequestBody TransaccionDTORequest transaccionDTO) {
+        
+        // Validar que el usuario tiene acceso al espacio de trabajo
+        securityService.validateWorkspaceAccess(transaccionDTO.idEspacioTrabajo());
+        
+        TransaccionDTOResponse nuevaTransaccion = transaccionService.registrarTransaccion(transaccionDTO);
         return new ResponseEntity<>(nuevaTransaccion, HttpStatus.CREATED);
     }
 
@@ -59,11 +68,17 @@ public class TransaccionController {
                 description = "Permite remover una transacción existente en el sistema.",
                 responses = {
                     @ApiResponse(responseCode = "200", description = "Transacción removida correctamente"),
+                    @ApiResponse(responseCode = "403", description = "No tienes acceso a esta transacción"),
                     @ApiResponse(responseCode = "404", description = "Transacción no encontrada"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @DeleteMapping("/remover/{id}")
-    public ResponseEntity<Void> removerTransaccion(@PathVariable Long id) {
+    public ResponseEntity<Void> removerTransaccion(
+        @PathVariable @NotNull(message = "El id de la transacción es obligatorio") Long id) {
+        
+        // Validar que la transacción pertenece a un espacio del usuario
+        securityService.validateTransactionOwnership(id);
+        
         transaccionService.removerTransaccion(id);
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -73,11 +88,19 @@ public class TransaccionController {
                 responses = {
                     @ApiResponse(responseCode = "200", description = "Transacciones encontradas"),
                     @ApiResponse(responseCode = "400", description = "Error en los criterios de búsqueda"),
+                    @ApiResponse(responseCode = "403", description = "No tienes acceso a este espacio de trabajo"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/buscar")
-    public ResponseEntity<List<TransaccionListadoDTO>> buscarTransaccion(@Valid @RequestBody TransaccionBusquedaDTO datosBusqueda) {
-        List<TransaccionListadoDTO> transacciones = transaccionService.buscarTransaccion(datosBusqueda);
+    public ResponseEntity<List<TransaccionDTOResponse>> buscarTransaccion(
+        @Valid 
+        @NotNull(message = "Los criterios de búsqueda son obligatorios") 
+        @RequestBody TransaccionBusquedaDTO datosBusqueda) {
+        
+        // Validar acceso al espacio de trabajo
+        securityService.validateWorkspaceAccess(datosBusqueda.idEspacioTrabajo());
+        
+        List<TransaccionDTOResponse> transacciones = transaccionService.buscarTransaccion(datosBusqueda);
         return new ResponseEntity<>(transacciones, HttpStatus.OK);
     }
 
@@ -86,11 +109,19 @@ public class TransaccionController {
                 responses = {
                     @ApiResponse(responseCode = "201", description = "Contacto registrado correctamente"),
                     @ApiResponse(responseCode = "400", description = "Error al registrar el contacto"),
+                    @ApiResponse(responseCode = "403", description = "No tienes acceso a este espacio de trabajo"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/contacto/registrar")
-    public ResponseEntity<ContactoDTO> registrarContactoTransferencia(@Valid @RequestBody ContactoDTO contactoDTO) {
-        ContactoDTO nuevoContacto = transaccionService.registrarContactoTransferencia(contactoDTO);
+    public ResponseEntity<ContactoDTOResponse> registrarContactoTransferencia(
+        @Valid 
+        @NotNull(message = "El contacto es obligatorio") 
+        @RequestBody ContactoDTORequest contactoDTO) {
+        
+        // Validar acceso al espacio de trabajo
+        securityService.validateWorkspaceAccess(contactoDTO.idEspacioTrabajo());
+        
+        ContactoDTOResponse nuevoContacto = transaccionService.registrarContactoTransferencia(contactoDTO);
         return new ResponseEntity<>(nuevoContacto, HttpStatus.CREATED);
     }
 
@@ -98,12 +129,18 @@ public class TransaccionController {
                 description = "Permite listar los contactos de transacción asociados a un espacio de trabajo.",
                 responses = {
                     @ApiResponse(responseCode = "200", description = "Contactos listados correctamente"),
+                    @ApiResponse(responseCode = "403", description = "No tienes acceso a este espacio de trabajo"),
                     @ApiResponse(responseCode = "404", description = "Espacio de trabajo no encontrado"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/contacto/listar/{idEspacioTrabajo}")
-    public ResponseEntity<List<ContactoListadoDTO>> listarContactos(@PathVariable Long idEspacioTrabajo) {
-        List<ContactoListadoDTO> contactos = transaccionService.listarContactos(idEspacioTrabajo);
+    public ResponseEntity<List<ContactoDTOResponse>> listarContactos(
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
+        
+        // Validar acceso al espacio de trabajo
+        securityService.validateWorkspaceAccess(idEspacioTrabajo);
+        
+        List<ContactoDTOResponse> contactos = transaccionService.listarContactos(idEspacioTrabajo);
         return new ResponseEntity<>(contactos, HttpStatus.OK);
     }
 
@@ -112,11 +149,19 @@ public class TransaccionController {
                 responses = {
                     @ApiResponse(responseCode = "201", description = "Motivo registrado correctamente"),
                     @ApiResponse(responseCode = "400", description = "Error al registrar el motivo"),
+                    @ApiResponse(responseCode = "403", description = "No tienes acceso a este espacio de trabajo"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/motivo/registrar")
-    public ResponseEntity<MotivoDTO> nuevoMotivoTransaccion(@Valid @RequestBody MotivoDTO motivoDTO) {
-        MotivoDTO nuevoMotivo = transaccionService.nuevoMotivoTransaccion(motivoDTO);
+    public ResponseEntity<MotivoDTOResponse> nuevoMotivoTransaccion(
+        @Valid 
+        @NotNull(message = "El motivo es obligatorio") 
+        @RequestBody MotivoDTORequest motivoDTO) {
+        
+        // Validar acceso al espacio de trabajo
+        securityService.validateWorkspaceAccess(motivoDTO.idEspacioTrabajo());
+        
+        MotivoDTOResponse nuevoMotivo = transaccionService.nuevoMotivoTransaccion(motivoDTO);
         return new ResponseEntity<>(nuevoMotivo, HttpStatus.CREATED);
     }
 
@@ -124,12 +169,18 @@ public class TransaccionController {
                 description = "Permite listar los motivos de transacción asociados a un espacio de trabajo.",
                 responses = {
                     @ApiResponse(responseCode = "200", description = "Motivos listados correctamente"),
+                    @ApiResponse(responseCode = "403", description = "No tienes acceso a este espacio de trabajo"),
                     @ApiResponse(responseCode = "404", description = "Espacio de trabajo no encontrado"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/motivo/listar/{idEspacioTrabajo}")
-    public ResponseEntity<List<MotivoListadoDTO>> listarMotivos(@PathVariable Long idEspacioTrabajo) {
-        List<MotivoListadoDTO> motivos = transaccionService.listarMotivos(idEspacioTrabajo);
+    public ResponseEntity<List<MotivoDTOResponse>> listarMotivos(
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
+        
+        // Validar acceso al espacio de trabajo
+        securityService.validateWorkspaceAccess(idEspacioTrabajo);
+        
+        List<MotivoDTOResponse> motivos = transaccionService.listarMotivos(idEspacioTrabajo);
         return new ResponseEntity<>(motivos, HttpStatus.OK);
     }
 
@@ -138,24 +189,18 @@ public class TransaccionController {
                 responses = {
                     @ApiResponse(responseCode = "200", description = "Transacciones encontradas"),
                     @ApiResponse(responseCode = "400", description = "Error en los criterios de búsqueda"),
+                    @ApiResponse(responseCode = "403", description = "No tienes acceso a este espacio de trabajo"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/buscarRecientes/{idEspacio}")
-    public ResponseEntity<List<TransaccionListadoDTO>> buscarTransaccionesRecientes(@PathVariable Long idEspacio) {
-        List<TransaccionListadoDTO> transacciones = transaccionService.buscarTransaccionesRecientes(idEspacio);
+    public ResponseEntity<List<TransaccionDTOResponse>> buscarTransaccionesRecientes(
+        @PathVariable @NotNull(message = "El id del espacio es obligatorio") UUID idEspacio) {
+        
+        // Validar acceso al espacio de trabajo
+        securityService.validateWorkspaceAccess(idEspacio);
+        
+        List<TransaccionDTOResponse> transacciones = transaccionService.buscarTransaccionesRecientes(idEspacio);
         return new ResponseEntity<>(transacciones, HttpStatus.OK);
     }
 
-    @Operation(summary = "Obtener información del dashboard",
-                description = "Obtiene la información necesaria para el dashboard de un espacio de trabajo.",
-                responses = {
-                    @ApiResponse(responseCode = "200", description = "Información del dashboard obtenida correctamente"),
-                    @ApiResponse(responseCode = "404", description = "Espacio de trabajo no encontrado"),
-                    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-                })
-    @GetMapping("/dashboardinfo/{idEspacio}")
-    public ResponseEntity<DashboardInfoDTO> obtenerDashboardInfo(@PathVariable Long idEspacio) {
-        DashboardInfoDTO dashboardInfo = transaccionService.obtenerDashboardInfo(idEspacio);
-        return new ResponseEntity<>(dashboardInfo, HttpStatus.OK);
-    }
 }

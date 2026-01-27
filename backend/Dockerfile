@@ -24,12 +24,12 @@ RUN ./mvnw dependency:go-offline
 # Copiamos el resto del código fuente del backend
 COPY src ./src
 
-# Ejecutamos el comando de empaquetado usando el wrapper
-RUN ./mvnw package -DskipTests
+# Ejecutamos el comando de empaquetado usando el wrapper (sin compilar tests)
+RUN ./mvnw package -Dmaven.test.skip=true
 
 # --- Etapa 2: Ejecución (Runner) ---
 # Esta etapa no cambia. Sigue siendo igual de ligera y eficiente.
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
