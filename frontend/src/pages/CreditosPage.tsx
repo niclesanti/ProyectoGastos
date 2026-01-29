@@ -35,6 +35,7 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, CreditCard as CreditCardIcon, Calendar, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PaymentProviderLogo } from '@/components/PaymentProviderLogo'
+import { EditCardModal } from '@/components/EditCardModal'
 import type { TarjetaDTOResponse } from '@/types'
 
 const ENTIDADES_FINANCIERAS = [
@@ -462,7 +463,10 @@ export function CreditosPage() {
             Gestiona tus tarjetas y controla cierres y vencimientos
           </p>
         </div>
-        <AddCardDialog espacioTrabajoId={espacioActual.id} />
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <EditCardModal espacioTrabajoId={espacioActual.id} />
+          <AddCardDialog espacioTrabajoId={espacioActual.id} />
+        </div>
       </div>
 
       {/* Grid de Tarjetas */}

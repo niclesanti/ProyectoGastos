@@ -20,4 +20,11 @@ export const tarjetaService = {
   async removerTarjeta(id: number): Promise<void> {
     await apiClient.delete(`/comprascredito/tarjeta/${id}`)
   },
+
+  async modificarTarjeta(id: number, diaCierre: number, diaVencimientoPago: number): Promise<TarjetaDTOResponse> {
+    const { data } = await apiClient.put<TarjetaDTOResponse>(
+      `/comprascredito/modificarTarjeta/${id}/${diaCierre}/${diaVencimientoPago}`
+    )
+    return data
+  },
 }

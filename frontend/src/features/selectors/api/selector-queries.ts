@@ -187,6 +187,22 @@ export const useCreateTarjeta = () => {
   })
 }
 
+export const useUpdateTarjeta = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, diaCierre, diaVencimientoPago }: { id: number; diaCierre: number; diaVencimientoPago: number }) => 
+      tarjetaService.modificarTarjeta(id, diaCierre, diaVencimientoPago),
+    onSuccess: () => {
+      // Invalidar todas las tarjetas para refrescar los datos
+      queryClient.invalidateQueries({ queryKey: ['tarjetas'] })
+      // También invalidar cuotas y resúmenes que dependen de los días de cierre/vencimiento
+      queryClient.invalidateQueries({ queryKey: ['cuotas'] })
+      queryClient.invalidateQueries({ queryKey: ['resumenes'] })
+    },
+  })
+}
+
 export const useCuotasTarjeta = (idTarjeta: number | undefined) => {
   return useQuery({
     queryKey: ['cuotas', idTarjeta],
