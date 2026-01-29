@@ -66,22 +66,10 @@ const tarjetaFormSchema = z.object({
     .regex(/^[0-9]{4}$/, { message: 'Solo se permiten dígitos numéricos.' }),
   entidadFinanciera: z.string().min(1, { message: 'Por favor, selecciona una entidad financiera.' }),
   redDePago: z.string().min(1, { message: 'Por favor, selecciona una red de pago.' }),
-  diaCierre: z.number()
-    .int({ message: 'Debe ser un número entero.' })
-    .min(1, { message: 'El día debe ser entre 1 y 29.' })
-    .max(29, { message: 'El día debe ser entre 1 y 29.' })
-    .optional()
-    .refine((val) => val !== undefined, { 
-      message: 'El día de cierre es obligatorio.' 
-    }),
-  diaVencimientoPago: z.number()
-    .int({ message: 'Debe ser un número entero.' })
-    .min(1, { message: 'El día debe ser entre 1 y 29.' })
-    .max(29, { message: 'El día debe ser entre 1 y 29.' })
-    .optional()
-    .refine((val) => val !== undefined, { 
-      message: 'El día de vencimiento es obligatorio.' 
-    }),
+  diaCierre: z.string()
+    .min(1, { message: 'El día de cierre es obligatorio.' }),
+  diaVencimientoPago: z.string()
+    .min(1, { message: 'El día de vencimiento es obligatorio.' }),
 })
 
 type TarjetaFormValues = z.infer<typeof tarjetaFormSchema>
@@ -224,8 +212,8 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: string }) {
       numeroTarjeta: '',
       entidadFinanciera: '',
       redDePago: '',
-      diaCierre: undefined,
-      diaVencimientoPago: undefined,
+      diaCierre: '',
+      diaVencimientoPago: '',
     },
   })
 
@@ -236,8 +224,8 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: string }) {
         numeroTarjeta: '',
         entidadFinanciera: '',
         redDePago: '',
-        diaCierre: undefined,
-        diaVencimientoPago: undefined,
+        diaCierre: '',
+        diaVencimientoPago: '',
       })
       form.clearErrors()
     }
@@ -249,8 +237,8 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: string }) {
         numeroTarjeta: values.numeroTarjeta,
         entidadFinanciera: values.entidadFinanciera,
         redDePago: values.redDePago,
-        diaCierre: values.diaCierre!,
-        diaVencimientoPago: values.diaVencimientoPago!,
+        diaCierre: parseInt(values.diaCierre, 10),
+        diaVencimientoPago: parseInt(values.diaVencimientoPago, 10),
         espacioTrabajoId,
       })
       
@@ -376,31 +364,20 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: string }) {
                     <FormLabel>
                       Día de cierre
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="15"
-                        min="1"
-                        max="29"
-                        value={field.value ?? ''}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, '')
-                          if (val === '') {
-                            field.onChange(undefined)
-                          } else {
-                            const num = parseInt(val, 10)
-                            if (num >= 1 && num <= 29) {
-                              field.onChange(num)
-                            }
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E' || e.key === '.') {
-                            e.preventDefault()
-                          }
-                        }}
-                      />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar día" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                          <SelectItem key={day} value={day.toString()}>
+                            {day}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -415,31 +392,20 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: string }) {
                     <FormLabel>
                       Día de vencimiento
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="25"
-                        min="1"
-                        max="29"
-                        value={field.value ?? ''}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, '')
-                          if (val === '') {
-                            field.onChange(undefined)
-                          } else {
-                            const num = parseInt(val, 10)
-                            if (num >= 1 && num <= 29) {
-                              field.onChange(num)
-                            }
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E' || e.key === '.') {
-                            e.preventDefault()
-                          }
-                        }}
-                      />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar día" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                          <SelectItem key={day} value={day.toString()}>
+                            {day}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -449,7 +415,7 @@ function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: string }) {
             <div className="rounded-lg bg-muted p-3">
               <p className="text-xs text-muted-foreground">
                 Solo almacenamos los últimos 4 dígitos por seguridad. 
-                Los días deben estar entre 1 y 29 para evitar conflictos con meses de diferente duración.
+                Puedes seleccionar cualquier día entre 1 y 31 para el cierre y vencimiento.
               </p>
             </div>
 

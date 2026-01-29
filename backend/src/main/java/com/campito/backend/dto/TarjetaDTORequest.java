@@ -21,11 +21,11 @@ public record TarjetaDTORequest(
     String redDePago,
     @NotNull(message = "La fecha no puede ser nula")
     @Min(value = 1, message = "El minimo valor es 1")
-    @Max(value = 29, message = "El maximo valor es 29")
+    @Max(value = 31, message = "El maximo valor es 31")
     Integer diaCierre,
     @NotNull(message = "La fecha no puede ser nula")
     @Min(value = 1, message = "El minimo valor es 1")
-    @Max(value = 29, message = "El maximo valor es 29")
+    @Max(value = 31, message = "El maximo valor es 31")
     Integer diaVencimientoPago,
     @NotNull(message = "El ID del espacio de trabajo no puede ser nulo")
     UUID espacioTrabajoId
