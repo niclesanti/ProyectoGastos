@@ -278,9 +278,14 @@ backend/
 │   │   │   │   └── Usuario.java
 │   │   │   ├── scheduler/                 # Tareas programadas
 │   │   │   │   └── ResumenScheduler.java
+│   │   │   ├── security/                  # Componentes de seguridad JWT
+│   │   │   │   ├── JwtAuthenticationFilter.java
+│   │   │   │   ├── JwtTokenProvider.java
+│   │   │   │   └── OAuth2AuthenticationSuccessHandler.java
 │   │   │   ├── service/                   # Capa de servicios
 │   │   │   │   ├── *Service.java          # Interfaces
 │   │   │   │   ├── *ServiceImpl.java      # Implementaciones
+│   │   │   │   ├── CustomOidcUserService.java # Servicio OAuth2
 │   │   │   │   ├── SecurityService.java   # Servicio de seguridad y autorización
 │   │   │   │   └── SecurityServiceImpl.java
 │   │   │   ├── validation/                # Validadores personalizados
@@ -294,7 +299,14 @@ backend/
 │   │       │   ├── V3__create_compracredito_and_cuotacredito_tarjeta.sql
 │   │       │   ├── V4__create_resumenes_table.sql
 │   │       │   ├── V5__Optimizacion_Indices_Rendimiento.sql
-│   │       │   └── V6__create_gastos_ingresos_mensuales.sql
+│   │       │   ├── V6__create_gastos_ingresos_mensuales.sql
+│   │       │   ├── V7__drop_notificaciones_presupuestos_tables.sql
+│   │       │   ├── V8__add_unique_constraints_motivos_contactos.sql
+│   │       │   ├── V9__unique_constraints_workspace_account_card.sql
+│   │       │   ├── V10__add_audit_fields_to_entities.sql
+│   │       │   ├── V11__migrate_usuario_to_uuid.sql
+│   │       │   ├── V12__migrate_espacio_trabajo_to_uuid.sql
+│   │       │   └── V13__convert_real_to_numeric.sql
 │   │       ├── application.properties      # Configuración común
 │   │       ├── application-dev.properties  # Perfil desarrollo
 │   │       ├── application-prod.properties # Perfil producción
