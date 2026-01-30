@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -225,5 +226,24 @@ public class ComprasCreditoController {
         securityService.validateWorkspaceAccess(idEspacioTrabajo);
         List<ResumenDTOResponse> resumenes = comprasCreditoService.listarResumenesPorEspacioTrabajo(idEspacioTrabajo);
         return new ResponseEntity<>(resumenes, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Modificar una tarjeta de crédito",
+                description = "Permite modificar los detalles de una tarjeta de crédito existente.",
+                responses = {
+                    @ApiResponse(responseCode = "200", description = "Tarjeta de crédito modificada correctamente"),
+                    @ApiResponse(responseCode = "400", description = "Error al modificar la tarjeta de crédito"),
+                    @ApiResponse(responseCode = "404", description = "Tarjeta de crédito no encontrada"),
+                    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+                })
+    @PutMapping("/modificarTarjeta/{id}/{diaCierre}/{diaVencimientoPago}")
+    public ResponseEntity<TarjetaDTOResponse> modificarTarjeta(
+        @PathVariable @NotNull(message = "El id de la tarjeta es obligatorio") Long id,
+        @PathVariable @NotNull(message = "El día de cierre es obligatorio") Integer diaCierre,
+        @PathVariable @NotNull(message = "El día de vencimiento de pago es obligatorio") Integer diaVencimientoPago) {
+        
+        securityService.validateTarjetaOwnership(id);
+        TarjetaDTOResponse tarjetaModificada = comprasCreditoService.modificarTarjeta(id, diaCierre, diaVencimientoPago);
+        return new ResponseEntity<>(tarjetaModificada, HttpStatus.OK);
     }
 }

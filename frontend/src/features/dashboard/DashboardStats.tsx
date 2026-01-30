@@ -60,11 +60,14 @@ export function StatsCard({ title, value, change, description, icon, trend, isLo
 
 export function DashboardStats() {
   const { stats, isLoading } = useDashboardStats()
+  
+  const mesActual = new Date().toLocaleDateString('es-ES', { month: 'long' })
+  const mesCapitalizado = mesActual.charAt(0).toUpperCase() + mesActual.slice(1)
 
   return (
     <div className="grid gap-3 grid-cols-2 md:gap-6 lg:grid-cols-4">
       <StatsCard
-        title="Balance total"
+        title="Gastos mensuales"
         value={stats?.balanceTotal || 0}
         description="Saldo disponible"
         icon={<Wallet className="h-4 w-4" />}
@@ -74,7 +77,7 @@ export function DashboardStats() {
       <StatsCard
         title="Gastos mensuales"
         value={stats?.gastosMensuales || 0}
-        description="Marzo del periodo"
+        description={`Gastos de ${mesCapitalizado}`}
         icon={<DollarSign className="h-4 w-4" />}
         isLoading={isLoading}
       />

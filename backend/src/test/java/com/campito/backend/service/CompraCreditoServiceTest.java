@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.campito.backend.dao.CompraCreditoRepository;
@@ -336,6 +337,46 @@ public class CompraCreditoServiceTest {
         var resp = compraCreditoService.registrarTarjeta(req);
         assertNotNull(resp);
         verify(tarjetaRepository, times(1)).save(any(Tarjeta.class));
+    }
+
+    // ---------------------------------------------------------
+    // Tests para modificarTarjeta
+    // ---------------------------------------------------------
+
+    @Test
+    void modificarTarjeta_nullParams_lanzaIllegalArgument() {
+        assertThrows(IllegalArgumentException.class, () -> compraCreditoService.modificarTarjeta(null, 1, 5));
+        assertThrows(IllegalArgumentException.class, () -> compraCreditoService.modificarTarjeta(1L, null, 5));
+        assertThrows(IllegalArgumentException.class, () -> compraCreditoService.modificarTarjeta(1L, 1, null));
+    }
+
+    @Test
+    void modificarTarjeta_tarjetaNoExiste_lanzaEntityNotFound() {
+        when(tarjetaRepository.findById(20L)).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> compraCreditoService.modificarTarjeta(20L, 15, 5));
+    }
+
+    @Test
+    void modificarTarjeta_exitoso_modificaYRetorna() {
+        Tarjeta t = new Tarjeta();
+        t.setId(20L);
+        t.setDiaCierre(10);
+        t.setDiaVencimientoPago(3);
+        when(tarjetaRepository.findById(20L)).thenReturn(Optional.of(t));
+        when(tarjetaRepository.save(any(Tarjeta.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tarjetaMapper.toResponse(any(Tarjeta.class))).thenAnswer(inv -> {
+            Tarjeta saved = inv.getArgument(0);
+            return new com.campito.backend.dto.TarjetaDTOResponse(saved.getId(), saved.getNumeroTarjeta(), saved.getEntidadFinanciera(), saved.getRedDePago(), saved.getDiaCierre(), saved.getDiaVencimientoPago(), espacio.getId());
+        });
+
+        var resp = compraCreditoService.modificarTarjeta(20L, 15, 7);
+        assertNotNull(resp);
+
+        ArgumentCaptor<Tarjeta> captor = ArgumentCaptor.forClass(Tarjeta.class);
+        verify(tarjetaRepository, times(1)).save(captor.capture());
+        Tarjeta saved = captor.getValue();
+        assertEquals(15, saved.getDiaCierre());
+        assertEquals(7, saved.getDiaVencimientoPago());
     }
 
     // ---------------------------------------------------------

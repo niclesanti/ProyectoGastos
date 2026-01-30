@@ -1,6 +1,6 @@
 <div align="center">
 
-# 💰 Sistema de Gestión de Finanzas Personales
+# 💰💵 Sistema de Gestión de Finanzas Personales 💵💰
 
 ### Plataforma Full-Stack moderna para gestión financiera familiar y personal
 
@@ -176,6 +176,9 @@ ProyectoGastos/
 │   │       ├── model/         # Entidades JPA
 │   │       ├── dto/           # Data Transfer Objects
 │   │       ├── mapper/        # MapStruct mappers
+│   │       ├── scheduler/     # Tareas programadas
+│   │       ├── security/      # JWT y OAuth2
+│   │       ├── validation/    # Validadores personalizados
 │   │       └── exception/     # Manejo de errores
 │   ├── src/main/resources/
 │   │   └── db/migration/      # Scripts Flyway
