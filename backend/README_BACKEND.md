@@ -547,6 +547,7 @@ docker-compose down -v
 | Método | Endpoint | Descripción | Auth |
 |--------|----------|-------------|------|
 | POST | `/api/compraCredito/registrarTarjeta` | Registrar nueva tarjeta | ✅ |
+| PUT | `/api/compraCredito/tarjeta/{id}` | Modificar día de cierre y vencimiento de tarjeta | ✅ |
 | DELETE | `/api/compraCredito/tarjeta/{id}` | Eliminar tarjeta | ✅ |
 | GET | `/api/compraCredito/tarjetas/{idEspacioTrabajo}` | Listar tarjetas | ✅ |
 | GET | `/api/compraCredito/cuotas/{idTarjeta}` | Listar cuotas por tarjeta | ✅ |

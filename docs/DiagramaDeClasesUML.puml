@@ -477,6 +477,7 @@ interface CompraCreditoService <<service>> {
   + BuscarComprasCredito(idEspacioTrabajo: UUID): List<CompraCreditoDTOResponse>
   + registrarTarjeta(tarjetaDTO: TarjetaDTORequest): TarjetaDTOResponse
   + removerTarjeta(id: Long): void
+  + modificarTarjeta(id: Long, diaCierre: Integer, diaVencimientoPago: Integer): TarjetaDTOResponse
   + listarTarjetas(idEspacioTrabajo: UUID): List<TarjetaDTOResponse>
   + listarCuotasPorTarjeta(idTarjeta: Long): List<CuotaCreditoDTOResponse>
   + pagarResumenTarjeta(request: PagarResumenTarjetaRequest): void
@@ -491,6 +492,7 @@ class CompraCreditoServiceImpl <<service>> {
   + BuscarComprasCredito(idEspacioTrabajo: UUID): List<CompraCreditoDTOResponse>
   + registrarTarjeta(tarjetaDTO: TarjetaDTORequest): TarjetaDTOResponse
   + removerTarjeta(id: Long): void
+  + modificarTarjeta(id: Long, diaCierre: Integer, diaVencimientoPago: Integer): TarjetaDTOResponse
   + listarTarjetas(idEspacioTrabajo: UUID): List<TarjetaDTOResponse>
   + listarCuotasPorTarjeta(idTarjeta: Long): List<CuotaCreditoDTOResponse>
   + pagarResumenTarjeta(request: PagarResumenTarjetaRequest): void
