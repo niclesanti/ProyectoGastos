@@ -23,4 +23,5 @@ public interface CompraCreditoService {
     public void pagarResumenTarjeta(PagarResumenTarjetaRequest request);
     public List<ResumenDTOResponse> listarResumenesPorTarjeta(Long idTarjeta);
     public List<ResumenDTOResponse> listarResumenesPorEspacioTrabajo(UUID idEspacioTrabajo);
+    public TarjetaDTOResponse modificarTarjeta(Long id, Integer diaCierre, Integer diaVencimientoPago);
 }

@@ -612,6 +612,43 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
             .collect(Collectors.toList());
     }
 
+    /**
+     * Modifica los días de cierre y vencimiento de pago de una tarjeta existente.
+     * 
+     * @param id ID de la tarjeta a modificar
+     * @param diaCierre Nuevo día de cierre
+     * @param diaVencimientoPago Nuevo día de vencimiento de pago
+     * @return Respuesta con los detalles de la tarjeta modificada
+     * @throws EntityNotFoundException si la tarjeta no existe
+     * @throws IllegalArgumentException si los datos son nulos
+     */
+    @Override
+    @Transactional
+    public TarjetaDTOResponse modificarTarjeta(Long id, Integer diaCierre, Integer diaVencimientoPago) {
+        
+        if (id == null || diaCierre == null || diaVencimientoPago == null) {
+            logger.warn("Intento de modificar una tarjeta con datos nulos.");
+            throw new IllegalArgumentException("Los datos de la tarjeta no pueden ser nulos");
+        }
+        logger.info("Iniciando modificación de tarjeta ID {}", id);
+
+        Tarjeta tarjeta = tarjetaRepository.findById(id).orElseThrow(() -> {
+            String msg = "Tarjeta con ID " + id + " no encontrada";
+            logger.warn(msg);
+            return new EntityNotFoundException(msg);
+        });
+
+        tarjeta.setDiaCierre(diaCierre);
+        tarjeta.setDiaVencimientoPago(diaVencimientoPago);
+
+        // Actualizar manualmente fecha_modificacion para que la tarjeta aparezca primero
+        tarjeta.setFechaModificacion(LocalDateTime.now());
+        Tarjeta tarjetaGuardada = tarjetaRepository.save(tarjeta);
+        logger.info("Tarjeta ID {} modificada exitosamente.", tarjetaGuardada.getId());
+        
+        return tarjetaMapper.toResponse(tarjetaGuardada);
+    }
+
     /*
     ===========================================================================
         MÉTODOS AUXILIARES PRIVADOS
@@ -755,5 +792,4 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         
         return fechaCierre;
     }
-
 }

@@ -61,6 +61,8 @@ Aplicación web moderna y responsiva desarrollada con React 18 y TypeScript que 
 
 ### Tarjetas de Crédito
 - Vista de tarjetas tipo "card" con información de cierre/vencimiento
+- Registro de nuevas tarjetas con entidad financiera y red de pago
+- Modificación de días de cierre y vencimiento de tarjetas existentes
 - Gestión de compras en cuotas
 - Pago de resúmenes mensuales
 - Seguimiento de cuotas pendientes
