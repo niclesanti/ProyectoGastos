@@ -33,6 +33,14 @@ export interface MiembroEspacio {
   fotoPerfil?: string
 }
 
+export interface SolicitudPendienteEspacioTrabajo {
+  id: number
+  espacioTrabajoNombre: string
+  usuarioAdminNombre: string
+  fotoPerfilUsuarioAdmin?: string
+  fechaCreacion: string // ISO datetime string
+}
+
 export interface InvitacionMiembroDTORequest {
   email: string
   rol: RolMiembro

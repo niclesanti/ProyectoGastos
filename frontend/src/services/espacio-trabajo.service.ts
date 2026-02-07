@@ -4,6 +4,7 @@ import type {
   EspacioTrabajoDTORequest,
   MiembroEspacio,
   InvitacionMiembroDTORequest,
+  SolicitudPendienteEspacioTrabajo,
 } from '@/types'
 
 export const espacioTrabajoService = {
@@ -52,5 +53,15 @@ export const espacioTrabajoService = {
 
   async eliminarMiembro(espacioTrabajoId: string, miembroId: string): Promise<void> {
     await apiClient.delete<void>(`/espacios-trabajo/${espacioTrabajoId}/miembros/${miembroId}`)
+  },
+
+  // Gestión de solicitudes pendientes
+  async listarSolicitudesPendientes(): Promise<SolicitudPendienteEspacioTrabajo[]> {
+    const { data } = await apiClient.get<SolicitudPendienteEspacioTrabajo[]>('/espaciotrabajo/solicitudes/pendientes')
+    return data
+  },
+
+  async responderSolicitud(idSolicitud: number, aceptada: boolean): Promise<void> {
+    await apiClient.put<void>(`/espaciotrabajo/solicitud/responder/${idSolicitud}/${aceptada}`)
   },
 }
