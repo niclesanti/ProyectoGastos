@@ -117,6 +117,11 @@ class Notificacion {
   - fechaLeida: LocalDateTime
 }
 
+class SolicitudPendienteEspacioTrabajo {
+  - id: Long
+  - fechaCreacion: LocalDateTime
+}
+
 class CustomOAuth2User {
   - usuario: Usuario
 }
@@ -154,6 +159,7 @@ enum TipoNotificacion {
 Usuario "1" -- "0..*" EspacioTrabajo : "es admin de"
 Usuario "0..*" -- "0..*" EspacioTrabajo : "participa en"
 Usuario "1" -- "0..*" Notificacion : "recibe"
+Usuario "1" -- "0..*" SolicitudPendienteEspacioTrabajo : "es invitado a"
 
 EspacioTrabajo "1" -- "0..*" CuentaBancaria : "tiene"
 EspacioTrabajo "1" -- "0..*" Transaccion : "registra"
@@ -162,6 +168,7 @@ EspacioTrabajo "1" -- "0..*" ContactoTransferencia : "registra"
 EspacioTrabajo "1" -- "0..*" Tarjeta : "registra"
 EspacioTrabajo "1" -- "0..*" CompraCredito : "tiene"
 EspacioTrabajo "1" -- "0..*" GastosIngresosMensuales : "posee"
+EspacioTrabajo "1" -- "0..*" SolicitudPendienteEspacioTrabajo : "genera"
 
 Transaccion "0..*" -- "1" MotivoTransaccion : "tiene un"
 Transaccion "0..*" -- "0..1" ContactoTransferencia : "asociada a un"
@@ -413,6 +420,14 @@ class NotificacionDTOResponse {
   - fechaLeida: LocalDateTime
 }
 
+class SolicitudPendienteEspacioTrabajoDTOResponse {
+  - id: Long
+  - espacioTrabajoNombre: String
+  - usuarioAdminNombre: String
+  - fotoPerfilUsuarioAdmin: String
+  - fechaCreacion: LocalDateTime
+}
+
 ' ====================================================================
 ' DEFINICION DE REPOSITORIOS (DAOs)
 ' ====================================================================
@@ -430,6 +445,7 @@ interface DashboardRepository <<repository>>
 interface ResumenRepository <<repository>>
 interface GastosIngresosMensualesRepository <<repository>>
 interface NotificacionRepository <<repository>>
+interface SolicitudPendienteEspacioTrabajoRepository <<repository>>
 
 ' ====================================================================
 ' DEFINICION DE MAPPERS
@@ -446,6 +462,7 @@ interface CuotaCreditoMapper <<mapper>>
 interface UsuarioMapper <<mapper>>
 interface ResumenMapper <<mapper>>
 interface NotificacionMapper <<mapper>>
+interface SolicitudPendienteEspacioTrabajoMapper <<mapper>>
 
 ' ====================================================================
 ' DEFINICION DE EVENTOS
@@ -472,13 +489,17 @@ class NotificacionScheduler <<scheduler>> {
 
 interface EspacioTrabajoService <<service>> {
   + registrarEspacioTrabajo(espacioTrabajoDTO: EspacioTrabajoDTORequest, userId: UUID): void
-  + compartirEspacioTrabajo(email: String, idEspacioTrabajo: UUID): void
+  + responderSolicitudCompartirEspacioTrabajo(idSolicitud: Long, aceptada: Boolean): void
+  + listarSolicitudesPendientes(idUsuario: UUID): List<SolicitudPendienteEspacioTrabajoDTOResponse>
   + listarEspaciosTrabajoPorUsuario(idUsuario: UUID): List<EspacioTrabajoDTOResponse>
   + obtenerMiembrosEspacioTrabajo(idEspacioTrabajo: UUID): List<UsuarioDTOResponse>
 }
 
 class EspacioTrabajoServiceImpl <<service>> {
   + registrarEspacioTrabajo(espacioTrabajoDTO: EspacioTrabajoDTORequest, userId: UUID): void
+  + compartirEspacioTrabajo(email: String, idEspacioTrabajo: UUID): void
+  + responderSolicitudCompartirEspacioTrabajo(idSolicitud: Long, aceptada: Boolean): void
+  + listarSolicitudesPendientes(idUsuario: UUID): List<SolicitudPendienteEspacioTrabajoDTOResponse> userId: UUID): void
   + compartirEspacioTrabajo(email: String, idEspacioTrabajo: UUID): void
   + listarEspaciosTrabajoPorUsuario(idUsuario: UUID): List<EspacioTrabajoDTOResponse>
   + obtenerMiembrosEspacioTrabajo(idEspacioTrabajo: UUID): List<UsuarioDTOResponse>
@@ -632,6 +653,7 @@ NotificacionServiceImpl ..|> NotificacionService
 SseEmitterServiceImpl ..|> SseEmitterService
 
 ' ====================================================================
+EspacioTrabajoServiceImpl ..> SolicitudPendienteEspacioTrabajoRepository
 ' ASOCIACIONES CAPA SERVICIO -> REPOSITORIO
 ' ====================================================================
 

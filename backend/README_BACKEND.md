@@ -70,8 +70,11 @@ Este backend proporciona una API REST completa que permite:
 
 ### 2. Espacios de Trabajo Colaborativos
 - Creación y administración de espacios de trabajo
+- Sistema de invitaciones con solicitudes pendientes
+- Aprobación o rechazo de invitaciones por el usuario invitado
 - Sistema de permisos (administrador/participante)
 - Compartir espacios entre múltiples usuarios
+- Gestión de miembros del espacio
 - Saldo consolidado por espacio
 
 ### 3. Gestión de Transacciones
@@ -265,13 +268,15 @@ backend/
 │   │   │   │   ├── MotivoTransaccionRepository.java
 │   │   │   │   ├── NotificacionRepository.java    # Repositorio de notificaciones
 │   │   │   │   ├── ResumenRepository.java
+│   │   │   │   ├── SolicitudPendienteEspacioTrabajoRepository.java # Solicitudes
 │   │   │   │   ├── TarjetaRepository.java
 │   │   │   │   ├── TransaccionRepository.java
 │   │   │   │   └── UsuarioRepository.java
 │   │   │   ├── dto/                       # Data Transfer Objects
 │   │   │   │   ├── *DTORequest.java       # DTOs para peticiones
 │   │   │   │   ├── *DTOResponse.java      # DTOs para respuestas
-│   │   │   │   ├── *BusquedaDTO.java      # DTOs para búsquedas
+│   │   │   │   ├── NotificacionDTOResponse.java  # DTO de notificaciones
+│   │   │   │   └── SolicitudPendienteEspacioTrabajoDTOResponse.java # DTO solicitud
 │   │   │   │   └── NotificacionDTOResponse.java  # DTO de notificaciones
 │   │   │   ├── exception/                 # Manejo de excepciones
 │   │   │   │   ├── ControllerAdvisor.java
@@ -282,9 +287,10 @@ backend/
 │   │   │   ├── mapper/                    # MapStruct Mappers
 │   │   │   │   ├── config/
 │   │   │   │   │   └── MapstructConfig.java
+│   │   │   │   ├── SolicitudPendienteEspacioTrabajoMapper.java
 │   │   │   │   ├── NotificacionMapper.java
 │   │   │   │   └── *Mapper.java
-│   │   │   ├── model/                     # Entidades JPA
+│   │   │   │   ├── model/                     # Entidades JPA
 │   │   │   │   ├── CompraCredito.java
 │   │   │   │   ├── ContactoTransferencia.java
 │   │   │   │   ├── CuentaBancaria.java
@@ -297,6 +303,7 @@ backend/
 │   │   │   │   ├── Notificacion.java      # Entidad de notificaciones
 │   │   │   │   ├── ProveedorAutenticacion.java # Enum
 │   │   │   │   ├── Resumen.java
+│   │   │   │   ├── SolicitudPendienteEspacioTrabajo.java # Solicitudes de colaboración
 │   │   │   │   ├── Tarjeta.java
 │   │   │   │   ├── TipoNotificacion.java  # Enum de tipos de notificación
 │   │   │   │   ├── TipoTransaccion.java   # Enum
@@ -374,6 +381,20 @@ Contexto colaborativo donde se gestionan las finanzas de un grupo.
 - **Métodos**: actualizarSaldoNuevaTransaccion(), actualizarSaldoEliminarTransaccion()
 - **Relaciones**: 
   - Contiene CuentasBancarias, Transacciones, Motivos, Contactos, Tarjetas, ComprasCredito, GastosIngresosMensuales
+  - Genera SolicitudesPendientes para invitar nuevos miembros
+
+#### SolicitudPendienteEspacioTrabajo
+Solicitudes de colaboración para unirse a un espacio de trabajo.
+- **Atributos**: id, espacioTrabajo, usuarioInvitado, fechaCreacion
+- **Flujo**: 
+  1. Administrador invita usuario por email
+  2. Sistema crea solicitud pendiente
+  3. Usuario invitado recibe notificación
+  4. Usuario puede aceptar o rechazar la solicitud
+  5. Al aceptar, se agrega como participante del espacio
+- **Relaciones**:
+  - Pertenece a un EspacioTrabajo
+  - Asociada a un Usuario (usuario invitado)
 
 #### Transaccion
 Registro de movimientos financieros (ingresos/gastos).
@@ -743,10 +764,12 @@ docker-compose down -v
 
 | Método | Endpoint | Descripción | Auth |
 |--------|----------|-------------|------|
-| POST | `/api/espacioTrabajo/registrar` | Crear nuevo espacio de trabajo | ✅ |
-| PUT | `/api/espacioTrabajo/compartir/{email}/{idEspacioTrabajo}/{idUsuarioAdmin}` | Compartir espacio con otro usuario | ✅ |
-| GET | `/api/espacioTrabajo/listar/{idUsuario}` | Listar espacios del usuario | ✅ |
-| GET | `/api/espacioTrabajo/miembros/{idEspacioTrabajo}` | Obtener miembros de un espacio | ✅ |
+| POST | `/api/espaciotrabajo/registrar` | Crear nuevo espacio de trabajo | ✅ |
+| PUT | `/api/espaciotrabajo/compartir/{email}/{idEspacioTrabajo}` | Enviar invitación para compartir espacio (crea solicitud pendiente) | ✅ |
+| PUT | `/api/espaciotrabajo/solicitud/responder/{idSolicitud}/{aceptada}` | Responder solicitud de colaboración (aceptar/rechazar) | ✅ |
+| GET | `/api/espaciotrabajo/solicitudes/pendientes` | Obtener solicitudes pendientes del usuario autenticado | ✅ |
+| GET | `/api/espaciotrabajo/listar` | Listar espacios del usuario autenticado | ✅ |
+| GET | `/api/espaciotrabajo/miembros/{idEspacioTrabajo}` | Obtener miembros de un espacio | ✅ |
 
 ### Transacciones
 

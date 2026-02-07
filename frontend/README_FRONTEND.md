@@ -77,8 +77,11 @@ Aplicación web moderna y responsiva desarrollada con React 18 y TypeScript que 
 - **Sin Dependencias de Polyfill**: Usa EventSource nativo con query parameter para JWT
 
 ### Configuración
-- Gestión de espacios de trabajo
-- Invitación de miembros
+- Gestión de espacios de trabajo (crear, visualizar)
+- Sistema de invitaciones con solicitudes pendientes
+- Revisión y respuesta a solicitudes de colaboración (aceptar/rechazar)
+- Gestión de miembros del espacio de trabajo
+- Visualización de resumen de usuarios en el espacio
 
 ### Experiencia de Usuario
 - Navegación fluida sin recargas (SPA)
@@ -553,11 +556,20 @@ El proyecto utiliza **shadcn/ui**, un sistema de componentes basado en:
 **Archivo**: `src/pages/ConfiguracionPage.tsx`
 
 **Features**:
-- Tabs: Espacio de Trabajo, Preferencias, Notificaciones, Cuenta
-- Gestión de espacios de trabajo
-- Invitación de miembros
-- Gestión de motivos y contactos
-- Configuración de cuentas bancarias
+- **Tabs**: Espacio de Trabajo, Preferencias (próximamente), Notificaciones (próximamente), Cuenta (próximamente)
+- **Gestión de Espacios de Trabajo**:
+  - Crear nuevos espacios con validación de nombre
+  - Invitar miembros por correo electrónico (genera solicitud pendiente)
+  - Visualizar miembros actuales del espacio
+  - Resumen visual con avatares y contadores
+- **Solicitudes de Colaboración**:
+  - Lista de invitaciones pendientes recibidas
+  - Información del espacio y administrador que invita
+  - Aceptar o rechazar solicitudes
+  - Paginación para múltiples solicitudes
+  - Notificación al aceptar/rechazar
+- **Sistema de Validación**: Caracteres permitidos y longitudes máximas
+- **Responsive**: Diseño optimizado para móvil y escritorio
 
 ---
 
