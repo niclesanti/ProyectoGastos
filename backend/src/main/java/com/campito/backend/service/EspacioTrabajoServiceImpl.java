@@ -10,20 +10,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.campito.backend.dao.EspacioTrabajoRepository;
+import com.campito.backend.dao.SolicitudPendienteEspacioTrabajoRepository;
 import com.campito.backend.dao.UsuarioRepository;
 import com.campito.backend.dto.EspacioTrabajoDTORequest;
 import com.campito.backend.dto.EspacioTrabajoDTOResponse;
 import com.campito.backend.dto.UsuarioDTOResponse;
+import com.campito.backend.dto.SolicitudPendienteEspacioTrabajoDTOResponse;
+import com.campito.backend.event.NotificacionEvent;
 import com.campito.backend.mapper.EspacioTrabajoMapper;
+import com.campito.backend.mapper.SolicitudPendienteEspacioTrabajoMapper;
 import com.campito.backend.mapper.UsuarioMapper;
 import com.campito.backend.model.EspacioTrabajo;
+import com.campito.backend.model.TipoNotificacion;
 import com.campito.backend.model.Usuario;
+import com.campito.backend.model.SolicitudPendienteEspacioTrabajo;
 import com.campito.backend.exception.UsuarioNoEncontradoException;
 import com.campito.backend.exception.EntidadDuplicadaException;
 
 import java.util.Optional;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 
 /**
  * Implementación del servicio para gestión de espacios de trabajo.
@@ -39,8 +46,11 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
 
     private final EspacioTrabajoRepository espacioRepository;
     private final UsuarioRepository usuarioRepository;
+    private final SolicitudPendienteEspacioTrabajoRepository solicitudPendienteRepository;
     private final EspacioTrabajoMapper espacioTrabajoMapper;
     private final UsuarioMapper usuarioMapper;
+    private final SolicitudPendienteEspacioTrabajoMapper solicitudPendienteEspacioTrabajoMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Registra un nuevo espacio de trabajo.
@@ -115,10 +125,88 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
             return new UsuarioNoEncontradoException(mensajeUsuario);
         });
 
-        espacioTrabajo.getUsuariosParticipantes().add(usuario);
+        SolicitudPendienteEspacioTrabajo solicitud = SolicitudPendienteEspacioTrabajo.builder()
+            .espacioTrabajo(espacioTrabajo)
+            .usuarioInvitado(usuario)
+            .build();
+        
+        solicitudPendienteRepository.save(solicitud);
+        logger.info("Solicitud de compartir espacio de trabajo ID: {} creada para el usuario {} (email: {}).", 
+                    idEspacioTrabajo, usuario.getId(), email);
+        
+        // Emitir evento de notificación al usuario invitado
+        try {
+            String nombreAdmin = espacioTrabajo.getUsuarioAdmin().getNombre();
+            String mensaje = String.format("%s te invitó a unirte al espacio de trabajo: '%s'", 
+                                            nombreAdmin, espacioTrabajo.getNombre());
+            eventPublisher.publishEvent(new NotificacionEvent(
+                this,
+                usuario.getId(),
+                TipoNotificacion.INVITACION_ESPACIO,
+                mensaje
+            ));
+            logger.info("Evento de notificación enviado al usuario {} por invitación al espacio {}", 
+                       usuario.getId(), idEspacioTrabajo);
+        } catch (Exception e) {
+            logger.error("Error al enviar notificación de invitación al usuario {} para espacio ID: {}", 
+                        usuario.getId(), idEspacioTrabajo, e);
+            // No propagamos la excepción para no afectar el compartir del espacio que ya fue guardado exitosamente
+        }
+    }
 
-        espacioRepository.save(espacioTrabajo);
-        logger.info("Espacio de trabajo ID: {} compartido exitosamente con {}.", idEspacioTrabajo, email);
+    /**
+     * Responde a una solicitud pendiente de compartir un espacio de trabajo.
+     * 
+     * @param idSolicitud ID de la solicitud pendiente.
+     * @param aceptada Indica si la solicitud fue aceptada o rechazada.
+     * @throws IllegalArgumentException si alguno de los parámetros es nulo.
+     * @throws EntityNotFoundException si la solicitud pendiente no se encuentra en la base de datos.
+     */
+    @Override
+    public void respuestaSolicitudCompartirEspacioTrabajo(Long idSolicitud, Boolean aceptada) {
+        // Implementación pendiente
+        if (idSolicitud == null || aceptada == null) {
+            logger.warn("Se recibieron parametros nulos para responder solicitud de compartir espacio.");
+            throw new IllegalArgumentException("El ID de la solicitud y la respuesta no pueden ser nulos");
+        }
+        logger.info("Intentando responder solicitud de compartir espacio ID: {} con respuesta: {}", idSolicitud, aceptada);
+
+        SolicitudPendienteEspacioTrabajo solicitud = solicitudPendienteRepository.findById(idSolicitud)
+            .orElseThrow(() -> {
+                String mensaje = "Solicitud de compartir espacio de trabajo con ID " + idSolicitud + " no encontrada";
+                logger.warn(mensaje);
+                return new EntityNotFoundException(mensaje);
+            });
+        if (aceptada) {
+            EspacioTrabajo espacioTrabajo = solicitud.getEspacioTrabajo();
+            Usuario usuario = solicitud.getUsuarioInvitado();
+
+            espacioTrabajo.getUsuariosParticipantes().add(usuario);
+            espacioRepository.save(espacioTrabajo);
+            logger.info("Solicitud de compartir espacio ID: {} aceptada. Usuario {} agregado al espacio ID: {}.", 
+                        idSolicitud, usuario.getEmail(), espacioTrabajo.getId());
+            
+            // Emitir evento de notificación al usuario administrador del espacio
+            try {
+                String mensaje = String.format("%s ha aceptado tu invitación para unirse al espacio de trabajo: '%s'", 
+                                                usuario.getNombre(), espacioTrabajo.getNombre());
+                eventPublisher.publishEvent(new NotificacionEvent(
+                    this,
+                    espacioTrabajo.getUsuarioAdmin().getId(),
+                    TipoNotificacion.MIEMBRO_AGREGADO,
+                    mensaje
+                ));
+                logger.info("Evento de notificación enviado al administrador {} por aceptación de invitación al espacio {}", 
+                           espacioTrabajo.getUsuarioAdmin().getId(), espacioTrabajo.getId());
+            } catch (Exception e) {
+                logger.error("Error al enviar notificación de aceptación al administrador {} para espacio ID: {}", 
+                            espacioTrabajo.getUsuarioAdmin().getId(), espacioTrabajo.getId(), e);
+                // No propagamos la excepción para no afectar la respuesta a la solicitud que ya fue procesada exitosamente
+            }
+        }
+
+        solicitudPendienteRepository.delete(solicitud);
+        logger.info("Solicitud de compartir espacio ID: {} eliminada de solicitudes pendientes.", idSolicitud);
     }
 
     /**
@@ -177,4 +265,26 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
             .toList();
     }
 
+    /**
+     * Lista las solicitudes pendientes para integrar espacios de trabajo de un usuario.
+     * 
+     * @param idUsuario ID del usuario para listar sus solicitudes pendientes.
+     * @return Lista de solicitudes pendientes en formato DTO.
+     * @throws IllegalArgumentException si el ID del usuario es nulo.
+     */
+    @Override
+    public List<SolicitudPendienteEspacioTrabajoDTOResponse> listarSolicitudesPendientes(UUID idUsuario) {
+        if(idUsuario == null) {
+            logger.warn("Se recibieron parametros nulos para listar solicitudes pendientes de espacios de trabajo.");
+            throw new IllegalArgumentException("El ID del usuario no puede ser nulo");
+        }
+        logger.info("Intentando listar solicitudes pendientes de espacios de trabajo para el usuario ID: {}", idUsuario);
+
+        List<SolicitudPendienteEspacioTrabajo> solicitudes = solicitudPendienteRepository.findByUsuarioInvitado_Id(idUsuario);
+        logger.info("Encontradas {} solicitudes pendientes para el usuario ID: {}.", solicitudes.size(), idUsuario);
+        
+        return solicitudes.stream()
+            .map(solicitudPendienteEspacioTrabajoMapper::toResponse)
+            .toList();
+    }
 }

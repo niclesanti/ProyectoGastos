@@ -18,7 +18,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -35,6 +37,9 @@ public class SecurityConfig {
 
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
+    
+    @Value("${springdoc.swagger-ui.enabled:false}")
+    private boolean swaggerEnabled;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -57,6 +62,30 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        // Lista base de endpoints públicos
+        List<String> publicEndpoints = new ArrayList<>(Arrays.asList(
+            "/",
+            "/login.html",
+            "/script.js",
+            "/styles.css",
+            "/logo.png",
+            "/logo_login.png",
+            "/manifest.json",
+            "/api/auth/**",
+            "/oauth2/**",
+            "/login/oauth2/**"
+        ));
+        
+        // Agregar endpoints de Swagger solo si está habilitado (desarrollo)
+        if (swaggerEnabled) {
+            publicEndpoints.addAll(Arrays.asList(
+                "/swagger-ui/**",
+                "/swagger-ui.html",
+                "/v3/api-docs/**",
+                "/swagger-resources/**"
+            ));
+        }
+        
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
@@ -65,18 +94,7 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/",
-                    "/login.html",
-                    "/script.js",
-                    "/styles.css",
-                    "/logo.png",
-                    "/logo_login.png",
-                    "/manifest.json",
-                    "/api/auth/**",
-                    "/oauth2/**",
-                    "/login/oauth2/**"
-                ).permitAll()
+                .requestMatchers(publicEndpoints.toArray(new String[0])).permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2

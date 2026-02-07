@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import com.campito.backend.dao.CompraCreditoRepository;
 import com.campito.backend.dao.CuentaBancariaRepository;
 import com.campito.backend.dao.EspacioTrabajoRepository;
+import com.campito.backend.dao.NotificacionRepository;
+import com.campito.backend.dao.SolicitudPendienteEspacioTrabajoRepository;
 import com.campito.backend.dao.TarjetaRepository;
 import com.campito.backend.dao.TransaccionRepository;
 import com.campito.backend.exception.ForbiddenException;
@@ -19,6 +21,8 @@ import com.campito.backend.model.CompraCredito;
 import com.campito.backend.model.CuentaBancaria;
 import com.campito.backend.model.CustomOAuth2User;
 import com.campito.backend.model.EspacioTrabajo;
+import com.campito.backend.model.Notificacion;
+import com.campito.backend.model.SolicitudPendienteEspacioTrabajo;
 import com.campito.backend.model.Tarjeta;
 import com.campito.backend.model.Transaccion;
 
@@ -42,6 +46,8 @@ public class SecurityServiceImpl implements SecurityService {
     private final CompraCreditoRepository compraCreditoRepository;
     private final CuentaBancariaRepository cuentaBancariaRepository;
     private final TarjetaRepository tarjetaRepository;
+    private final NotificacionRepository notificacionRepository;
+    private final SolicitudPendienteEspacioTrabajoRepository solicitudPendienteRepository;
 
     /**
      * Obtiene el ID del usuario actualmente autenticado desde el contexto de seguridad de Spring.
@@ -244,6 +250,63 @@ public class SecurityServiceImpl implements SecurityService {
         validateWorkspaceAccess(workspaceId);
         
         logger.debug("Ownership validado: Usuario tiene acceso a tarjeta {}", tarjetaId);
+    }
+
+    /**
+     * Valida que una notificación pertenezca al usuario autenticado.
+     * 
+     * @param notificacionId ID de la notificación.
+     * @throws IllegalArgumentException si notificacionId es nulo.
+     * @throws EntityNotFoundException si la notificación no existe.
+     * @throws UnauthorizedException si no hay usuario autenticado.
+     * @throws ForbiddenException si la notificación no pertenece al usuario.
+     */
+    @Override
+    public void validateNotificacionOwnership(Long notificacionId) {
+        if (notificacionId == null) {
+            logger.warn("Intento de validar notificación con ID nulo");
+            throw new IllegalArgumentException("El ID de la notificación no puede ser nulo");
+        }
+        
+        UUID userId = getAuthenticatedUserId();
+        
+        Notificacion notificacion = notificacionRepository.findById(notificacionId)
+            .orElseThrow(() -> {
+                logger.warn("Notificación {} no encontrada", notificacionId);
+                return new EntityNotFoundException("Notificación no encontrada");
+            });
+        
+        if (!notificacion.getUsuario().getId().equals(userId)) {
+            logger.warn("Usuario {} intenta acceder a notificación {} que no le pertenece", 
+                userId, notificacionId);
+            throw new ForbiddenException("No tienes acceso a esta notificación");
+        }
+        
+        logger.debug("Ownership validado: Usuario {} tiene acceso a notificación {}", userId, notificacionId);
+    }
+
+    @Override
+    public void validateSolicitudOwnership(Long idSolicitud) {
+        if (idSolicitud == null) {
+            logger.warn("Intento de validar solicitud con ID nulo");
+            throw new IllegalArgumentException("El ID de la solicitud no puede ser nulo");
+        }
+
+        UUID userId = getAuthenticatedUserId();
+
+        SolicitudPendienteEspacioTrabajo solicitud = solicitudPendienteRepository.findById(idSolicitud)
+            .orElseThrow(() -> {
+                logger.warn("Solicitud pendiente {} no encontrada", idSolicitud);
+                return new EntityNotFoundException("Solicitud pendiente no encontrada");
+            });
+        
+        if (!solicitud.getUsuarioInvitado().getId().equals(userId)) {
+            logger.warn("Usuario {} intenta acceder a solicitud pendiente {} que no le pertenece", 
+                userId, idSolicitud);
+            throw new ForbiddenException("No tienes acceso a esta solicitud pendiente");
+        }
+        
+        logger.debug("Ownership validado: Usuario {} tiene acceso a solicitud pendiente {}", userId, idSolicitud);
     }
 
     /**

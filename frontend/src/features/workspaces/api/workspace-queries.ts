@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { EspacioTrabajoResponse, EspacioTrabajoRequest } from '@/types/workspace'
+import { espacioTrabajoService } from '@/services/espacio-trabajo.service'
 
 // Hook para LISTAR espacios de trabajo (GET)
 export const useWorkspaces = (userId: string | undefined) => {
@@ -54,6 +55,37 @@ export const useShareWorkspace = () => {
       return data
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+    },
+  })
+}
+
+// Hook para LISTAR solicitudes pendientes (GET)
+export const useSolicitudesPendientes = () => {
+  return useQuery({
+    queryKey: ['solicitudes-pendientes'],
+    queryFn: () => espacioTrabajoService.listarSolicitudesPendientes(),
+    staleTime: 1000 * 60 * 2, // Los datos se consideran "frescos" por 2 minutos
+  })
+}
+
+// Hook para RESPONDER a una solicitud (PUT)
+export const useResponderSolicitud = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      idSolicitud,
+      aceptada,
+    }: {
+      idSolicitud: number
+      aceptada: boolean
+    }) => {
+      await espacioTrabajoService.responderSolicitud(idSolicitud, aceptada)
+    },
+    onSuccess: () => {
+      // Invalida el caché de solicitudes y workspaces
+      queryClient.invalidateQueries({ queryKey: ['solicitudes-pendientes'] })
       queryClient.invalidateQueries({ queryKey: ['workspaces'] })
     },
   })

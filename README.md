@@ -57,6 +57,12 @@ Sistema Full-Stack profesional para la gestión integral de finanzas personales 
 - **Cálculo Incremental**: Actualización eficiente de estadísticas
 - **Tareas Programadas**: Schedulers para operaciones periódicas
 
+### 🔔 Notificaciones en Tiempo Real
+- **SSE (Server-Sent Events)**: Push notifications
+- **Arquitectura Asíncrona**: Event-driven con procesamiento no bloqueante
+- **Alertas Inteligentes**: Cierres de tarjeta, vencimientos, invitaciones
+- **Persistencia**: Historial completo de notificaciones con estado leído/no leído
+
 ---
 
 ## 🛠 Stack Tecnológico
@@ -77,6 +83,11 @@ Sistema Full-Stack profesional para la gestión integral de finanzas personales 
 - 🔐 Spring Security + OAuth2
 - 🔑 Google OAuth 2.0
 - 🎫 JWT (JSON Web Tokens)
+
+**Notificaciones en Tiempo Real**
+- 📡 SSE (Server-Sent Events)
+- 📢 Event-Driven Architecture
+- ⚡ Procesamiento Asíncrono (@Async)
 
 **Herramientas**
 - 🗺️ MapStruct 1.5.5 (Mapeo DTO/Entidad)
@@ -113,6 +124,11 @@ Sistema Full-Stack profesional para la gestión integral de finanzas personales 
 **Visualización**
 - 📊 Recharts 2.15.4
 - 📈 Gráficos interactivos
+
+**Notificaciones**
+- 🔔 EventSource API (nativa)
+- 📬 SSE client-side
+- 🎯 Sistema reactivo en tiempo real
 
 </td>
 </tr>

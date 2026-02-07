@@ -2,7 +2,12 @@ import { useState, useEffect } from 'react'
 import { useAppStore } from '@/store/app-store'
 import { useAuth } from '@/contexts/AuthContext'
 import { espacioTrabajoService } from '@/services/espacio-trabajo.service'
-import { useCreateWorkspace, useShareWorkspace } from '@/features/workspaces/api/workspace-queries'
+import { 
+  useCreateWorkspace, 
+  useShareWorkspace,
+  useSolicitudesPendientes,
+  useResponderSolicitud,
+} from '@/features/workspaces/api/workspace-queries'
 import type { MiembroEspacio } from '@/types'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -15,6 +20,10 @@ import {
   User,
   UserPlus,
   Trash2,
+  Check,
+  X,
+  Mail,
+  Clock,
 } from 'lucide-react'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -28,6 +37,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 import {
   Form,
   FormControl,
@@ -72,11 +89,17 @@ export function ConfiguracionPage() {
   // Hooks de TanStack Query para espacios de trabajo
   const createWorkspaceMutation = useCreateWorkspace()
   const shareWorkspaceMutation = useShareWorkspace()
+  const { data: solicitudesPendientes, isLoading: isLoadingSolicitudes, error: errorSolicitudes, refetch: refetchSolicitudes } = useSolicitudesPendientes()
+  const responderSolicitudMutation = useResponderSolicitud()
   
   const [miembros, setMiembros] = useState<MiembroEspacio[]>([])
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false)
   const [isLoadingMiembros, setIsLoadingMiembros] = useState(false)
   const [errorMiembros, setErrorMiembros] = useState<string | null>(null)
+  
+  // Estado para paginación de solicitudes
+  const [currentPageSolicitudes, setCurrentPageSolicitudes] = useState(1)
+  const solicitudesPorPagina = 4
 
   // Form para crear espacio de trabajo
   const createWorkspaceForm = useForm<CreateWorkspaceFormValues>({
@@ -182,6 +205,54 @@ export function ConfiguracionPage() {
   }
 
   const isAdmin = espacioActual?.usuarioAdmin.id === usuario?.id
+
+  // Calcular paginación para solicitudes
+  const totalSolicitudes = solicitudesPendientes?.length || 0
+  const totalPaginasSolicitudes = Math.ceil(totalSolicitudes / solicitudesPorPagina)
+  const indexOfLastSolicitud = currentPageSolicitudes * solicitudesPorPagina
+  const indexOfFirstSolicitud = indexOfLastSolicitud - solicitudesPorPagina
+  const solicitudesActuales = solicitudesPendientes?.slice(indexOfFirstSolicitud, indexOfLastSolicitud) || []
+
+  // Handlers para solicitudes
+  const handleAceptarSolicitud = async (idSolicitud: number, nombreEspacio: string) => {
+    responderSolicitudMutation.mutate(
+      { idSolicitud, aceptada: true },
+      {
+        onSuccess: () => {
+          toast.success('¡Solicitud aceptada!', {
+            description: `Ahora eres parte del espacio "${nombreEspacio}".`,
+          })
+          setCurrentPageSolicitudes(1) // Resetear a primera página
+        },
+        onError: (error: any) => {
+          console.error('Error al aceptar solicitud:', error)
+          toast.error('Error al aceptar la solicitud', {
+            description: error?.message || 'Intenta nuevamente.',
+          })
+        },
+      }
+    )
+  }
+
+  const handleRechazarSolicitud = async (idSolicitud: number, nombreEspacio: string) => {
+    responderSolicitudMutation.mutate(
+      { idSolicitud, aceptada: false },
+      {
+        onSuccess: () => {
+          toast.info('Solicitud rechazada', {
+            description: `Has rechazado la invitación a "${nombreEspacio}".`,
+          })
+          setCurrentPageSolicitudes(1) // Resetear a primera página
+        },
+        onError: (error: any) => {
+          console.error('Error al rechazar solicitud:', error)
+          toast.error('Error al rechazar la solicitud', {
+            description: error?.message || 'Intenta nuevamente.',
+          })
+        },
+      }
+    )
+  }
 
   // Función para filtrar caracteres permitidos en el nombre del espacio
   const filterWorkspaceName = (value: string): string => {
@@ -437,44 +508,34 @@ export function ConfiguracionPage() {
               ) : (
                 <div className="space-y-6">
                   {/* Resumen visual de miembros */}
-                  <div className="flex items-center justify-between p-4 rounded-lg border border-zinc-800 bg-zinc-950/30">
-                    <div className="flex items-center gap-4">
-                      <div className="flex -space-x-2">
-                        {miembros.slice(0, 5).map((miembro, index) => (
-                          <Avatar 
-                            key={miembro.id} 
-                            className="h-10 w-10 border-2 border-zinc-900"
-                            style={{ zIndex: 5 - index }}
-                          >
-                            <AvatarImage src={miembro.fotoPerfil} alt={miembro.nombre} />
-                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                              {miembro.nombre?.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
-                        {miembros.length > 5 && (
-                          <div className="h-10 w-10 rounded-full border-2 border-zinc-900 bg-zinc-800 flex items-center justify-center text-sm font-semibold">
-                            +{miembros.length - 5}
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold">
-                          {miembros.length} {miembros.length === 1 ? 'miembro' : 'miembros'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          en este espacio de trabajo
-                        </p>
-                      </div>
+                  <div className="flex items-center gap-4 p-4 rounded-lg border border-zinc-800 bg-zinc-950/30">
+                    <div className="flex -space-x-2">
+                      {miembros.slice(0, 5).map((miembro, index) => (
+                        <Avatar 
+                          key={miembro.id} 
+                          className="h-10 w-10 border-2 border-zinc-900"
+                          style={{ zIndex: 5 - index }}
+                        >
+                          <AvatarImage src={miembro.fotoPerfil} alt={miembro.nombre} />
+                          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                            {miembro.nombre?.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      ))}
+                      {miembros.length > 5 && (
+                        <div className="h-10 w-10 rounded-full border-2 border-zinc-900 bg-zinc-800 flex items-center justify-center text-sm font-semibold">
+                          +{miembros.length - 5}
+                        </div>
+                      )}
                     </div>
-                    <Button
-                      onClick={() => setIsInviteDialogOpen(true)}
-                      disabled={!isAdmin}
-                      size="sm"
-                    >
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Invitar más
-                    </Button>
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {miembros.length} {miembros.length === 1 ? 'miembro' : 'miembros'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        en este espacio de trabajo
+                      </p>
+                    </div>
                   </div>
 
                   {/* Lista de miembros */}
@@ -508,6 +569,153 @@ export function ConfiguracionPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Solicitudes de Colaboración */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Solicitudes de colaboración</CardTitle>
+              <CardDescription>
+                Solicitudes para colaborar en un nuevo espacio de trabajo
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingSolicitudes ? (
+                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-zinc-800 bg-zinc-950/50 p-12 text-center">
+                  <div className="text-4xl mb-4">⏳</div>
+                  <h3 className="text-xl font-semibold mb-2">Cargando solicitudes...</h3>
+                  <p className="text-muted-foreground max-w-sm">
+                    Obteniendo tus invitaciones pendientes.
+                  </p>
+                </div>
+              ) : errorSolicitudes ? (
+                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-zinc-800 bg-zinc-950/50 p-12 text-center">
+                  <div className="text-4xl mb-4">⚠️</div>
+                  <h3 className="text-xl font-semibold mb-2">Error al cargar solicitudes</h3>
+                  <p className="text-muted-foreground mb-4 max-w-sm">
+                    No se pudieron cargar las solicitudes. Intenta recargar la página.
+                  </p>
+                  <Button onClick={() => refetchSolicitudes()} variant="outline">
+                    Reintentar
+                  </Button>
+                </div>
+              ) : totalSolicitudes === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-zinc-800 bg-zinc-950/50 p-12 text-center">
+                  <div className="text-4xl mb-4">📭</div>
+                  <h3 className="text-xl font-semibold mb-2">No tienes solicitudes pendientes</h3>
+                  <p className="text-muted-foreground max-w-sm">
+                    Cuando alguien te invite a colaborar en su espacio, las invitaciones aparecerán aquí.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Resumen de solicitudes */}
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-zinc-800 bg-zinc-950/30">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                        <Mail className="h-5 w-5 text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">
+                          {totalSolicitudes} {totalSolicitudes === 1 ? 'invitación pendiente' : 'invitaciones pendientes'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Revisa y responde a tus invitaciones
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="gap-1">
+                      <Clock className="h-3 w-3" />
+                      Pendiente
+                    </Badge>
+                  </div>
+
+                  {/* Lista de solicitudes paginadas */}
+                  <div className="space-y-3">
+                    {solicitudesActuales.map((solicitud) => (
+                      <div
+                        key={solicitud.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg border border-zinc-800 hover:bg-zinc-950/50 transition-colors"
+                      >
+                        <div className="flex items-start gap-3 flex-1">
+                          <Avatar className="h-10 w-10 mt-1">
+                            <AvatarImage src={solicitud.fotoPerfilUsuarioAdmin} alt={solicitud.usuarioAdminNombre} />
+                            <AvatarFallback className="bg-gradient-to-br from-green-500 to-blue-600 text-white text-xs">
+                              {solicitud.usuarioAdminNombre?.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm mb-1">{solicitud.espacioTrabajoNombre}</p>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              <span className="font-medium">{solicitud.usuarioAdminNombre}</span> te invitó a colaborar
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(solicitud.fechaCreacion).toLocaleDateString('es-AR', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 sm:ml-auto">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 sm:flex-none text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
+                            onClick={() => handleRechazarSolicitud(solicitud.id, solicitud.espacioTrabajoNombre)}
+                            disabled={responderSolicitudMutation.isPending}
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Rechazar
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="flex-1 sm:flex-none"
+                            onClick={() => handleAceptarSolicitud(solicitud.id, solicitud.espacioTrabajoNombre)}
+                            disabled={responderSolicitudMutation.isPending}
+                          >
+                            <Check className="h-4 w-4 mr-1" />
+                            Aceptar
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Paginación */}
+                  {totalPaginasSolicitudes > 1 && (
+                    <Pagination className="mt-6">
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setCurrentPageSolicitudes((prev) => Math.max(prev - 1, 1))}
+                            className={currentPageSolicitudes === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                        {Array.from({ length: totalPaginasSolicitudes }, (_, i) => i + 1).map((page) => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => setCurrentPageSolicitudes(page)}
+                              isActive={currentPageSolicitudes === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setCurrentPageSolicitudes((prev) => Math.min(prev + 1, totalPaginasSolicitudes))}
+                            className={currentPageSolicitudes === totalPaginasSolicitudes ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  )}
                 </div>
               )}
             </CardContent>

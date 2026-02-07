@@ -2,10 +2,13 @@ package com.campito.backend.scheduler;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,10 +16,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.campito.backend.dao.CuotaCreditoRepository;
 import com.campito.backend.dao.ResumenRepository;
 import com.campito.backend.dao.TarjetaRepository;
+import com.campito.backend.event.NotificacionEvent;
 import com.campito.backend.model.CuotaCredito;
 import com.campito.backend.model.EstadoResumen;
 import com.campito.backend.model.Resumen;
 import com.campito.backend.model.Tarjeta;
+import com.campito.backend.model.TipoNotificacion;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,6 +41,7 @@ public class ResumenScheduler {
     private final TarjetaRepository tarjetaRepository;
     private final CuotaCreditoRepository cuotaCreditoRepository;
     private final ResumenRepository resumenRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Ejecuta el cierre de resúmenes todos los días a las 00:00hs.
@@ -140,6 +146,29 @@ public class ResumenScheduler {
         
         logger.info("Resumen cerrado exitosamente para tarjeta ID {} - Período: {}/{} - Monto: ${} - Cuotas: {}",
             tarjeta.getId(), mes, anio, montoTotal, cuotasPendientes.size());
+        
+        // Emitir evento de notificación al administrador del espacio de trabajo
+        try {
+            UUID idUsuarioAdmin = tarjeta.getEspacioTrabajo().getUsuarioAdmin().getId();
+            String numeroTarjeta = tarjeta.getNumeroTarjeta();
+            String redDePago = tarjeta.getRedDePago();
+            String fechaVencimientoStr = fechaVencimiento.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            
+            String mensaje = String.format("Resumen cerrado de tarjeta %s terminada en %s. Vencimiento: %s", 
+                                          redDePago, numeroTarjeta, fechaVencimientoStr);
+            
+            eventPublisher.publishEvent(new NotificacionEvent(
+                this,
+                idUsuarioAdmin,
+                TipoNotificacion.CIERRE_TARJETA,
+                mensaje
+            ));
+            logger.info("Evento de notificación enviado al usuario {} por cierre de resumen de tarjeta {}", 
+                       idUsuarioAdmin, tarjeta.getId());
+        } catch (Exception e) {
+            logger.error("Error al enviar notificación de cierre de resumen para tarjeta ID: {}", tarjeta.getId(), e);
+            // No propagamos la excepción para no afectar el cierre del resumen que ya fue guardado exitosamente
+        }
     }
 
     /**

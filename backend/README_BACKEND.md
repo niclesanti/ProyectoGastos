@@ -9,6 +9,7 @@
 - [Arquitectura del Sistema](#-arquitectura-del-sistema)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
 - [Modelo de Datos](#-modelo-de-datos)
+- [Sistema de Notificaciones en Tiempo Real](#-sistema-de-notificaciones-en-tiempo-real)
 - [Configuración y Requisitos](#%EF%B8%8F-configuración-y-requisitos)
 - [Instalación y Ejecución](#-instalación-y-ejecución)
 - [API Endpoints](#-api-endpoints)
@@ -30,6 +31,7 @@ Sistema backend RESTful desarrollado con Spring Boot que proporciona una soluci�
 - ✅ **Autenticación OAuth2**: Integración con proveedores externos (por lo pronto solo de Google)
 - ✅ **Gestión Multi-Tenant**: Espacios de trabajo compartidos para gestión familiar o grupal
 - ✅ **Procesamiento Automático**: Cierre automático de resúmenes de tarjetas mediante schedulers
+- ✅ **Notificaciones en Tiempo Real**: SSE (Server-Sent Events) y arquitectura dirigida por eventos
 - ✅ **Validaciones Robustas**: Bean Validation con validadores personalizados
 - ✅ **Documentación Automática**: API documentada con Swagger/OpenAPI
 - ✅ **Manejo de Errores**: Sistema centralizado de gestión de excepciones
@@ -68,8 +70,11 @@ Este backend proporciona una API REST completa que permite:
 
 ### 2. Espacios de Trabajo Colaborativos
 - Creación y administración de espacios de trabajo
+- Sistema de invitaciones con solicitudes pendientes
+- Aprobación o rechazo de invitaciones por el usuario invitado
 - Sistema de permisos (administrador/participante)
 - Compartir espacios entre múltiples usuarios
+- Gestión de miembros del espacio
 - Saldo consolidado por espacio
 
 ### 3. Gestión de Transacciones
@@ -103,10 +108,23 @@ Este backend proporciona una API REST completa que permite:
 - Distribución de gastos por categoría
 - Optimización mediante tabla agregada para evitar recálculos
 
-### 7. Automatización
+### 7. Notificaciones en Tiempo Real
+- **SSE (Server-Sent Events)**: Conexión persistente para notificaciones instantáneas
+- **Arquitectura de Eventos**: Publicación/suscripción con `ApplicationEventPublisher`
+- **Tipos de Notificaciones**:
+  - `CIERRE_TARJETA`: Cierre automático de resúmenes
+  - `VENCIMIENTO_RESUMEN`: Recordatorio de vencimiento
+  - `INVITACION_ESPACIO`: Invitación a workspace
+  - `MIEMBRO_AGREGADO`: Nuevo miembro en espacio
+  - `SISTEMA`: Mensajes del sistema
+- **Limpieza Automática**: Schedulers para eliminar notificaciones antiguas
+- **Autenticación SSE**: Query parameter con token JWT (compatible con EventSource nativo)
+
+### 8. Automatización
 - Cierre automático diario de resúmenes de tarjetas (scheduler)
 - Actualización automática de saldos
 - Cálculo incremental de estadísticas
+- Limpieza automática de notificaciones
 
 ---
 
@@ -203,6 +221,8 @@ Este backend proporciona una API REST completa que permite:
 │  - Validadores (Bean Validation)            │
 │  - DTOs (Data Transfer Objects)             │
 │  - Schedulers (Tareas Programadas)          │
+│  - Eventos (ApplicationEventPublisher)      │
+│  - SSE (Server-Sent Events)                 │
 │  - Configuración (application.properties)   │
 └─────────────────────────────────────────────┘
 ```
@@ -234,6 +254,7 @@ backend/
 │   │   │   │   ├── CuentaBancariaController.java
 │   │   │   │   ├── DashboardController.java
 │   │   │   │   ├── EspacioTrabajoController.java
+│   │   │   │   ├── NotificacionController.java    # Sistema de notificaciones
 │   │   │   │   ├── TransaccionController.java
 │   │   │   │   └── UsuarioController.java
 │   │   │   ├── dao/                       # Repositorios JPA
@@ -245,22 +266,31 @@ backend/
 │   │   │   │   ├── EspacioTrabajoRepository.java
 │   │   │   │   ├── GastosIngresosMensualesRepository.java
 │   │   │   │   ├── MotivoTransaccionRepository.java
+│   │   │   │   ├── NotificacionRepository.java    # Repositorio de notificaciones
 │   │   │   │   ├── ResumenRepository.java
+│   │   │   │   ├── SolicitudPendienteEspacioTrabajoRepository.java # Solicitudes
 │   │   │   │   ├── TarjetaRepository.java
 │   │   │   │   ├── TransaccionRepository.java
 │   │   │   │   └── UsuarioRepository.java
 │   │   │   ├── dto/                       # Data Transfer Objects
 │   │   │   │   ├── *DTORequest.java       # DTOs para peticiones
 │   │   │   │   ├── *DTOResponse.java      # DTOs para respuestas
-│   │   │   │   └── *BusquedaDTO.java      # DTOs para búsquedas
+│   │   │   │   ├── NotificacionDTOResponse.java  # DTO de notificaciones
+│   │   │   │   └── SolicitudPendienteEspacioTrabajoDTOResponse.java # DTO solicitud
+│   │   │   │   └── NotificacionDTOResponse.java  # DTO de notificaciones
 │   │   │   ├── exception/                 # Manejo de excepciones
 │   │   │   │   ├── ControllerAdvisor.java
 │   │   │   │   └── ExceptionInfo.java
+│   │   │   ├── event/                     # Eventos del sistema
+│   │   │   │   ├── NotificacionEvent.java
+│   │   │   │   └── NotificacionEventListener.java # Listener asíncrono
 │   │   │   ├── mapper/                    # MapStruct Mappers
 │   │   │   │   ├── config/
 │   │   │   │   │   └── MapstructConfig.java
+│   │   │   │   ├── SolicitudPendienteEspacioTrabajoMapper.java
+│   │   │   │   ├── NotificacionMapper.java
 │   │   │   │   └── *Mapper.java
-│   │   │   ├── model/                     # Entidades JPA
+│   │   │   │   ├── model/                     # Entidades JPA
 │   │   │   │   ├── CompraCredito.java
 │   │   │   │   ├── ContactoTransferencia.java
 │   │   │   │   ├── CuentaBancaria.java
@@ -270,24 +300,32 @@ backend/
 │   │   │   │   ├── EstadoResumen.java     # Enum
 │   │   │   │   ├── GastosIngresosMensuales.java
 │   │   │   │   ├── MotivoTransaccion.java
+│   │   │   │   ├── Notificacion.java      # Entidad de notificaciones
 │   │   │   │   ├── ProveedorAutenticacion.java # Enum
 │   │   │   │   ├── Resumen.java
+│   │   │   │   ├── SolicitudPendienteEspacioTrabajo.java # Solicitudes de colaboración
 │   │   │   │   ├── Tarjeta.java
+│   │   │   │   ├── TipoNotificacion.java  # Enum de tipos de notificación
 │   │   │   │   ├── TipoTransaccion.java   # Enum
 │   │   │   │   ├── Transaccion.java
 │   │   │   │   └── Usuario.java
 │   │   │   ├── scheduler/                 # Tareas programadas
+│   │   │   │   ├── NotificacionScheduler.java # Limpieza de notificaciones
 │   │   │   │   └── ResumenScheduler.java
 │   │   │   ├── security/                  # Componentes de seguridad JWT
-│   │   │   │   ├── JwtAuthenticationFilter.java
+│   │   │   │   ├── JwtAuthenticationFilter.java  # Soporta query param para SSE
 │   │   │   │   ├── JwtTokenProvider.java
 │   │   │   │   └── OAuth2AuthenticationSuccessHandler.java
 │   │   │   ├── service/                   # Capa de servicios
 │   │   │   │   ├── *Service.java          # Interfaces
 │   │   │   │   ├── *ServiceImpl.java      # Implementaciones
 │   │   │   │   ├── CustomOidcUserService.java # Servicio OAuth2
+│   │   │   │   ├── NotificacionService.java   # Servicio de notificaciones
+│   │   │   │   ├── NotificacionServiceImpl.java
 │   │   │   │   ├── SecurityService.java   # Servicio de seguridad y autorización
-│   │   │   │   └── SecurityServiceImpl.java
+│   │   │   │   ├── SecurityServiceImpl.java
+│   │   │   │   ├── SseEmitterService.java # SSE para notificaciones
+│   │   │   │   └── SseEmitterServiceImpl.java
 │   │   │   ├── validation/                # Validadores personalizados
 │   │   │   │   ├── Valid*.java            # Anotaciones
 │   │   │   │   └── *Validator.java        # Implementaciones
@@ -306,7 +344,8 @@ backend/
 │   │       │   ├── V10__add_audit_fields_to_entities.sql
 │   │       │   ├── V11__migrate_usuario_to_uuid.sql
 │   │       │   ├── V12__migrate_espacio_trabajo_to_uuid.sql
-│   │       │   └── V13__convert_real_to_numeric.sql
+│   │       │   ├── V13__convert_real_to_numeric.sql
+│   │       │   └── V14__create_notificaciones_table.sql # Sistema de notificaciones
 │   │       ├── application.properties      # Configuración común
 │   │       ├── application-dev.properties  # Perfil desarrollo
 │   │       ├── application-prod.properties # Perfil producción
@@ -342,6 +381,20 @@ Contexto colaborativo donde se gestionan las finanzas de un grupo.
 - **Métodos**: actualizarSaldoNuevaTransaccion(), actualizarSaldoEliminarTransaccion()
 - **Relaciones**: 
   - Contiene CuentasBancarias, Transacciones, Motivos, Contactos, Tarjetas, ComprasCredito, GastosIngresosMensuales
+  - Genera SolicitudesPendientes para invitar nuevos miembros
+
+#### SolicitudPendienteEspacioTrabajo
+Solicitudes de colaboración para unirse a un espacio de trabajo.
+- **Atributos**: id, espacioTrabajo, usuarioInvitado, fechaCreacion
+- **Flujo**: 
+  1. Administrador invita usuario por email
+  2. Sistema crea solicitud pendiente
+  3. Usuario invitado recibe notificación
+  4. Usuario puede aceptar o rechazar la solicitud
+  5. Al aceptar, se agrega como participante del espacio
+- **Relaciones**:
+  - Pertenece a un EspacioTrabajo
+  - Asociada a un Usuario (usuario invitado)
 
 #### Transaccion
 Registro de movimientos financieros (ingresos/gastos).
@@ -381,6 +434,203 @@ Tabla agregada para optimización de consultas de dashboard.
 ### Diagrama de Clases
 
 El diagrama UML completo se encuentra en `/docs/DiagramaDeClasesUML.puml` y puede visualizarse con PlantUML.
+
+---
+
+## 🔔 Sistema de Notificaciones en Tiempo Real
+
+### Arquitectura de Eventos
+
+El sistema de notificaciones está implementado con una **arquitectura dirigida por eventos** usando el patrón **Publish/Subscribe**.
+
+**Componentes Principales**:
+```
+Servicio → ApplicationEventPublisher → NotificacionEvent
+                                              ↓
+                                  NotificacionEventListener (@Async)
+                                              ↓
+                                    [Persiste en BD]
+                                              ↓
+                                   SseEmitterService
+                                              ↓
+                              Frontend (EventSource SSE)
+```
+
+### Componentes del Sistema
+
+#### 1. NotificacionEvent
+**Archivo**: `event/NotificacionEvent.java`
+
+Evento que representa una notificación a generar.
+
+```java
+@Getter
+public class NotificacionEvent extends ApplicationEvent {
+    private final UUID idUsuario;
+    private final TipoNotificacion tipo;
+    private final String mensaje;
+}
+```
+
+#### 2. NotificacionEventListener
+**Archivo**: `event/NotificacionEventListener.java`
+
+Listener asíncrono que captura eventos y procesa notificaciones.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class NotificacionEventListener {
+    @Async
+    @EventListener
+    @Transactional
+    public void handleNotificacionEvent(NotificacionEvent event) {
+        // 1. Buscar usuario
+        // 2. Crear notificación
+        // 3. Guardar en BD
+        // 4. Enviar via SSE (si está conectado)
+    }
+}
+```
+
+**Características**:
+- ✅ Procesamiento asíncrono con `@Async`
+- ✅ Transaccional para garantizar persistencia
+- ✅ No bloquea el hilo principal
+- ✅ Try-catch para no propagar errores
+
+#### 3. SseEmitterService
+**Archivo**: `service/SseEmitterServiceImpl.java`
+
+Gestiona conexiones SSE persistentes con clientes.
+
+```java
+@Service
+public class SseEmitterServiceImpl implements SseEmitterService {
+    private final Map<UUID, SseEmitter> emitters = new ConcurrentHashMap<>();
+    
+    public SseEmitter crearEmitter(UUID idUsuario) {
+        SseEmitter emitter = new SseEmitter(1 hora);
+        // Configurar handlers: onCompletion, onTimeout, onError
+        emitters.put(idUsuario, emitter);
+        return emitter;
+    }
+    
+    public void enviarNotificacion(UUID idUsuario, Notificacion notificacion) {
+        // Enviar via SSE si el usuario está conectado
+    }
+}
+```
+
+**Ventajas de SSE vs WebSocket**:
+- ✅ Más simple de implementar (HTTP estándar)
+- ✅ Reconexión automática del navegador
+- ✅ Menor consumo de recursos
+- ✅ Suficiente para notificaciones unidireccionales
+
+#### 4. NotificacionController
+**Archivo**: `controller/NotificacionController.java`
+
+Endpoints REST + SSE para gestión de notificaciones.
+
+**Endpoints**:
+- `GET /api/notificaciones` - Listar (últimas 50)
+- `GET /api/notificaciones/no-leidas/count` - Contador
+- `PUT /api/notificaciones/{id}/leer` - Marcar como leída
+- `PUT /api/notificaciones/marcar-todas-leidas` - Marcar todas
+- `DELETE /api/notificaciones/{id}` - Eliminar
+- `GET /api/notificaciones/stream` - **SSE Stream** (requiere token JWT como query param)
+
+### Tipos de Notificaciones
+
+```java
+public enum TipoNotificacion {
+    CIERRE_TARJETA,          // Cierre automático de resúmenes
+    VENCIMIENTO_RESUMEN,     // Recordatorio de vencimiento
+    INVITACION_ESPACIO,      // Invitación a workspace
+    MIEMBRO_AGREGADO,        // Nuevo miembro agregado
+    SISTEMA                  // Notificaciones del sistema
+}
+```
+
+### Cómo Agregar Notificaciones
+
+En cualquier servicio, inyecta `ApplicationEventPublisher` y publica eventos:
+
+```java
+@Service
+@RequiredArgsConstructor
+public class MiServicio {
+    private final ApplicationEventPublisher eventPublisher;
+    
+    public void miMetodo() {
+        // ... tu lógica de negocio ...
+        
+        try {
+            eventPublisher.publishEvent(new NotificacionEvent(
+                this,
+                idUsuarioDestinatario,
+                TipoNotificacion.SISTEMA,
+                "Mensaje descriptivo"
+            ));
+        } catch (Exception e) {
+            // No propagar errores de notificaciones
+            logger.error("Error al publicar notificación", e);
+        }
+    }
+}
+```
+
+**Buenas Prácticas**:
+- ✅ Siempre usar try-catch al publicar eventos
+- ✅ Mensajes descriptivos y útiles
+- ✅ Tipo de notificación apropiado
+- ✅ Notificar al usuario correcto
+- ❌ No incluir información sensible
+
+### Limpieza Automática
+
+**NotificacionScheduler** ejecuta tareas de mantenimiento:
+
+- **Diario (3:00 AM)**: Elimina notificaciones leídas > 3 días
+- **Mensual (1st día, 4:00 AM)**: Elimina notificaciones no leídas > 15 días
+
+### Autenticación SSE con JWT
+
+El endpoint SSE acepta el token JWT como **query parameter** en lugar de header:
+
+```
+GET /api/notificaciones/stream?token=eyJhbGciOiJIUzUx...
+```
+
+**¿Por qué query parameter?**
+- ✅ EventSource nativo no soporta headers personalizados
+- ✅ Mayor compatibilidad con navegadores
+- ✅ No requiere polyfills
+
+**Implementación en JwtAuthenticationFilter**:
+
+```java
+private String getJwtFromRequest(HttpServletRequest request) {
+    // 1. Intentar primero con header Authorization (estándar)
+    String bearerToken = request.getHeader("Authorization");
+    if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+        return bearerToken.substring(7);
+    }
+    
+    // 2. Si no está en header, buscar en query parameter (para SSE)
+    String tokenParam = request.getParameter("token");
+    if (StringUtils.hasText(tokenParam)) {
+        return tokenParam;
+    }
+    
+    return null;
+}
+```
+
+### Documentación Adicional
+
+Ver guía completa para desarrolladores: `SistemaNotificaciones_GuiaDesarrolladores.md`
 
 ---
 
@@ -514,10 +764,12 @@ docker-compose down -v
 
 | Método | Endpoint | Descripción | Auth |
 |--------|----------|-------------|------|
-| POST | `/api/espacioTrabajo/registrar` | Crear nuevo espacio de trabajo | ✅ |
-| PUT | `/api/espacioTrabajo/compartir/{email}/{idEspacioTrabajo}/{idUsuarioAdmin}` | Compartir espacio con otro usuario | ✅ |
-| GET | `/api/espacioTrabajo/listar/{idUsuario}` | Listar espacios del usuario | ✅ |
-| GET | `/api/espacioTrabajo/miembros/{idEspacioTrabajo}` | Obtener miembros de un espacio | ✅ |
+| POST | `/api/espaciotrabajo/registrar` | Crear nuevo espacio de trabajo | ✅ |
+| PUT | `/api/espaciotrabajo/compartir/{email}/{idEspacioTrabajo}` | Enviar invitación para compartir espacio (crea solicitud pendiente) | ✅ |
+| PUT | `/api/espaciotrabajo/solicitud/responder/{idSolicitud}/{aceptada}` | Responder solicitud de colaboración (aceptar/rechazar) | ✅ |
+| GET | `/api/espaciotrabajo/solicitudes/pendientes` | Obtener solicitudes pendientes del usuario autenticado | ✅ |
+| GET | `/api/espaciotrabajo/listar` | Listar espacios del usuario autenticado | ✅ |
+| GET | `/api/espaciotrabajo/miembros/{idEspacioTrabajo}` | Obtener miembros de un espacio | ✅ |
 
 ### Transacciones
 
@@ -577,6 +829,19 @@ docker-compose down -v
 | Método | Endpoint | Descripción | Auth |
 |--------|----------|-------------|------|
 | GET | `/api/dashboard/stats/{idEspacio}` | Obtener estadísticas del dashboard | ✅ |
+
+### Notificaciones
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/notificaciones` | Obtener notificaciones del usuario (últimas 50) | ✅ |
+| GET | `/api/notificaciones/no-leidas/count` | Contar notificaciones no leídas | ✅ |
+| PUT | `/api/notificaciones/{id}/leer` | Marcar notificación como leída | ✅ |
+| PUT | `/api/notificaciones/marcar-todas-leidas` | Marcar todas como leídas | ✅ |
+| DELETE | `/api/notificaciones/{id}` | Eliminar notificación | ✅ |
+| GET | `/api/notificaciones/stream` | **SSE Stream** para notificaciones en tiempo real (requiere token como query param) | ✅ |
+
+**Nota SSE**: El endpoint SSE acepta el token JWT como query parameter (`?token=xxx`) para compatibilidad con EventSource nativo del navegador.
 
 ### Documentación API
 
@@ -719,22 +984,64 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
     
     private String getJwtFromRequest(HttpServletRequest request) {
+        // 1. Intentar primero con header Authorization (REST API estándar)
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7); // Remover "Bearer "
         }
+        
+        // 2. Si no está en header, buscar en query parameter (SSE)
+        String tokenParam = request.getParameter("token");
+        if (StringUtils.hasText(tokenParam)) {
+            logger.debug("Token JWT extraído de query parameter (SSE)");
+            return tokenParam;
+        }
+        
         return null;
     }
 }
 ```
 
 **Flujo del Filtro:**
-1. Extrae el token del header `Authorization: Bearer <token>`
-2. Valida el token (firma, expiry)
-3. Extrae el userId del token
-4. Busca el usuario en la base de datos
-5. Verifica que el usuario esté activo
-6. Establece la autenticación en el contexto de Spring Security
+1. Extrae el token del header `Authorization: Bearer <token>` (endpoints REST estándar)
+2. Si no está en header, busca en query parameter `?token=xxx` (endpoints SSE)
+3. Valida el token (firma, expiry)
+4. Extrae el userId del token
+5. Busca el usuario en la base de datos
+6. Verifica que el usuario esté activo
+7. Establece la autenticación en el contexto de Spring Security
+
+**🔑 Dual Authentication Support:**
+
+Este filtro soporta **dos métodos de autenticación JWT**:
+
+| Método | Uso | Formato |
+|--------|-----|---------|
+| **Header** | REST API estándar | `Authorization: Bearer eyJhbGciOiJI...` |
+| **Query Param** | SSE stream | `GET /api/notificaciones/stream?token=eyJhbGciOiJI...` |
+
+**¿Por qué query parameter para SSE?**
+
+La API nativa `EventSource` del navegador **NO permite enviar headers personalizados**, lo que imposibilita usar `Authorization: Bearer`. Las alternativas son:
+
+1. ❌ **EventSourcePolyfill**: Funciona pero es menos confiable, más pesado, y requiere dependencias adicionales
+2. ✅ **Query Parameter**: Funciona nativamente con `EventSource`, sin polyfills
+3. ❌ **Cookies**: No funcionan bien en arquitecturas cross-domain (SameSite policy)
+
+**Implementación Frontend:**
+```typescript
+const token = localStorage.getItem('auth_token');
+const eventSource = new EventSource(
+    `${API_URL}/api/notificaciones/stream?token=${encodeURIComponent(token)}`
+);
+```
+
+**Seguridad del Query Parameter:**
+- ✅ Token firmado digitalmente con HMAC-SHA256
+- ✅ Conexión HTTPS en producción (token encriptado en tránsito)
+- ✅ Token con expiry (7 días por defecto)
+- ✅ Validación estricta igual que headers
+- ⚠️ Solo usar para SSE, no para API REST estándar
 
 ##### 3. OAuth2AuthenticationSuccessHandler
 

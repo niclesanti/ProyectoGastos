@@ -108,6 +108,20 @@ class GastosIngresosMensuales {
   + eliminarIngresos(nuevoIngreso: Float): void
 }
 
+class Notificacion {
+  - id: Long
+  - tipo: TipoNotificacion
+  - mensaje: String
+  - leida: Boolean
+  - fechaCreacion: LocalDateTime
+  - fechaLeida: LocalDateTime
+}
+
+class SolicitudPendienteEspacioTrabajo {
+  - id: Long
+  - fechaCreacion: LocalDateTime
+}
+
 class CustomOAuth2User {
   - usuario: Usuario
 }
@@ -130,12 +144,22 @@ enum EstadoResumen {
   PAGADO_PARCIAL
 }
 
+enum TipoNotificacion {
+  CIERRE_TARJETA
+  VENCIMIENTO_RESUMEN
+  INVITACION_ESPACIO
+  MIEMBRO_AGREGADO
+  SISTEMA
+}
+
 ' ====================================================================
 ' ASOCIACIONES ENTRE CLASES DEL MODELO
 ' ====================================================================
 
 Usuario "1" -- "0..*" EspacioTrabajo : "es admin de"
 Usuario "0..*" -- "0..*" EspacioTrabajo : "participa en"
+Usuario "1" -- "0..*" Notificacion : "recibe"
+Usuario "1" -- "0..*" SolicitudPendienteEspacioTrabajo : "es invitado a"
 
 EspacioTrabajo "1" -- "0..*" CuentaBancaria : "tiene"
 EspacioTrabajo "1" -- "0..*" Transaccion : "registra"
@@ -144,6 +168,7 @@ EspacioTrabajo "1" -- "0..*" ContactoTransferencia : "registra"
 EspacioTrabajo "1" -- "0..*" Tarjeta : "registra"
 EspacioTrabajo "1" -- "0..*" CompraCredito : "tiene"
 EspacioTrabajo "1" -- "0..*" GastosIngresosMensuales : "posee"
+EspacioTrabajo "1" -- "0..*" SolicitudPendienteEspacioTrabajo : "genera"
 
 Transaccion "0..*" -- "1" MotivoTransaccion : "tiene un"
 Transaccion "0..*" -- "0..1" ContactoTransferencia : "asociada a un"
@@ -159,6 +184,8 @@ CompraCredito "0..*" -- "0..1" ContactoTransferencia : "realizada en"
 CuotaCredito "0..*" -- "0..1" Resumen : "incluida en"
 
 Resumen "0..1" -- "0..1" Transaccion : "pagado con"
+
+Notificacion "0..*" -- "1" TipoNotificacion : "tiene un"
 
 ' ====================================================================
 ' DEFINICION DE DTOs (DATA TRANSFER OBJECTS)
@@ -384,6 +411,23 @@ class SaldoAcumuladoMesDTOImpl {
   - saldoAcumulado: Float
 }
 
+class NotificacionDTOResponse {
+  - id: Long
+  - tipo: TipoNotificacion
+  - mensaje: String
+  - leida: Boolean
+  - fechaCreacion: LocalDateTime
+  - fechaLeida: LocalDateTime
+}
+
+class SolicitudPendienteEspacioTrabajoDTOResponse {
+  - id: Long
+  - espacioTrabajoNombre: String
+  - usuarioAdminNombre: String
+  - fotoPerfilUsuarioAdmin: String
+  - fechaCreacion: LocalDateTime
+}
+
 ' ====================================================================
 ' DEFINICION DE REPOSITORIOS (DAOs)
 ' ====================================================================
@@ -400,6 +444,8 @@ interface CuotaCreditoRepository <<repository>>
 interface DashboardRepository <<repository>>
 interface ResumenRepository <<repository>>
 interface GastosIngresosMensualesRepository <<repository>>
+interface NotificacionRepository <<repository>>
+interface SolicitudPendienteEspacioTrabajoRepository <<repository>>
 
 ' ====================================================================
 ' DEFINICION DE MAPPERS
@@ -415,6 +461,27 @@ interface CompraCreditoMapper <<mapper>>
 interface CuotaCreditoMapper <<mapper>>
 interface UsuarioMapper <<mapper>>
 interface ResumenMapper <<mapper>>
+interface NotificacionMapper <<mapper>>
+interface SolicitudPendienteEspacioTrabajoMapper <<mapper>>
+
+' ====================================================================
+' DEFINICION DE EVENTOS
+' ====================================================================
+
+class NotificacionEvent <<event>> {
+  - idUsuario: UUID
+  - tipo: TipoNotificacion
+  - mensaje: String
+}
+
+class NotificacionEventListener <<listener>> {
+  + handleNotificacionEvent(event: NotificacionEvent): void
+}
+
+class NotificacionScheduler <<scheduler>> {
+  + limpiarNotificacionesLeidas(): void
+  + limpiarNotificacionesAntiguas(): void
+}
 
 ' ====================================================================
 ' DEFINICION DE SERVICIOS
@@ -422,13 +489,17 @@ interface ResumenMapper <<mapper>>
 
 interface EspacioTrabajoService <<service>> {
   + registrarEspacioTrabajo(espacioTrabajoDTO: EspacioTrabajoDTORequest, userId: UUID): void
-  + compartirEspacioTrabajo(email: String, idEspacioTrabajo: UUID): void
+  + responderSolicitudCompartirEspacioTrabajo(idSolicitud: Long, aceptada: Boolean): void
+  + listarSolicitudesPendientes(idUsuario: UUID): List<SolicitudPendienteEspacioTrabajoDTOResponse>
   + listarEspaciosTrabajoPorUsuario(idUsuario: UUID): List<EspacioTrabajoDTOResponse>
   + obtenerMiembrosEspacioTrabajo(idEspacioTrabajo: UUID): List<UsuarioDTOResponse>
 }
 
 class EspacioTrabajoServiceImpl <<service>> {
   + registrarEspacioTrabajo(espacioTrabajoDTO: EspacioTrabajoDTORequest, userId: UUID): void
+  + compartirEspacioTrabajo(email: String, idEspacioTrabajo: UUID): void
+  + responderSolicitudCompartirEspacioTrabajo(idSolicitud: Long, aceptada: Boolean): void
+  + listarSolicitudesPendientes(idUsuario: UUID): List<SolicitudPendienteEspacioTrabajoDTOResponse> userId: UUID): void
   + compartirEspacioTrabajo(email: String, idEspacioTrabajo: UUID): void
   + listarEspaciosTrabajoPorUsuario(idUsuario: UUID): List<EspacioTrabajoDTOResponse>
   + obtenerMiembrosEspacioTrabajo(idEspacioTrabajo: UUID): List<UsuarioDTOResponse>
@@ -536,6 +607,38 @@ class SecurityServiceImpl <<service>> {
   + isWorkspaceAdmin(workspaceId: UUID): boolean
 }
 
+interface NotificacionService <<service>> {
+  + obtenerNotificacionesUsuario(idUsuario: UUID): List<NotificacionDTOResponse>
+  + contarNoLeidas(idUsuario: UUID): Long
+  + marcarComoLeida(id: Long): void
+  + marcarTodasLeidas(idUsuario: UUID): void
+  + eliminarNotificacion(id: Long): void
+  + limpiarNotificacionesLeidas(): void
+  + limpiarNotificacionesAntiguas(): void
+}
+
+class NotificacionServiceImpl <<service>> {
+  + obtenerNotificacionesUsuario(idUsuario: UUID): List<NotificacionDTOResponse>
+  + contarNoLeidas(idUsuario: UUID): Long
+  + marcarComoLeida(id: Long): void
+  + marcarTodasLeidas(idUsuario: UUID): void
+  + eliminarNotificacion(id: Long): void
+  + limpiarNotificacionesLeidas(): void
+  + limpiarNotificacionesAntiguas(): void
+}
+
+interface SseEmitterService <<service>> {
+  + crearEmitter(idUsuario: UUID): SseEmitter
+  + enviarNotificacion(idUsuario: UUID, notificacion: Notificacion): void
+  + getActiveConnections(): int
+}
+
+class SseEmitterServiceImpl <<service>> {
+  + crearEmitter(idUsuario: UUID): SseEmitter
+  + enviarNotificacion(idUsuario: UUID, notificacion: Notificacion): void
+  + getActiveConnections(): int
+}
+
 ' ====================================================================
 ' ASOCIACIONES CAPA SERVICIO (IMPLEMENTACIONES)
 ' ====================================================================
@@ -546,8 +649,11 @@ TransaccionServiceImpl ..|> TransaccionService
 CompraCreditoServiceImpl ..|> CompraCreditoService
 DashboardServiceImpl ..|> DashboardService
 SecurityServiceImpl ..|> SecurityService
+NotificacionServiceImpl ..|> NotificacionService
+SseEmitterServiceImpl ..|> SseEmitterService
 
 ' ====================================================================
+EspacioTrabajoServiceImpl ..> SolicitudPendienteEspacioTrabajoRepository
 ' ASOCIACIONES CAPA SERVICIO -> REPOSITORIO
 ' ====================================================================
 
@@ -587,6 +693,14 @@ SecurityServiceImpl ..> CompraCreditoRepository
 SecurityServiceImpl ..> CuentaBancariaRepository
 SecurityServiceImpl ..> TarjetaRepository
 
+NotificacionServiceImpl ..> NotificacionRepository
+
+NotificacionEventListener ..> NotificacionRepository
+NotificacionEventListener ..> UsuarioRepository
+NotificacionEventListener ..> SseEmitterService
+
+NotificacionScheduler ..> NotificacionService
+
 ' ====================================================================
 ' ASOCIACIONES CAPA SERVICIO -> MAPPER
 ' ====================================================================
@@ -601,6 +715,9 @@ CompraCreditoServiceImpl ..> CuotaCreditoMapper
 CompraCreditoServiceImpl ..> TarjetaMapper
 CompraCreditoServiceImpl ..> ResumenMapper
 EspacioTrabajoServiceImpl ..> UsuarioMapper
+
+NotificacionServiceImpl ..> NotificacionMapper
+SseEmitterServiceImpl ..> NotificacionMapper
 
 ' ====================================================================
 ' ASOCIACIONES CAPA REPOSITORIO -> MODELO
@@ -617,6 +734,7 @@ CompraCreditoRepository ..> CompraCredito
 CuotaCreditoRepository ..> CuotaCredito
 ResumenRepository ..> Resumen
 GastosIngresosMensualesRepository ..> GastosIngresosMensuales
+NotificacionRepository ..> Notificacion
 
 ' ====================================================================
 ' ASOCIACIONES CAPA MAPPER -> MODELO Y DTOs
@@ -659,5 +777,15 @@ UsuarioMapper ..> UsuarioDTOResponse
 
 ResumenMapper ..> Resumen
 ResumenMapper ..> ResumenDTOResponse
+
+NotificacionMapper ..> Notificacion
+NotificacionMapper ..> NotificacionDTOResponse
+
+' ====================================================================
+' ASOCIACIONES EVENTOS
+' ====================================================================
+
+NotificacionEvent ..> TipoNotificacion
+NotificacionEventListener ..> NotificacionEvent
 
 @enduml
