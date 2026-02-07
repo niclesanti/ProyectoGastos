@@ -92,6 +92,17 @@ public interface SecurityService {
      * @throws IllegalArgumentException si el notificacionId es nulo.
      */
     void validateNotificacionOwnership(Long notificacionId);
+
+    /**
+    * Valida que el usuario autenticado tenga permiso para responder a una solicitud pendiente de compartir espacio de trabajo.
+    * 
+    * @param idSolicitud ID de la solicitud pendiente a validar.
+    * @throws com.campito.backend.exception.UnauthorizedException si no hay usuario autenticado.
+    * @throws com.campito.backend.exception.ForbiddenException si el usuario no tiene permiso para responder a esta solicitud.
+    * @throws jakarta.persistence.EntityNotFoundException si la solicitud pendiente no existe.
+    * @throws IllegalArgumentException si el idSolicitud es nulo.
+    */
+    void validateSolicitudOwnership(Long idSolicitud);
     
     /**
      * Verifica si el usuario autenticado tiene acceso a un espacio de trabajo específico.

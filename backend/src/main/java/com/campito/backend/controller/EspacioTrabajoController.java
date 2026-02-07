@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.campito.backend.dto.EspacioTrabajoDTORequest;
 import com.campito.backend.dto.EspacioTrabajoDTOResponse;
+import com.campito.backend.dto.SolicitudPendienteEspacioTrabajoDTOResponse;
 import com.campito.backend.dto.UsuarioDTOResponse;
 import com.campito.backend.service.EspacioTrabajoService;
 import com.campito.backend.service.SecurityService;
@@ -87,6 +88,27 @@ public class EspacioTrabajoController {
     }
 
     @Operation(
+        summary = "Responder a una solicitud pendiente de compartir espacio de trabajo",
+        description = "Permite al usuario responder a una solicitud pendiente de compartir un espacio de trabajo, aceptando o rechazando la invitación."
+    )
+    @ApiResponse(responseCode = "200", description = "Respuesta a la solicitud procesada correctamente")
+    @ApiResponse(responseCode = "400", description = "Error al procesar la respuesta a la solicitud")
+    @ApiResponse(responseCode = "403", description = "No tienes permisos para responder a esta solicitud")
+    @ApiResponse(responseCode = "404", description = "Solicitud pendiente no encontrada")
+    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    @PutMapping("/solicitud/responder/{idSolicitud}/{aceptada}")
+    public ResponseEntity<Void> responderSolicitudCompartirEspacioTrabajo(
+            @PathVariable @NotNull(message = "El id de la solicitud es obligatorio") Long idSolicitud,
+            @PathVariable @NotNull(message = "La respuesta (aceptada o rechazada) es obligatoria") Boolean aceptada) {
+        
+        // Validar que el usuario autenticado tiene permiso para responder a esta solicitud
+        securityService.validateSolicitudOwnership(idSolicitud);
+        
+        espacioTrabajoService.respuestaSolicitudCompartirEspacioTrabajo(idSolicitud, aceptada);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @Operation(
         summary = "Listar mis espacios de trabajo",
         description = "Permite listar todos los espacios de trabajo donde participa el usuario autenticado."
     )
@@ -122,4 +144,20 @@ public class EspacioTrabajoController {
         return new ResponseEntity<>(miembros, HttpStatus.OK);
     }
 
+    @Operation(
+        summary = "Listar mis solicitudes pendientes de espacios de trabajo",
+        description = "Permite listar todas mis solicitudes pendientes para integrar espacios de trabajo del usuario autenticado."
+    )
+    @ApiResponse(responseCode = "200", description = "Solicitudes pendientes listadas correctamente")
+    @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
+    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    @GetMapping("/solicitudes/pendientes")
+    public ResponseEntity<List<SolicitudPendienteEspacioTrabajoDTOResponse>> listarMisSolicitudesPendientes() {
+        
+        // Obtener el ID del usuario autenticado desde el contexto de seguridad
+        UUID userId = securityService.getAuthenticatedUserId();
+        
+        List<SolicitudPendienteEspacioTrabajoDTOResponse> solicitudes = espacioTrabajoService.listarSolicitudesPendientes(userId);
+        return new ResponseEntity<>(solicitudes, HttpStatus.OK);
+    }
 }
