@@ -14,9 +14,11 @@ import com.campito.backend.dao.UsuarioRepository;
 import com.campito.backend.dto.EspacioTrabajoDTORequest;
 import com.campito.backend.dto.EspacioTrabajoDTOResponse;
 import com.campito.backend.dto.UsuarioDTOResponse;
+import com.campito.backend.event.NotificacionEvent;
 import com.campito.backend.mapper.EspacioTrabajoMapper;
 import com.campito.backend.mapper.UsuarioMapper;
 import com.campito.backend.model.EspacioTrabajo;
+import com.campito.backend.model.TipoNotificacion;
 import com.campito.backend.model.Usuario;
 import com.campito.backend.exception.UsuarioNoEncontradoException;
 import com.campito.backend.exception.EntidadDuplicadaException;
@@ -24,6 +26,7 @@ import com.campito.backend.exception.EntidadDuplicadaException;
 import java.util.Optional;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 
 /**
  * Implementación del servicio para gestión de espacios de trabajo.
@@ -41,6 +44,7 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
     private final UsuarioRepository usuarioRepository;
     private final EspacioTrabajoMapper espacioTrabajoMapper;
     private final UsuarioMapper usuarioMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Registra un nuevo espacio de trabajo.
@@ -119,6 +123,25 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
 
         espacioRepository.save(espacioTrabajo);
         logger.info("Espacio de trabajo ID: {} compartido exitosamente con {}.", idEspacioTrabajo, email);
+        
+        // Emitir evento de notificación al usuario invitado
+        try {
+            String nombreAdmin = espacioTrabajo.getUsuarioAdmin().getNombre();
+            String mensaje = String.format("%s te invitó a unirte al espacio de trabajo: '%s'", 
+                                            nombreAdmin, espacioTrabajo.getNombre());
+            eventPublisher.publishEvent(new NotificacionEvent(
+                this,
+                usuario.getId(),
+                TipoNotificacion.INVITACION_ESPACIO,
+                mensaje
+            ));
+            logger.info("Evento de notificación enviado al usuario {} por invitación al espacio {}", 
+                       usuario.getId(), idEspacioTrabajo);
+        } catch (Exception e) {
+            logger.error("Error al enviar notificación de invitación al usuario {} para espacio ID: {}", 
+                        usuario.getId(), idEspacioTrabajo, e);
+            // No propagamos la excepción para no afectar el compartir del espacio que ya fue guardado exitosamente
+        }
     }
 
     /**

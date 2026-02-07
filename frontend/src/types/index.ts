@@ -294,6 +294,24 @@ export interface CuotaResumenDTO {
   motivo: string
 }
 
+// Notificaciones
+export enum TipoNotificacion {
+  CIERRE_TARJETA = 'CIERRE_TARJETA',
+  VENCIMIENTO_RESUMEN = 'VENCIMIENTO_RESUMEN',
+  INVITACION_ESPACIO = 'INVITACION_ESPACIO',
+  MIEMBRO_AGREGADO = 'MIEMBRO_AGREGADO',
+  SISTEMA = 'SISTEMA',
+}
+
+export interface NotificacionDTOResponse {
+  id: number
+  tipo: TipoNotificacion
+  mensaje: string
+  leida: boolean
+  fechaCreacion: string // ISO datetime string
+  fechaLeida?: string | null // ISO datetime string
+}
+
 // API Response wrapper
 export interface ApiResponse<T> {
   data: T

@@ -68,6 +68,14 @@ Aplicación web moderna y responsiva desarrollada con React 18 y TypeScript que 
 - Seguimiento de cuotas pendientes
 - Cálculo automático de resúmenes
 
+### Notificaciones en Tiempo Real
+- **SSE (Server-Sent Events)**: Conexión persistente para notificaciones instantáneas
+- **NotificationBell**: Icono de campana con badge de contador
+- **Tipos de Notificaciones**: Cierre de tarjeta, vencimientos, invitaciones, sistema
+- **Toast Automático**: Notificaciones críticas se muestran como toast
+- **Reconexión Automática**: Manejo robusto de desconexiones
+- **Sin Dependencias de Polyfill**: Usa EventSource nativo con query parameter para JWT
+
 ### Configuración
 - Gestión de espacios de trabajo
 - Invitación de miembros
@@ -130,8 +138,9 @@ Aplicación web moderna y responsiva desarrollada con React 18 y TypeScript que 
   - @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities
 - **cmdk 1.1.1**: Command palette (⌘K)
 
-### Notificaciones
+### Notificaciones y Tiempo Real
 - **Sonner 2.0.7**: Toast notifications elegantes
+- **EventSource API (Nativo)**: SSE para notificaciones en tiempo real.
 
 ### Dev Tools
 - **ESLint**: Linting con reglas TypeScript y React
@@ -222,6 +231,11 @@ frontend/
 │   │   ├── Sidebar.tsx
 │   │   ├── TransactionDetailsModal.tsx
 │   │   ├── TransactionModal.tsx
+│   │   ├── notifications/           # Sistema de notificaciones
+│   │   │   ├── NotificationBell.tsx # Campana con badge
+│   │   │   ├── NotificationCenter.tsx # Panel completo
+│   │   │   ├── NotificationItem.tsx # Item individual
+│   │   │   ├── index.ts            # Re-exports
 │   │   └── ui/                      # Componentes shadcn/ui
 │   │       ├── alert-dialog.tsx
 │   │       ├── avatar.tsx
@@ -272,7 +286,8 @@ frontend/
 │   │   ├── index.ts
 │   │   ├── use-mobile.tsx          # Detección de móvil
 │   │   ├── useDashboardCache.ts    # Caché del dashboard
-│   │   └── useDashboardStats.ts    # Hook para stats
+│   │   ├── useDashboardStats.ts    # Hook para stats
+│   │   └── useNotificaciones.ts    # Hook SSE de notificaciones
 │   ├── layouts/                    # Layouts de página
 │   │   └── DashboardLayout.tsx     # Layout principal con Sidebar
 │   ├── lib/                        # Utilidades
@@ -293,6 +308,7 @@ frontend/
 │   │   ├── dashboard.service.ts
 │   │   ├── espacio-trabajo.service.ts
 │   │   ├── motivo.service.ts
+│   │   ├── notificacion.service.ts # Servicio de notificaciones + SSE
 │   │   ├── tarjeta.service.ts
 │   │   └── transaccion.service.ts
 │   ├── store/                      # Estado global
@@ -682,6 +698,118 @@ contactoService.listar(idEspacio)
 motivoService.registrar(data)
 motivoService.listar(idEspacio)
 ```
+
+#### Notification Service
+```typescript
+notificacionService.obtenerNotificaciones()
+notificacionService.contarNoLeidas()
+notificacionService.marcarComoLeida(id)
+notificacionService.marcarTodasComoLeidas()
+notificacionService.eliminarNotificacion(id)
+notificacionService.crearConexionSSE()  // EventSource nativo
+```
+
+---
+
+## 🔔 Sistema de Notificaciones en Tiempo Real
+
+### Arquitectura
+
+**Tecnología**: Server-Sent Events (SSE) con EventSource nativo
+
+**Flujo de Datos**:
+```
+Backend Event → SSE Stream → useNotificaciones Hook → Zustand Store → UI
+                     │
+                     └── Toast (notificaciones críticas)
+```
+
+### Componentes Principales
+
+#### 1. NotificationBell
+- Icono de campana en el header
+- Badge con contador de no leídas
+- Popover con primeras 5 notificaciones
+- Botón "Marcar todas como leídas"
+
+#### 2. NotificationCenter
+- Panel lateral completo (Sheet)
+- Tabs: Todas / No leídas / Leídas
+- Vista detallada de todas las notificaciones
+
+#### 3. NotificationItem
+- Item individual con icono según tipo
+- Acciones: marcar como leída, eliminar
+- Indicador visual de estado (punto azul)
+
+### Hook: useNotificaciones
+
+```typescript
+const {
+  notificaciones,
+  unreadCount,
+  marcarComoLeida,
+  marcarTodasComoLeidas,
+  eliminarNotificacion,
+  conectarSSE,
+  desconectarSSE,
+} = useNotificaciones()
+```
+
+**Características**:
+- Conexión SSE automática al montar
+- Reconexión automática tras error (5s)
+- Toast para notificaciones críticas: `CIERRE_TARJETA`, `VENCIMIENTO_RESUMEN`, `INVITACION_ESPACIO`
+- Actualización reactiva del store
+- Limpieza automática al desmontar
+
+### Tipos de Notificaciones
+
+| Tipo | Icono | Color | Muestra Toast |
+|------|-------|-------|---------------|
+| `CIERRE_TARJETA` | 💳 CreditCard | blue-500 | Sí |
+| `VENCIMIENTO_RESUMEN` | 📅 CalendarClock | orange-500 | Sí |
+| `INVITACION_ESPACIO` | 👤 UserPlus | green-500 | Sí |
+| `MIEMBRO_AGREGADO` | 👥 Users | purple-500 | No |
+| `SISTEMA` | 🔔 Bell | gray-500 | No |
+
+### Autenticación SSE
+
+**Método**: Query Parameter
+
+```typescript
+// Token JWT enviado como query param (en lugar de header)
+const url = `${API_URL}/api/notificaciones/stream?token=${encodeURIComponent(token)}`
+const eventSource = new EventSource(url)
+```
+
+**Ventajas**:
+- ✅ EventSource nativo (sin polyfills)
+- ✅ Compatible con todos los navegadores
+- ✅ No hay problemas con CORS en headers personalizados
+- ✅ Más simple y confiable
+
+### Uso
+
+**En el Header**:
+```tsx
+import { NotificationBell } from '@/components/notifications'
+
+<Header>
+  <NotificationBell />
+</Header>
+```
+
+**En cualquier página**:
+```tsx
+import { NotificationCenter } from '@/components/notifications'
+
+<NotificationCenter />
+```
+
+### Documentación Completa
+
+Ver: `src/components/notifications/README.md` y `TESTING.md`
 
 ---
 

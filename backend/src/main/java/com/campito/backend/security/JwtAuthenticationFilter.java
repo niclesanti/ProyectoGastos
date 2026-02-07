@@ -82,16 +82,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Extrae el token JWT del header Authorization
+     * Extrae el token JWT del header Authorization o del query parameter 'token'.
+     * 
+     * Orden de búsqueda:
+     * 1. Header Authorization con prefijo "Bearer " (comportamiento estándar)
+     * 2. Query parameter 'token' (para SSE y casos especiales)
      * 
      * @param request HttpServletRequest
      * @return Token JWT sin el prefijo "Bearer ", o null si no existe
      */
     private String getJwtFromRequest(HttpServletRequest request) {
+        // 1. Intentar primero con el header Authorization (comportamiento estándar)
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
         
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
             return bearerToken.substring(BEARER_PREFIX.length());
+        }
+        
+        // 2. Si no está en header, buscar en query parameter (para SSE)
+        String tokenParam = request.getParameter("token");
+        if (StringUtils.hasText(tokenParam)) {
+            logger.debug("Token JWT extraído de query parameter (SSE)");
+            return tokenParam;
         }
         
         return null;

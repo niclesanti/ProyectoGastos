@@ -83,6 +83,17 @@ public interface SecurityService {
     void validateTarjetaOwnership(Long tarjetaId);
     
     /**
+     * Valida que una notificación pertenezca al usuario autenticado.
+     * 
+     * @param notificacionId ID de la notificación a validar.
+     * @throws com.campito.backend.exception.UnauthorizedException si no hay usuario autenticado.
+     * @throws com.campito.backend.exception.ForbiddenException si la notificación no pertenece al usuario.
+     * @throws jakarta.persistence.EntityNotFoundException si la notificación no existe.
+     * @throws IllegalArgumentException si el notificacionId es nulo.
+     */
+    void validateNotificacionOwnership(Long notificacionId);
+    
+    /**
      * Verifica si el usuario autenticado tiene acceso a un espacio de trabajo específico.
      * 
      * @param workspaceId ID del espacio de trabajo a verificar.
