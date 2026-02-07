@@ -1,6 +1,7 @@
 package com.campito.backend.controller;
 
 import com.campito.backend.dto.NotificacionDTOResponse;
+import com.campito.backend.model.TipoNotificacion;
 import com.campito.backend.service.NotificacionService;
 import com.campito.backend.service.SecurityService;
 import com.campito.backend.service.SseEmitterService;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -161,5 +163,37 @@ public class NotificacionController {
         UUID idUsuario = securityService.getAuthenticatedUserId();
 
         return sseEmitterService.crearEmitter(idUsuario);
+    }
+    
+    /**
+     * Envía una notificación de prueba al usuario autenticado.
+     * Útil para testing del sistema de notificaciones en tiempo real via SSE.
+     * 
+     * @param tipo Tipo de notificación (opcional, por defecto SISTEMA)
+     * @param mensaje Mensaje personalizado (opcional)
+     * @return Respuesta de confirmación
+     */
+    @Operation(
+        summary = "Enviar notificación de prueba",
+        description = "Publica un evento de notificación para el usuario autenticado. Útil para probar el SSE en tiempo real durante el desarrollo."
+    )
+    @ApiResponse(responseCode = "200", description = "Notificación de prueba enviada correctamente")
+    @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
+    @ApiResponse(responseCode = "500", description = "Error al enviar la notificación de prueba")
+    @PostMapping("/test/enviar")
+    public ResponseEntity<Map<String, Object>> enviarNotificacionPrueba(
+            @RequestParam(required = false, defaultValue = "SISTEMA") TipoNotificacion tipo,
+            @RequestParam(required = false) String mensaje
+    ) {
+        UUID idUsuario = securityService.getAuthenticatedUserId();
+        
+        notificacionService.enviarNotificacionPrueba(idUsuario, tipo, mensaje);
+        
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "Notificación de prueba publicada exitosamente",
+            "tipo", tipo,
+            "timestamp", LocalDateTime.now()
+        ));
     }
 }

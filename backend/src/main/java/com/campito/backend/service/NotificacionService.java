@@ -1,6 +1,7 @@
 package com.campito.backend.service;
 
 import com.campito.backend.dto.NotificacionDTOResponse;
+import com.campito.backend.model.TipoNotificacion;
 
 import java.util.List;
 import java.util.UUID;
@@ -63,4 +64,14 @@ public interface NotificacionService {
      * Este método es invocado por el scheduler mensualmente.
      */
     void limpiarNotificacionesNoLeidasAntiguas();
+    
+    /**
+     * Envía una notificación de prueba al usuario especificado.
+     * Útil para testing del sistema de notificaciones en tiempo real via SSE.
+     * 
+     * @param idUsuario ID del usuario destinatario
+     * @param tipo Tipo de notificación
+     * @param mensaje Mensaje personalizado (opcional)
+     */
+    void enviarNotificacionPrueba(UUID idUsuario, TipoNotificacion tipo, String mensaje);
 }

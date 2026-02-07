@@ -2,13 +2,16 @@ package com.campito.backend.service;
 
 import com.campito.backend.dao.NotificacionRepository;
 import com.campito.backend.dto.NotificacionDTOResponse;
+import com.campito.backend.event.NotificacionEvent;
 import com.campito.backend.mapper.NotificacionMapper;
 import com.campito.backend.model.Notificacion;
+import com.campito.backend.model.TipoNotificacion;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +33,7 @@ public class NotificacionServiceImpl implements NotificacionService {
     
     private final NotificacionRepository notificacionRepository;
     private final NotificacionMapper notificacionMapper;
+    private final ApplicationEventPublisher eventPublisher;
     
     /**
      * Obtiene las notificaciones de un usuario (máximo 50 más recientes).
@@ -148,5 +152,36 @@ public class NotificacionServiceImpl implements NotificacionService {
         LocalDateTime fechaLimite = LocalDateTime.now().minusDays(15);
         int eliminadas = notificacionRepository.eliminarNotificacionesNoLeidasAntiguas(fechaLimite);
         logger.info("Eliminadas {} notificaciones no leídas antiguas (>15 días)", eliminadas);
+    }
+    
+    /**
+     * Envía una notificación de prueba al usuario especificado.
+     * 
+     * @param idUsuario ID del usuario destinatario
+     * @param tipo Tipo de notificación
+     * @param mensaje Mensaje personalizado (opcional)
+     */
+    @Override
+    public void enviarNotificacionPrueba(UUID idUsuario, TipoNotificacion tipo, String mensaje) {
+        logger.info("Enviando notificación de prueba a usuario: {} - Tipo: {}", idUsuario, tipo);
+        
+        String mensajeFinal = mensaje != null && !mensaje.isBlank()
+            ? mensaje 
+            : "🧪 Notificación de prueba enviada a las " + LocalDateTime.now().toLocalTime();
+        
+        try {
+            // Publicar evento de notificación
+            eventPublisher.publishEvent(new NotificacionEvent(
+                this,
+                idUsuario,
+                tipo,
+                mensajeFinal
+            ));
+            
+            logger.info("Evento de notificación de prueba publicado exitosamente");
+        } catch (Exception e) {
+            logger.error("Error al publicar evento de notificación de prueba: {}", e.getMessage(), e);
+            throw new RuntimeException("Error al enviar notificación de prueba", e);
+        }
     }
 }

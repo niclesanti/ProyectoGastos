@@ -508,44 +508,34 @@ export function ConfiguracionPage() {
               ) : (
                 <div className="space-y-6">
                   {/* Resumen visual de miembros */}
-                  <div className="flex items-center justify-between p-4 rounded-lg border border-zinc-800 bg-zinc-950/30">
-                    <div className="flex items-center gap-4">
-                      <div className="flex -space-x-2">
-                        {miembros.slice(0, 5).map((miembro, index) => (
-                          <Avatar 
-                            key={miembro.id} 
-                            className="h-10 w-10 border-2 border-zinc-900"
-                            style={{ zIndex: 5 - index }}
-                          >
-                            <AvatarImage src={miembro.fotoPerfil} alt={miembro.nombre} />
-                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                              {miembro.nombre?.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
-                        {miembros.length > 5 && (
-                          <div className="h-10 w-10 rounded-full border-2 border-zinc-900 bg-zinc-800 flex items-center justify-center text-sm font-semibold">
-                            +{miembros.length - 5}
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold">
-                          {miembros.length} {miembros.length === 1 ? 'miembro' : 'miembros'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          en este espacio de trabajo
-                        </p>
-                      </div>
+                  <div className="flex items-center gap-4 p-4 rounded-lg border border-zinc-800 bg-zinc-950/30">
+                    <div className="flex -space-x-2">
+                      {miembros.slice(0, 5).map((miembro, index) => (
+                        <Avatar 
+                          key={miembro.id} 
+                          className="h-10 w-10 border-2 border-zinc-900"
+                          style={{ zIndex: 5 - index }}
+                        >
+                          <AvatarImage src={miembro.fotoPerfil} alt={miembro.nombre} />
+                          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                            {miembro.nombre?.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      ))}
+                      {miembros.length > 5 && (
+                        <div className="h-10 w-10 rounded-full border-2 border-zinc-900 bg-zinc-800 flex items-center justify-center text-sm font-semibold">
+                          +{miembros.length - 5}
+                        </div>
+                      )}
                     </div>
-                    <Button
-                      onClick={() => setIsInviteDialogOpen(true)}
-                      disabled={!isAdmin}
-                      size="sm"
-                    >
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Invitar más
-                    </Button>
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {miembros.length} {miembros.length === 1 ? 'miembro' : 'miembros'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        en este espacio de trabajo
+                      </p>
+                    </div>
                   </div>
 
                   {/* Lista de miembros */}

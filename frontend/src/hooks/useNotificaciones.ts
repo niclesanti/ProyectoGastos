@@ -16,6 +16,7 @@ import type { NotificacionDTOResponse, TipoNotificacion } from '@/types'
  */
 export const useNotificaciones = () => {
   const eventSourceRef = useRef<EventSource | null>(null)
+  const isConnectingRef = useRef<boolean>(false)
   
   const {
     notificaciones,
@@ -68,13 +69,20 @@ export const useNotificaciones = () => {
    * Establece la conexión SSE para recibir notificaciones en tiempo real.
    */
   const conectarSSE = useCallback(() => {
-    // Evitar múltiples conexiones
+    // Evitar múltiples conexiones simultáneas
     if (eventSourceRef.current?.readyState === EventSource.OPEN) {
       console.log('⚠️ SSE: Ya existe una conexión abierta, ignorando...')
       return
     }
 
+    // Evitar múltiples intentos de conexión simultáneos
+    if (isConnectingRef.current) {
+      console.log('⚠️ SSE: Ya hay un intento de conexión en progreso, ignorando...')
+      return
+    }
+
     console.log('🔄 SSE: Iniciando conexión...')
+    isConnectingRef.current = true
     
     try {
       const eventSource = notificacionService.crearConexionSSE()
@@ -83,11 +91,17 @@ export const useNotificaciones = () => {
       // Listener para cuando se abre la conexión
       eventSource.onopen = () => {
         console.log('✅ SSE: Conexión abierta exitosamente')
+        isConnectingRef.current = false
       }
 
-      // Manejar mensajes
-      eventSource.onmessage = (event) => {
-        console.log('📨 SSE: Mensaje recibido:', event.data)
+      // Confirmación de conexión (evento personalizado del servidor)
+      eventSource.addEventListener('connected', (event) => {
+        console.log('✅ SSE: Confirmación de conexión recibida del servidor:', event.data)
+      })
+
+      // Manejar notificaciones (evento con nombre "notification" enviado por el backend)
+      eventSource.addEventListener('notification', (event) => {
+        console.log('📨 SSE: Notificación recibida:', event.data)
         try {
           const notificacion: NotificacionDTOResponse = JSON.parse(event.data)
           console.log('🔔 SSE: Notificación procesada:', notificacion.tipo, notificacion.mensaje)
@@ -95,7 +109,7 @@ export const useNotificaciones = () => {
         } catch (error) {
           console.error('❌ SSE: Error al parsear notificación:', error)
         }
-      }
+      })
 
       // Manejar errores
       eventSource.onerror = (error) => {
@@ -104,6 +118,9 @@ export const useNotificaciones = () => {
           readyState: eventSource.readyState,
           url: eventSource.url
         })
+        
+        // Resetear flag de conexión
+        isConnectingRef.current = false
         
         // Estados: 0=CONNECTING, 1=OPEN, 2=CLOSED
         if (eventSource.readyState === EventSource.CLOSED) {
@@ -128,13 +145,9 @@ export const useNotificaciones = () => {
         }, 5000)
       }
 
-      // Confirmación de conexión (evento personalizado del servidor)
-      eventSource.addEventListener('connected', () => {
-        console.log('✅ SSE: Confirmación de conexión recibida del servidor')
-      })
-
     } catch (error) {
       console.error('❌ SSE: Error al crear conexión:', error)
+      isConnectingRef.current = false
     }
   }, [handleNuevaNotificacion])
 
@@ -143,9 +156,11 @@ export const useNotificaciones = () => {
    */
   const desconectarSSE = useCallback(() => {
     if (eventSourceRef.current) {
+      console.log('🔌 SSE: Cerrando conexión...')
       eventSourceRef.current.close()
       eventSourceRef.current = null
     }
+    isConnectingRef.current = false
   }, [])
 
   /**
@@ -160,9 +175,12 @@ export const useNotificaciones = () => {
 
     // Cleanup: cerrar conexión al desmontar
     return () => {
+      console.log('🔄 SSE: Limpiando conexión al desmontar componente...')
+      isConnectingRef.current = false
       desconectarSSE()
     }
-  }, [loadNotificaciones, conectarSSE, desconectarSSE])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Array vacío para ejecutar solo una vez al montar
 
   return {
     notificaciones,

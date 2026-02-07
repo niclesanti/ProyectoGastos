@@ -71,6 +71,18 @@ public class SseEmitterServiceImpl implements SseEmitterService {
         emitters.put(idUsuario, emitter);
         logger.info("SSE emitter creado para usuario: {}", idUsuario);
         
+        // Enviar evento inicial de confirmación de conexión
+        try {
+            emitter.send(SseEmitter.event()
+                    .name("connected")
+                    .data("Conexión SSE establecida exitosamente"));
+            logger.info("Evento 'connected' enviado a usuario: {}", idUsuario);
+        } catch (IOException e) {
+            logger.error("Error al enviar evento 'connected' a usuario {}: {}", idUsuario, e.getMessage());
+            emitters.remove(idUsuario);
+            throw new RuntimeException("Error al establecer conexión SSE", e);
+        }
+        
         return emitter;
     }
     
