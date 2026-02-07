@@ -67,7 +67,7 @@ export function DashboardStats() {
   return (
     <div className="grid gap-3 grid-cols-2 md:gap-6 lg:grid-cols-4">
       <StatsCard
-        title="Gastos mensuales"
+        title="Balance total"
         value={stats?.balanceTotal || 0}
         description="Saldo disponible"
         icon={<Wallet className="h-4 w-4" />}

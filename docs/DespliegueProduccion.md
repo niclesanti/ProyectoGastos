@@ -75,7 +75,7 @@ Para no sobrecargar la CPU del servidor durante la compilación, se utilizó un 
 `docker build -t tu_usuario/proyecto-gastos-backend:latest ./backend`.
 2. **Push:** Se subió la imagen al registro de Docker Hub.
 `docker push tu_usuario/proyecto-gastos-backend:latest`.
-3. **Deploy en Cloud:** El servidor de Oracle descarga la imagen ya compilada mediante `docker-compose pull`.
+3. **Deploy en Cloud:** El servidor de Oracle descarga la imagen ya compilada mediante `docker compose pull backend` y levanta los servicios con `docker compose up -d`.
 
 ### Orquestación y Variables de Entorno
 
@@ -137,7 +137,7 @@ La compilación se realiza localmente para aprovechar la potencia de tu máquina
 1. **Construir la nueva imagen:**
 Abre tu terminal en la raíz del monorepo y ejecuta la construcción apuntando a la carpeta del backend.
 ```powershell
-docker build -t niclesanti/proyecto-gastos-backend:latest ./backend
+docker build -t tu_usuario_docker/proyecto-gastos-backend:latest ./backend
 
 ```
 
@@ -145,7 +145,7 @@ docker build -t niclesanti/proyecto-gastos-backend:latest ./backend
 2. **Subir a Docker Hub:**
 Envía la imagen actualizada al registro para que esté disponible para el servidor.
 ```powershell
-docker push niclesanti/proyecto-gastos-backend:latest
+docker push tu_usuario_docker/proyecto-gastos-backend:latest
 
 ```
 
@@ -163,11 +163,12 @@ ssh -i .\tu_llave.key ubuntu@ip_servidor
 
 
 2. **Actualizar la imagen y reiniciar:**
-Navega a la carpeta del proyecto y utiliza `docker-compose` para descargar solo los cambios.
+Navega a la carpeta del proyecto y utiliza `docker compose` para descargar solo los cambios.
 ```bash
-cd ~/proyecto-gastos
-docker-compose pull backend
-docker-compose up -d backend
+cd proyecto-gastos
+docker compose pull backend
+docker compose down
+docker compose up -d
 
 ```
 
@@ -198,5 +199,5 @@ docker image prune -f
 
 ### Notas de Arquitecto:
 
-* **Zero Downtime:** Durante el `docker-compose up -d`, habrá unos segundos donde el backend no responderá mientras reinicia el contenedor. Caddy mostrará un error 502 brevemente hasta que Spring Boot esté listo.
+* **Zero Downtime:** Durante el `docker compose up -d`, habrá unos segundos donde el backend no responderá mientras reinicia el contenedor. Caddy mostrará un error 502 brevemente hasta que Spring Boot esté listo.
 * **Migraciones de DB:** Si tus cambios incluyeron nuevos archivos de **Flyway** (`V7__...sql`), estos se ejecutarán automáticamente al iniciar el contenedor, impactando la base de datos de Aiven de forma segura.

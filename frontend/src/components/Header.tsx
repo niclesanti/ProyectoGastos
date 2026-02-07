@@ -1,15 +1,7 @@
-import { Bell } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import { useLocation } from 'react-router-dom'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { NotificationBell } from '@/components/notifications'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -47,23 +39,9 @@ export function Header() {
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="flex items-center gap-4">
-
-          {/* Notifications */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Bell className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-80" align="end">
-              <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <div className="py-6 text-center">
-                <p className="text-sm text-muted-foreground">No tienes notificaciones</p>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="flex items-center gap-2">
+          {/* Sistema de Notificaciones en Tiempo Real */}
+          <NotificationBell />
         </div>
       </div>
     </header>

@@ -1,12 +1,17 @@
 package com.campito.backend.service;
 
 import com.campito.backend.dao.EspacioTrabajoRepository;
+import com.campito.backend.dao.SolicitudPendienteEspacioTrabajoRepository;
 import com.campito.backend.dao.UsuarioRepository;
 import com.campito.backend.dto.EspacioTrabajoDTORequest;
+import com.campito.backend.dto.SolicitudPendienteEspacioTrabajoDTOResponse;
 import com.campito.backend.exception.UsuarioNoEncontradoException;
 import com.campito.backend.mapper.EspacioTrabajoMapper;
+import com.campito.backend.mapper.SolicitudPendienteEspacioTrabajoMapper;
+import com.campito.backend.mapper.UsuarioMapper;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.ProveedorAutenticacion;
+import com.campito.backend.model.SolicitudPendienteEspacioTrabajo;
 import com.campito.backend.model.Usuario;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,8 +20,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,7 +42,19 @@ public class EspacioTrabajoServiceTest {
     private UsuarioRepository usuarioRepository;
 
     @Mock
+    private SolicitudPendienteEspacioTrabajoRepository solicitudPendienteRepository;
+
+    @Mock
     private EspacioTrabajoMapper espacioTrabajoMapper;
+
+    @Mock
+    private UsuarioMapper usuarioMapper;
+
+    @Mock
+    private SolicitudPendienteEspacioTrabajoMapper solicitudPendienteEspacioTrabajoMapper;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private EspacioTrabajoServiceImpl espacioTrabajoService;
@@ -143,7 +163,7 @@ public class EspacioTrabajoServiceTest {
     }
 
     @Test
-    void compartirEspacioTrabajo_cuandoCompartidoExitosamente_entoncesGuardaEspacio() {
+    void compartirEspacioTrabajo_cuandoCompartidoExitosamente_entoncesCreaSolicitudPendiente() {
         Usuario usuarioACompartir = new Usuario();
         usuarioACompartir.setId(UUID.fromString("00000000-0000-0000-0000-000000000005"));
         usuarioACompartir.setNombre("Compartido");
@@ -158,13 +178,152 @@ public class EspacioTrabajoServiceTest {
 
         when(espacioTrabajoRepository.findById(espacioTrabajo.getId())).thenReturn(Optional.of(espacioTrabajo));
         when(usuarioRepository.findByEmail("compartido@test.com")).thenReturn(Optional.of(usuarioACompartir));
-        when(espacioTrabajoRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
+        when(solicitudPendienteRepository.save(any(SolicitudPendienteEspacioTrabajo.class))).thenReturn(new SolicitudPendienteEspacioTrabajo());
 
         espacioTrabajoService.compartirEspacioTrabajo("compartido@test.com", espacioTrabajo.getId());
 
         verify(espacioTrabajoRepository, times(1)).findById(espacioTrabajo.getId());
         verify(usuarioRepository, times(1)).findByEmail("compartido@test.com");
-        verify(espacioTrabajoRepository, times(1)).save(any(EspacioTrabajo.class));
-        assertTrue(espacioTrabajo.getUsuariosParticipantes().contains(usuarioACompartir));
+        verify(solicitudPendienteRepository, times(1)).save(any(SolicitudPendienteEspacioTrabajo.class));
+        verify(eventPublisher, times(1)).publishEvent(any());
+        assertFalse(espacioTrabajo.getUsuariosParticipantes().contains(usuarioACompartir));
+    }
+
+    // Tests para respuestaSolicitudCompartirEspacioTrabajo
+
+    @Test
+    void respuestaSolicitudCompartir_cuandoParametrosSonNulos_entoncesLanzaExcepcion() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            espacioTrabajoService.respuestaSolicitudCompartirEspacioTrabajo(null, null);
+        });
+        assertEquals("El ID de la solicitud y la respuesta no pueden ser nulos", exception.getMessage());
+        verify(solicitudPendienteRepository, never()).findById(any());
+    }
+
+    @Test
+    void respuestaSolicitudCompartir_cuandoSolicitudNoExiste_entoncesLanzaExcepcion() {
+        when(solicitudPendienteRepository.findById(999L)).thenReturn(Optional.empty());
+
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
+            espacioTrabajoService.respuestaSolicitudCompartirEspacioTrabajo(999L, true);
+        });
+        assertTrue(exception.getMessage().contains("Solicitud de compartir espacio de trabajo") && exception.getMessage().contains("no encontrada"));
+        verify(solicitudPendienteRepository, never()).delete(any());
+    }
+
+    @Test
+    void respuestaSolicitudCompartir_cuandoRechazada_entoncesEliminaSolicitudSinAgregarUsuario() {
+        Usuario usuarioInvitado = new Usuario();
+        usuarioInvitado.setId(UUID.fromString("00000000-0000-0000-0000-000000000006"));
+        usuarioInvitado.setEmail("invitado@test.com");
+        usuarioInvitado.setNombre("Invitado");
+
+        SolicitudPendienteEspacioTrabajo solicitud = SolicitudPendienteEspacioTrabajo.builder()
+            .id(1L)
+            .espacioTrabajo(espacioTrabajo)
+            .usuarioInvitado(usuarioInvitado)
+            .fechaCreacion(LocalDateTime.now())
+            .build();
+
+        when(solicitudPendienteRepository.findById(1L)).thenReturn(Optional.of(solicitud));
+
+        espacioTrabajoService.respuestaSolicitudCompartirEspacioTrabajo(1L, false);
+
+        verify(solicitudPendienteRepository, times(1)).findById(1L);
+        verify(solicitudPendienteRepository, times(1)).delete(solicitud);
+        verify(espacioTrabajoRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
+        assertFalse(espacioTrabajo.getUsuariosParticipantes().contains(usuarioInvitado));
+    }
+
+    @Test
+    void respuestaSolicitudCompartir_cuandoAceptada_entoncesAgregaUsuarioYEliminaSolicitud() {
+        Usuario usuarioInvitado = new Usuario();
+        usuarioInvitado.setId(UUID.fromString("00000000-0000-0000-0000-000000000007"));
+        usuarioInvitado.setEmail("invitado@test.com");
+        usuarioInvitado.setNombre("Invitado");
+
+        SolicitudPendienteEspacioTrabajo solicitud = SolicitudPendienteEspacioTrabajo.builder()
+            .id(2L)
+            .espacioTrabajo(espacioTrabajo)
+            .usuarioInvitado(usuarioInvitado)
+            .fechaCreacion(LocalDateTime.now())
+            .build();
+
+        when(solicitudPendienteRepository.findById(2L)).thenReturn(Optional.of(solicitud));
+        when(espacioTrabajoRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
+
+        espacioTrabajoService.respuestaSolicitudCompartirEspacioTrabajo(2L, true);
+
+        verify(solicitudPendienteRepository, times(1)).findById(2L);
+        verify(espacioTrabajoRepository, times(1)).save(espacioTrabajo);
+        verify(solicitudPendienteRepository, times(1)).delete(solicitud);
+        verify(eventPublisher, times(1)).publishEvent(any());
+        assertTrue(espacioTrabajo.getUsuariosParticipantes().contains(usuarioInvitado));
+    }
+
+    // Tests para listarSolicitudesPendientes
+
+    @Test
+    void listarSolicitudesPendientes_cuandoIdUsuarioEsNulo_entoncesLanzaExcepcion() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            espacioTrabajoService.listarSolicitudesPendientes(null);
+        });
+        assertEquals("El ID del usuario no puede ser nulo", exception.getMessage());
+        verify(solicitudPendienteRepository, never()).findByUsuarioInvitado_Id(any());
+    }
+
+    @Test
+    void listarSolicitudesPendientes_cuandoNoHaySolicitudes_entoncesRetornaListaVacia() {
+        UUID idUsuario = UUID.fromString("00000000-0000-0000-0000-000000000008");
+        when(solicitudPendienteRepository.findByUsuarioInvitado_Id(idUsuario)).thenReturn(Arrays.asList());
+
+        List<SolicitudPendienteEspacioTrabajoDTOResponse> resultado = espacioTrabajoService.listarSolicitudesPendientes(idUsuario);
+
+        verify(solicitudPendienteRepository, times(1)).findByUsuarioInvitado_Id(idUsuario);
+        assertTrue(resultado.isEmpty());
+    }
+
+    @Test
+    void listarSolicitudesPendientes_cuandoHaySolicitudes_entoncesRetornaListaMapeada() {
+        UUID idUsuario = UUID.fromString("00000000-0000-0000-0000-000000000009");
+        Usuario usuarioInvitado = new Usuario();
+        usuarioInvitado.setId(idUsuario);
+        usuarioInvitado.setNombre("Usuario Invitado");
+
+        SolicitudPendienteEspacioTrabajo solicitud1 = SolicitudPendienteEspacioTrabajo.builder()
+            .id(1L)
+            .espacioTrabajo(espacioTrabajo)
+            .usuarioInvitado(usuarioInvitado)
+            .fechaCreacion(LocalDateTime.now())
+            .build();
+
+        SolicitudPendienteEspacioTrabajo solicitud2 = SolicitudPendienteEspacioTrabajo.builder()
+            .id(2L)
+            .espacioTrabajo(espacioTrabajo)
+            .usuarioInvitado(usuarioInvitado)
+            .fechaCreacion(LocalDateTime.now())
+            .build();
+
+        List<SolicitudPendienteEspacioTrabajo> solicitudes = Arrays.asList(solicitud1, solicitud2);
+        
+        SolicitudPendienteEspacioTrabajoDTOResponse dto1 = new SolicitudPendienteEspacioTrabajoDTOResponse(
+            1L, "Espacio de Prueba", "Admin", "foto.jpg", LocalDateTime.now()
+        );
+        SolicitudPendienteEspacioTrabajoDTOResponse dto2 = new SolicitudPendienteEspacioTrabajoDTOResponse(
+            2L, "Espacio de Prueba", "Admin", "foto.jpg", LocalDateTime.now()
+        );
+
+        when(solicitudPendienteRepository.findByUsuarioInvitado_Id(idUsuario)).thenReturn(solicitudes);
+        when(solicitudPendienteEspacioTrabajoMapper.toResponse(solicitud1)).thenReturn(dto1);
+        when(solicitudPendienteEspacioTrabajoMapper.toResponse(solicitud2)).thenReturn(dto2);
+
+        List<SolicitudPendienteEspacioTrabajoDTOResponse> resultado = espacioTrabajoService.listarSolicitudesPendientes(idUsuario);
+
+        verify(solicitudPendienteRepository, times(1)).findByUsuarioInvitado_Id(idUsuario);
+        verify(solicitudPendienteEspacioTrabajoMapper, times(2)).toResponse(any());
+        assertEquals(2, resultado.size());
+        assertEquals(dto1, resultado.get(0));
+        assertEquals(dto2, resultado.get(1));
     }
 }
