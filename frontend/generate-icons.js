@@ -24,11 +24,11 @@ const icons = [
   { name: 'favicon-32x32.png', size: 32 },
   { name: 'favicon-48x48.png', size: 48 },
   
-  // Apple Touch Icons
-  { name: 'apple-touch-icon.png', size: 180 },
-  { name: 'apple-touch-icon-152x152.png', size: 152 },
-  { name: 'apple-touch-icon-120x120.png', size: 120 },
-  { name: 'apple-touch-icon-76x76.png', size: 76 },
+  // Apple Touch Icons (con padding para iOS)
+  { name: 'apple-touch-icon.png', size: 180, applePadded: true },
+  { name: 'apple-touch-icon-152x152.png', size: 152, applePadded: true },
+  { name: 'apple-touch-icon-120x120.png', size: 120, applePadded: true },
+  { name: 'apple-touch-icon-76x76.png', size: 76, applePadded: true },
   
   // Android/Chrome (fondo transparente)
   { name: 'icon-192.png', size: 192, transparent: true },
@@ -92,6 +92,35 @@ async function generateIcons() {
           .toFile(outputPath);
         
         console.log(`✅ Generado (maskable): ${icon.name} (${icon.size}x${icon.size})`);
+      } else if (icon.applePadded) {
+        // Para iconos de Apple (iOS/iPadOS): fondo transparente con 20% padding
+        const logoSize = Math.floor(icon.size * 0.75); // Logo ocupa 75% del espacio (más conservador para iOS)
+        const canvas = sharp({
+          create: {
+            width: icon.size,
+            height: icon.size,
+            channels: 4,
+            background: { r: 255, g: 255, b: 255, alpha: 0 } // Transparente
+          }
+        });
+
+        const logo = await sharp(SOURCE_IMAGE)
+          .resize(logoSize, logoSize, {
+            fit: 'contain',
+            background: { r: 0, g: 0, b: 0, alpha: 0 }
+          })
+          .toBuffer();
+
+        await canvas
+          .composite([{
+            input: logo,
+            top: Math.floor((icon.size - logoSize) / 2),
+            left: Math.floor((icon.size - logoSize) / 2)
+          }])
+          .png({ quality: 100, compressionLevel: 9 })
+          .toFile(outputPath);
+        
+        console.log(`✅ Generado (iOS con padding): ${icon.name} (${icon.size}x${icon.size})`);
       } else {
         // Iconos normales con fondo transparente
         await sharp(SOURCE_IMAGE)
