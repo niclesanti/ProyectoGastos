@@ -18,7 +18,12 @@ public record TransaccionBusquedaDTO(
     @Size(max = 50, message = "El nombre de contacto no puede exceder los 50 caracteres")
     String contacto,
     @NotNull(message = "El ID del espacio de trabajo no puede ser nulo")
-    UUID idEspacioTrabajo
+    UUID idEspacioTrabajo,
+    @Min(value = 0, message = "El número de página debe ser mayor o igual a 0")
+    Integer page,
+    @Min(value = 1, message = "El tamaño de página debe ser al menos 1")
+    @Max(value = 100, message = "El tamaño de página no puede exceder 100")
+    Integer size
 ) {
 
 }

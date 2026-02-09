@@ -26,6 +26,7 @@ import com.campito.backend.dto.ContactoDTORequest;
 import com.campito.backend.dto.ContactoDTOResponse;
 import com.campito.backend.dto.MotivoDTORequest;
 import com.campito.backend.dto.MotivoDTOResponse;
+import com.campito.backend.dto.PaginatedResponse;
 import com.campito.backend.dto.TransaccionBusquedaDTO;
 import com.campito.backend.dto.TransaccionDTORequest;
 import com.campito.backend.dto.TransaccionDTOResponse;
@@ -186,20 +187,28 @@ public class TransaccionServiceImpl implements TransaccionService {
     }
 
     /**
-     * Busca transacciones aplicando filtros opcionales.
+     * Busca transacciones aplicando filtros opcionales con soporte de paginación.
      * 
-     * @param datosBusqueda Criterios de búsqueda (espacio de trabajo, año, mes, motivo, contacto).
-     * @return Lista de transacciones que cumplen los criterios.
-     * @throws IllegalArgumentException si los datos de búsqueda son nulos.
+     * @param datosBusqueda Criterios de búsqueda (espacio de trabajo, año, mes, motivo, contacto, página, tamaño).
+     * @return Respuesta paginada con las transacciones que cumplen los criterios.
+     * @throws IllegalArgumentException si los datos de búsqueda son nulos o si se especifica mes sin año.
      */
     @Override
-    public List<TransaccionDTOResponse> buscarTransaccion(TransaccionBusquedaDTO datosBusqueda) {
+    @Transactional(readOnly = true)
+    public PaginatedResponse<TransaccionDTOResponse> buscarTransaccion(TransaccionBusquedaDTO datosBusqueda) {
 
         if (datosBusqueda == null) {
             logger.warn("Intento de buscar transacciones con DTO de busqueda nulo.");
             throw new IllegalArgumentException("Los datos de búsqueda no pueden ser nulos");
         }
         logger.info("Iniciando busqueda de transacciones para espacio ID {} con criterios: {}", datosBusqueda.idEspacioTrabajo(), datosBusqueda);
+
+        // Valores por defecto para paginación
+        int page = datosBusqueda.page() != null ? datosBusqueda.page() : 0;
+        int size = datosBusqueda.size() != null ? datosBusqueda.size() : 10;
+        
+        // Crear el Pageable con ordenamiento por fecha descendente
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "fechaCreacion"));
 
         Specification<Transaccion> spec = (root, query, cb) -> cb.equal(root.get("espacioTrabajo").get("id"), datosBusqueda.idEspacioTrabajo());
 
@@ -226,11 +235,14 @@ public class TransaccionServiceImpl implements TransaccionService {
             spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("contacto").get("nombre")), "%" + datosBusqueda.contacto().toLowerCase() + "%"));
         }
 
-        List<Transaccion> transacciones = transaccionRepository.findAll(spec);
-        logger.info("Busqueda de transacciones para espacio ID {} finalizada. Se encontraron {} resultados.", datosBusqueda.idEspacioTrabajo(), transacciones.size());
-        return transacciones.stream()
-            .map(transaccionMapper::toResponse)
-            .toList();
+        var transaccionesPage = transaccionRepository.findAll(spec, pageable);
+        logger.info("Busqueda de transacciones para espacio ID {} finalizada. Se encontraron {} resultados en la página {} de {}.", 
+            datosBusqueda.idEspacioTrabajo(), transaccionesPage.getTotalElements(), page, transaccionesPage.getTotalPages());
+        
+        // Convertir las transacciones a DTOs
+        var transaccionesDTO = transaccionesPage.map(transaccionMapper::toResponse);
+        
+        return new PaginatedResponse<>(transaccionesDTO);
     }
 
     /**

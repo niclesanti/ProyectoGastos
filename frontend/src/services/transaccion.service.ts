@@ -7,6 +7,7 @@ import type {
   MotivoTransaccion,
   ContactoTransferencia,
   DashboardStatsDTO,
+  PaginatedResponse,
 } from '@/types'
 
 export const transaccionService = {
@@ -24,8 +25,8 @@ export const transaccionService = {
     await apiClient.delete(`/transaccion/remover/${id}`)
   },
 
-  async buscarTransacciones(busqueda: TransaccionBusquedaDTO): Promise<TransaccionDTOResponse[]> {
-    const { data } = await apiClient.post<TransaccionDTOResponse[]>('/transaccion/buscar', busqueda)
+  async buscarTransacciones(busqueda: TransaccionBusquedaDTO & { page?: number; size?: number }): Promise<PaginatedResponse<TransaccionDTOResponse>> {
+    const { data } = await apiClient.post<PaginatedResponse<TransaccionDTOResponse>>('/transaccion/buscar', busqueda)
     return data
   },
 

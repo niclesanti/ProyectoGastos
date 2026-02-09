@@ -343,3 +343,16 @@ export interface PageResponse<T> {
   first: boolean
   last: boolean
 }
+
+// Paginated Response - matches backend PaginatedResponse DTO
+export interface PaginatedResponse<T> {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  currentPage: number
+  pageSize: number
+  first: boolean
+  last: boolean
+  hasPrevious: boolean
+  hasNext: boolean
+}
