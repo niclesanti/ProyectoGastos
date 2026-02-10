@@ -15,6 +15,7 @@ import com.campito.backend.dto.ContactoDTORequest;
 import com.campito.backend.dto.ContactoDTOResponse;
 import com.campito.backend.dto.MotivoDTORequest;
 import com.campito.backend.dto.MotivoDTOResponse;
+import com.campito.backend.dto.PaginatedResponse;
 import com.campito.backend.dto.TransaccionBusquedaDTO;
 import com.campito.backend.dto.TransaccionDTORequest;
 import com.campito.backend.dto.TransaccionDTOResponse;
@@ -84,7 +85,7 @@ public class TransaccionController {
     }
 
     @Operation(summary = "Buscar transacciones",
-                description = "Permite buscar transacciones según criterios específicos.",
+                description = "Permite buscar transacciones según criterios específicos con soporte de paginación.",
                 responses = {
                     @ApiResponse(responseCode = "200", description = "Transacciones encontradas"),
                     @ApiResponse(responseCode = "400", description = "Error en los criterios de búsqueda"),
@@ -92,7 +93,7 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @PostMapping("/buscar")
-    public ResponseEntity<List<TransaccionDTOResponse>> buscarTransaccion(
+    public ResponseEntity<PaginatedResponse<TransaccionDTOResponse>> buscarTransaccion(
         @Valid 
         @NotNull(message = "Los criterios de búsqueda son obligatorios") 
         @RequestBody TransaccionBusquedaDTO datosBusqueda) {
@@ -100,7 +101,7 @@ public class TransaccionController {
         // Validar acceso al espacio de trabajo
         securityService.validateWorkspaceAccess(datosBusqueda.idEspacioTrabajo());
         
-        List<TransaccionDTOResponse> transacciones = transaccionService.buscarTransaccion(datosBusqueda);
+        PaginatedResponse<TransaccionDTOResponse> transacciones = transaccionService.buscarTransaccion(datosBusqueda);
         return new ResponseEntity<>(transacciones, HttpStatus.OK);
     }
 

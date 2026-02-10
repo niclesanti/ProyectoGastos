@@ -147,8 +147,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       return cache.data
     }
     
-    // Llamar a la API
-    const data = await compraCreditoService.listarComprasPendientes(idEspacio)
+    // Llamar a la API con un tamaño de página grande para obtener todas las compras
+    const response = await compraCreditoService.listarComprasPendientes(idEspacio, 0, 100)
+    const data = response.content
     
     // Actualizar el caché
     set((state) => ({

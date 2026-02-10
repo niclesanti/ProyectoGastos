@@ -11,11 +11,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.campito.backend.dto.CompraCreditoDTORequest;
 import com.campito.backend.dto.CompraCreditoDTOResponse;
 import com.campito.backend.dto.CuotaCreditoDTOResponse;
+import com.campito.backend.dto.PaginatedResponse;
 import com.campito.backend.dto.PagarResumenTarjetaRequest;
 import com.campito.backend.dto.ResumenDTOResponse;
 import com.campito.backend.dto.TarjetaDTORequest;
@@ -97,18 +99,21 @@ public class ComprasCreditoController {
     }
 
     @Operation(summary = "Listar compras a crédito con cuotas pendientes",
-                description = "Obtiene todas las compras a crédito que tienen cuotas pendientes de pago en un espacio de trabajo.",
+                description = "Obtiene todas las compras a crédito que tienen cuotas pendientes de pago en un espacio de trabajo con soporte de paginación.",
                 responses = {
                     @ApiResponse(responseCode = "200", description = "Lista de compras a crédito obtenida correctamente"),
                     @ApiResponse(responseCode = "400", description = "Error al obtener las compras a crédito"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
     @GetMapping("/pendientes/{idEspacioTrabajo}")
-    public ResponseEntity<List<CompraCreditoDTOResponse>> listarComprasCreditoDebeCuotas(
-        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
+    public ResponseEntity<PaginatedResponse<CompraCreditoDTOResponse>> listarComprasCreditoDebeCuotas(
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo,
+        @RequestParam(required = false) Integer page,
+        @RequestParam(required = false) Integer size) {
         
         securityService.validateWorkspaceAccess(idEspacioTrabajo);
-        List<CompraCreditoDTOResponse> compras = comprasCreditoService.listarComprasCreditoDebeCuotas(idEspacioTrabajo);
+        PaginatedResponse<CompraCreditoDTOResponse> compras = 
+            comprasCreditoService.listarComprasCreditoDebeCuotas(idEspacioTrabajo, page, size);
         return new ResponseEntity<>(compras, HttpStatus.OK);
     }
 

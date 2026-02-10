@@ -11,6 +11,10 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +31,7 @@ import com.campito.backend.dto.CompraCreditoDTORequest;
 import com.campito.backend.dto.CompraCreditoDTOResponse;
 import com.campito.backend.dto.CuotaCreditoDTOResponse;
 import com.campito.backend.dto.CuotaResumenDTO;
+import com.campito.backend.dto.PaginatedResponse;
 import com.campito.backend.dto.PagarResumenTarjetaRequest;
 import com.campito.backend.dto.ResumenDTOResponse;
 import com.campito.backend.dto.TarjetaDTORequest;
@@ -253,32 +258,43 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     }
 
     /**
-     * Lista todas las compras a crédito que tienen cuotas pendientes de pago.
+     * Lista todas las compras a crédito que tienen cuotas pendientes de pago con soporte de paginación.
      * 
      * @param idEspacioTrabajo ID del espacio de trabajo
-     * @return Lista de compras a crédito con cuotas pendientes
+     * @param page Número de página (basado en 0)
+     * @param size Tamaño de página
+     * @return Respuesta paginada con las compras a crédito con cuotas pendientes
      * @throws IllegalArgumentException si el ID del espacio de trabajo es nulo
      */
     @Override
     @Transactional(readOnly = true)
-    public List<CompraCreditoDTOResponse> listarComprasCreditoDebeCuotas(UUID idEspacioTrabajo) {
+    public PaginatedResponse<CompraCreditoDTOResponse> listarComprasCreditoDebeCuotas(
+            UUID idEspacioTrabajo, Integer page, Integer size) {
 
         if (idEspacioTrabajo == null) {
             logger.warn("Intento de listar compras crédito con ID de espacio nulo.");
             throw new IllegalArgumentException("El ID del espacio de trabajo no puede ser nulo");
         }
-        logger.info("Listando compras crédito con cuotas pendientes en espacio ID {}", idEspacioTrabajo);
-
-        List<CompraCredito> comprasCredito = compraCreditoRepository.findByEspacioTrabajo_IdAndCuotasPendientes(idEspacioTrabajo);
         
-        List<CompraCreditoDTOResponse> comprasConCuotasPendientes = comprasCredito.stream()
-            .map(compraCreditoMapper::toResponse)
-            .collect(Collectors.toList());
-
-        logger.info("Se encontraron {} compras crédito con cuotas pendientes en espacio ID {}", 
-            comprasConCuotasPendientes.size(), idEspacioTrabajo);
+        // Valores por defecto para paginación
+        int pageNumber = page != null ? page : 0;
+        int pageSize = size != null ? size : 10;
         
-        return comprasConCuotasPendientes;
+        logger.info("Listando compras crédito con cuotas pendientes en espacio ID {} (página {}, tamaño {})", 
+            idEspacioTrabajo, pageNumber, pageSize);
+
+        // Crear el Pageable con ordenamiento por fecha de compra descendente
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "fechaCompra"));
+        
+        Page<CompraCredito> comprasCreditoPage = compraCreditoRepository
+            .findByEspacioTrabajo_IdAndCuotasPendientesPageable(idEspacioTrabajo, pageable);
+        
+        Page<CompraCreditoDTOResponse> comprasDTOPage = comprasCreditoPage.map(compraCreditoMapper::toResponse);
+
+        logger.info("Se encontraron {} compras crédito con cuotas pendientes en espacio ID {} (página {} de {})", 
+            comprasCreditoPage.getTotalElements(), idEspacioTrabajo, pageNumber, comprasCreditoPage.getTotalPages());
+        
+        return new PaginatedResponse<>(comprasDTOPage);
     }
 
     /**

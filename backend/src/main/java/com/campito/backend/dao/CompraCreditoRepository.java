@@ -3,6 +3,8 @@ package com.campito.backend.dao;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,6 +25,13 @@ public interface CompraCreditoRepository extends JpaRepository<CompraCredito, Lo
            "WHERE c.espacioTrabajo.id = :idEspacioTrabajo " +
            "AND c.cuotasPagadas < c.cantidadCuotas")
     List<CompraCredito> findByEspacioTrabajo_IdAndCuotasPendientes(@Param("idEspacioTrabajo") UUID idEspacioTrabajo);
+    
+    @Query("SELECT c FROM CompraCredito c " +
+           "WHERE c.espacioTrabajo.id = :idEspacioTrabajo " +
+           "AND c.cuotasPagadas < c.cantidadCuotas")
+    Page<CompraCredito> findByEspacioTrabajo_IdAndCuotasPendientesPageable(
+        @Param("idEspacioTrabajo") UUID idEspacioTrabajo, 
+        Pageable pageable);
     
     boolean existsByTarjeta_Id(Long idTarjeta);
 }
