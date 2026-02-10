@@ -548,17 +548,17 @@ public class TransaccionServiceTest {
 
     @Test
     void buscarTransaccion_cuandoAnioNuloYMesNoNulo_entoncesLanzaExcepcion() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(1, null, null, null, espacioId);
+        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(1, null, null, null, espacioId, null, null);
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             transaccionService.buscarTransaccion(dto);
         });
         assertEquals("Si no se especifica el año, no se puede especificar el mes", exception.getMessage());
-        verify(transaccionRepository, never()).findAll(any(Specification.class));
+        verify(transaccionRepository, never()).findAll(any(Specification.class), any(Pageable.class));
     }
 
     @Test
     void buscarTransaccion_cuandoBusquedaConAnio_entoncesBusquedaExitosa() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, 2023, null, null, espacioId);
+        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, 2023, null, null, espacioId, null, null);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
             .monto(100f)
@@ -570,19 +570,19 @@ public class TransaccionServiceTest {
             .motivo(motivoTransaccion)
             .build();
         List<Transaccion> transacciones = Collections.singletonList(t);
-        when(transaccionRepository.findAll(any(Specification.class))).thenReturn(transacciones);
+        when(transaccionRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(transacciones));
 
-        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
+        PaginatedResponse<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
 
         assertNotNull(result);
-        assertFalse(result.isEmpty());
-        assertEquals(1, result.size());
-        verify(transaccionRepository, times(1)).findAll(any(Specification.class));
+        assertFalse(result.getContent().isEmpty());
+        assertEquals(1, result.getContent().size());
+        verify(transaccionRepository, times(1)).findAll(any(Specification.class), any(Pageable.class));
     }
 
     @Test
     void buscarTransaccion_cuandoBusquedaConAnioYMes_entoncesBusquedaExitosa() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(1, 2023, null, null, espacioId);
+        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(1, 2023, null, null, espacioId, null, null);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
             .monto(100f)
@@ -594,19 +594,19 @@ public class TransaccionServiceTest {
             .motivo(motivoTransaccion)
             .build();
         List<Transaccion> transacciones = Collections.singletonList(t);
-        when(transaccionRepository.findAll(any(Specification.class))).thenReturn(transacciones);
+        when(transaccionRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(transacciones));
 
-        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
+        PaginatedResponse<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
 
         assertNotNull(result);
-        assertFalse(result.isEmpty());
-        assertEquals(1, result.size());
-        verify(transaccionRepository, times(1)).findAll(any(Specification.class));
+        assertFalse(result.getContent().isEmpty());
+        assertEquals(1, result.getContent().size());
+        verify(transaccionRepository, times(1)).findAll(any(Specification.class), any(Pageable.class));
     }
 
     @Test
     void buscarTransaccion_cuandoBusquedaConContacto_entoncesBusquedaExitosa() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, "Cliente A", espacioId);
+        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, "Cliente A", espacioId, null, null);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
             .monto(100f)
@@ -619,19 +619,19 @@ public class TransaccionServiceTest {
             .contacto(contactoTransferencia)
             .build();
         List<Transaccion> transacciones = Collections.singletonList(t);
-        when(transaccionRepository.findAll(any(Specification.class))).thenReturn(transacciones);
+        when(transaccionRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(transacciones));
 
-        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
+        PaginatedResponse<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
 
         assertNotNull(result);
-        assertFalse(result.isEmpty());
-        assertEquals(1, result.size());
-        verify(transaccionRepository, times(1)).findAll(any(Specification.class));
+        assertFalse(result.getContent().isEmpty());
+        assertEquals(1, result.getContent().size());
+        verify(transaccionRepository, times(1)).findAll(any(Specification.class), any(Pageable.class));
     }
 
     @Test
     void buscarTransaccion_cuandoBusquedaConMotivo_entoncesBusquedaExitosa() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, "Venta", null, espacioId);
+        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, "Venta", null, espacioId, null, null);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
             .monto(100f)
@@ -643,19 +643,19 @@ public class TransaccionServiceTest {
             .motivo(motivoTransaccion)
             .build();
         List<Transaccion> transacciones = Collections.singletonList(t);
-        when(transaccionRepository.findAll(any(Specification.class))).thenReturn(transacciones);
+        when(transaccionRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(transacciones));
 
-        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
+        PaginatedResponse<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
 
         assertNotNull(result);
-        assertFalse(result.isEmpty());
-        assertEquals(1, result.size());
-        verify(transaccionRepository, times(1)).findAll(any(Specification.class));
+        assertFalse(result.getContent().isEmpty());
+        assertEquals(1, result.getContent().size());
+        verify(transaccionRepository, times(1)).findAll(any(Specification.class), any(Pageable.class));
     }
 
     @Test
     void buscarTransaccion_cuandoBusquedaSinFiltros_entoncesBusquedaExitosa() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, null, espacioId);
+        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, null, espacioId, null, null);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
             .monto(100f)
@@ -667,26 +667,26 @@ public class TransaccionServiceTest {
             .motivo(motivoTransaccion)
             .build();
         List<Transaccion> transacciones = Collections.singletonList(t);
-        when(transaccionRepository.findAll(any(Specification.class))).thenReturn(transacciones);
+        when(transaccionRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(transacciones));
 
-        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
+        PaginatedResponse<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
 
         assertNotNull(result);
-        assertFalse(result.isEmpty());
-        assertEquals(1, result.size());
-        verify(transaccionRepository, times(1)).findAll(any(Specification.class));
+        assertFalse(result.getContent().isEmpty());
+        assertEquals(1, result.getContent().size());
+        verify(transaccionRepository, times(1)).findAll(any(Specification.class), any(Pageable.class));
     }
 
     @Test
     void buscarTransaccion_cuandoBusquedaSinResultados_entoncesRetornaListaVacia() {
-        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, null, espacioId);
-        when(transaccionRepository.findAll(any(Specification.class))).thenReturn(Collections.emptyList());
+        TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, null, espacioId, null, null);
+        when(transaccionRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
 
-        List<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
+        PaginatedResponse<TransaccionDTOResponse> result = transaccionService.buscarTransaccion(dto);
 
         assertNotNull(result);
-        assertTrue(result.isEmpty());
-        verify(transaccionRepository, times(1)).findAll(any(Specification.class));
+        assertTrue(result.getContent().isEmpty());
+        verify(transaccionRepository, times(1)).findAll(any(Specification.class), any(Pageable.class));
     }
 
     // Tests para registrarContactoTransferencia

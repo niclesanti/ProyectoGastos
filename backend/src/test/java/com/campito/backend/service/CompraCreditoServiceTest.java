@@ -24,6 +24,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import com.campito.backend.dao.CompraCreditoRepository;
 import com.campito.backend.dao.ContactoTransferenciaRepository;
@@ -418,18 +420,18 @@ public class CompraCreditoServiceTest {
 
     @Test
     void listarComprasCreditoDebeCuotas_idNull_lanzaIllegalArgument() {
-        assertThrows(IllegalArgumentException.class, () -> compraCreditoService.listarComprasCreditoDebeCuotas(null));
+        assertThrows(IllegalArgumentException.class, () -> compraCreditoService.listarComprasCreditoDebeCuotas(null, null, null));
     }
 
     @Test
     void listarComprasCreditoDebeCuotas_retornaDTOs() {
         CompraCredito c = new CompraCredito();
         c.setId(200L);
-        when(compraCreditoRepository.findByEspacioTrabajo_IdAndCuotasPendientes(espacio.getId())).thenReturn(List.of(c));
+        when(compraCreditoRepository.findByEspacioTrabajo_IdAndCuotasPendientesPageable(eq(espacio.getId()), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(c)));
         when(compraCreditoMapper.toResponse(any())).thenReturn(new CompraCreditoDTOResponse(200L, LocalDate.now(), 100f, 2, 0, "desc", "Aud", LocalDate.now().atStartOfDay(), espacio.getId(), "esp", 1L, "mot", null, null, 10L, "num", "ent", "red"));
 
-        var res = compraCreditoService.listarComprasCreditoDebeCuotas(espacio.getId());
-        assertEquals(1, res.size());
+        var res = compraCreditoService.listarComprasCreditoDebeCuotas(espacio.getId(), null, null);
+        assertEquals(1, res.getContent().size());
     }
 
     @Test

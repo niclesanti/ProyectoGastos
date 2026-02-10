@@ -51,7 +51,8 @@ export const useRemoverTransaccion = () => {
 
 export const useBuscarTransacciones = () => {
   return useMutation({
-    mutationFn: (busqueda: TransaccionBusquedaDTO) => transaccionService.buscarTransacciones(busqueda),
+    mutationFn: (busqueda: TransaccionBusquedaDTO & { page?: number; size?: number }) => 
+      transaccionService.buscarTransacciones(busqueda),
   })
 }
 

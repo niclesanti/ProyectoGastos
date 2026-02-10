@@ -17,7 +17,6 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   useReactTable,
   VisibilityState,
 } from '@tanstack/react-table'
@@ -174,6 +173,12 @@ export function MovimientosPage() {
   const [hasSearched, setHasSearched] = useState(false)
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   
+  // Paginación - Backend
+  const [currentPage, setCurrentPage] = useState(0)
+  const [pageSize] = useState(10)
+  const [totalElements, setTotalElements] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  
   // Estado para el modal de detalles
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
@@ -188,7 +193,7 @@ export function MovimientosPage() {
   const [motivoSeleccionado, setMotivoSeleccionado] = useState('todos')
   const [contactoSeleccionado, setContactoSeleccionado] = useState('todos')
   
-  // Ordenamiento
+  // Ordenamiento (ya no se usa por ahora, el backend ordena por fechaCreacion DESC)
   const [ordenamiento, setOrdenamiento] = useState<'fecha-desc' | 'fecha-asc' | 'monto-desc' | 'monto-asc'>('fecha-desc')
   
   // Popovers state
@@ -206,8 +211,8 @@ export function MovimientosPage() {
     return contactosData.map(c => c.nombre).sort()
   }, [contactosData])
 
-  // Función para buscar transacciones
-  const handleBuscar = async () => {
+  // Función para buscar transacciones con paginación
+  const handleBuscar = async (page: number = 0) => {
     if (!espacioActual?.id) {
       toast.error('Error de configuración', {
         description: 'No se pudo identificar el espacio de trabajo. Intenta recargar la página.',
@@ -221,12 +226,14 @@ export function MovimientosPage() {
       motivo: motivoSeleccionado === 'todos' ? null : motivoSeleccionado,
       contacto: contactoSeleccionado === 'todos' ? null : contactoSeleccionado,
       idEspacioTrabajo: espacioActual.id,
+      page: page,
+      size: pageSize,
     }
 
     buscarTransaccionesMutation.mutate(busquedaDTO, {
-      onSuccess: (data) => {
+      onSuccess: (response) => {
         // Transformar los datos de la API al formato de la UI
-        const transaccionesTransformadas = data.map(t => ({
+        const transaccionesTransformadas = response.content.map(t => ({
           id: t.id.toString(),
           tipo: t.tipo === 'INGRESO' ? 'Ingreso' as const : 'Gasto' as const,
           fecha: t.fecha,
@@ -241,10 +248,13 @@ export function MovimientosPage() {
         }))
         
         setTransactions(transaccionesTransformadas)
+        setCurrentPage(response.currentPage)
+        setTotalElements(response.totalElements)
+        setTotalPages(response.totalPages)
         setHasSearched(true)
         
         toast.success('Búsqueda completada', {
-          description: `Se encontraron ${transaccionesTransformadas.length} transacciones.`,
+          description: `Se encontraron ${response.totalElements} transacciones.`,
         })
       },
       onError: (error: any) => {
@@ -256,25 +266,11 @@ export function MovimientosPage() {
     })
   }
 
-  // Filtrar y ordenar transacciones (solo para ordenar, el filtrado lo hace la API)
-  const filteredTransactions = useMemo(() => {
-    const sorted = [...transactions].sort((a, b) => {
-      if (ordenamiento === 'fecha-desc') {
-        return new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
-      } else if (ordenamiento === 'fecha-asc') {
-        return new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
-      } else if (ordenamiento === 'monto-desc') {
-        return b.monto - a.monto
-      } else {
-        return a.monto - b.monto
-      }
-    })
+  // Las transacciones ya vienen ordenadas del backend por fechaCreacion DESC
+  const filteredTransactions = transactions
 
-    return sorted
-  }, [transactions, ordenamiento])
-
-  // Calcular totales
-  const { totalIngresos, totalGastos, cantidadResultados } = useMemo(() => {
+  // Calcular totales de la página actual
+  const { totalIngresos, totalGastos } = useMemo(() => {
     const ingresos = filteredTransactions
       .filter(t => t.tipo === 'Ingreso')
       .reduce((sum, t) => sum + t.monto, 0)
@@ -285,8 +281,7 @@ export function MovimientosPage() {
 
     return {
       totalIngresos: ingresos,
-      totalGastos: gastos,
-      cantidadResultados: filteredTransactions.length
+      totalGastos: gastos
     }
   }, [filteredTransactions])
 
@@ -302,6 +297,7 @@ export function MovimientosPage() {
     setAnoSeleccionado(currentYearDefault)
     setMotivoSeleccionado('todos')
     setContactoSeleccionado('todos')
+    setCurrentPage(0)
   }
 
   // Handler para cambiar el año y resetear el mes si es necesario
@@ -481,16 +477,11 @@ export function MovimientosPage() {
     data: filteredTransactions,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     state: {
       columnVisibility,
     },
-    initialState: {
-      pagination: {
-        pageSize: 6,
-      },
-    },
+    // Sin paginación del cliente ya que la manejamos del lado del servidor
   })
 
   return (
@@ -505,7 +496,7 @@ export function MovimientosPage() {
         {/* Summary Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 pt-2">
           <span className="text-xs sm:text-sm text-muted-foreground">
-            Mostrando <span className="font-semibold text-foreground">{cantidadResultados}</span> resultados
+            Mostrando <span className="font-semibold text-foreground">{totalElements}</span> resultados
           </span>
           <Separator orientation="vertical" className="hidden sm:block h-4" />
           <div className="flex items-center gap-1">
@@ -664,7 +655,7 @@ export function MovimientosPage() {
 
         {/* Botón Buscar */}
         <Button
-          onClick={handleBuscar}
+          onClick={() => handleBuscar(0)}
           disabled={buscarTransaccionesMutation.isPending || !espacioActual}
           size="sm"
           className="w-full sm:w-auto"
@@ -806,32 +797,54 @@ export function MovimientosPage() {
           </DndContext>
         </div>
 
-        {/* Pagination */}
-        {table.getPageCount() > 1 && (
+        {/* Pagination - Server Side */}
+        {hasSearched && totalPages > 1 && (
           <div className="flex justify-end">
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious
-                    onClick={() => table.previousPage()}
-                    className={!table.getCanPreviousPage() ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    onClick={() => {
+                      if (currentPage > 0) {
+                        handleBuscar(currentPage - 1)
+                      }
+                    }}
+                    className={currentPage === 0 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                   />
                 </PaginationItem>
-                {Array.from({ length: table.getPageCount() }, (_, i) => (
-                  <PaginationItem key={i}>
-                    <PaginationLink
-                      onClick={() => table.setPageIndex(i)}
-                      isActive={table.getState().pagination.pageIndex === i}
-                      className="cursor-pointer"
-                    >
-                      {i + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  // Mostrar máximo 5 páginas alrededor de la página actual
+                  let pageNumber: number
+                  if (totalPages <= 5) {
+                    pageNumber = i
+                  } else if (currentPage < 3) {
+                    pageNumber = i
+                  } else if (currentPage >= totalPages - 3) {
+                    pageNumber = totalPages - 5 + i
+                  } else {
+                    pageNumber = currentPage - 2 + i
+                  }
+
+                  return (
+                    <PaginationItem key={pageNumber}>
+                      <PaginationLink
+                        onClick={() => handleBuscar(pageNumber)}
+                        isActive={currentPage === pageNumber}
+                        className="cursor-pointer"
+                      >
+                        {pageNumber + 1}
+                      </PaginationLink>
+                    </PaginationItem>
+                  )
+                })}
                 <PaginationItem>
                   <PaginationNext
-                    onClick={() => table.nextPage()}
-                    className={!table.getCanNextPage() ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    onClick={() => {
+                      if (currentPage < totalPages - 1) {
+                        handleBuscar(currentPage + 1)
+                      }
+                    }}
+                    className={currentPage >= totalPages - 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                   />
                 </PaginationItem>
               </PaginationContent>

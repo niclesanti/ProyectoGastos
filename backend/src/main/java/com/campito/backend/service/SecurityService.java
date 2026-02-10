@@ -14,7 +14,7 @@ public interface SecurityService {
      * Obtiene el ID del usuario actualmente autenticado desde el contexto de seguridad.
      * 
      * @return UUID del usuario autenticado.
-     * @throws com.campito.backend.exception.UnauthorizedException si no hay usuario autenticado.
+     * @throws UnauthorizedException si no hay usuario autenticado.
      */
     UUID getAuthenticatedUserId();
     
@@ -22,8 +22,8 @@ public interface SecurityService {
      * Valida que el usuario autenticado tenga acceso a un espacio de trabajo específico.
      * 
      * @param workspaceId ID del espacio de trabajo a validar.
-     * @throws com.campito.backend.exception.UnauthorizedException si no hay usuario autenticado.
-     * @throws com.campito.backend.exception.ForbiddenException si el usuario no tiene acceso al espacio.
+     * @throws UnauthorizedException si no hay usuario autenticado.
+     * @throws ForbiddenException si el usuario no tiene acceso al espacio.
      * @throws IllegalArgumentException si el workspaceId es nulo.
      */
     void validateWorkspaceAccess(UUID workspaceId);
@@ -32,8 +32,8 @@ public interface SecurityService {
      * Valida que el usuario autenticado sea el administrador de un espacio de trabajo.
      * 
      * @param workspaceId ID del espacio de trabajo a validar.
-     * @throws com.campito.backend.exception.UnauthorizedException si no hay usuario autenticado.
-     * @throws com.campito.backend.exception.ForbiddenException si el usuario no es administrador.
+     * @throws UnauthorizedException si no hay usuario autenticado.
+     * @throws ForbiddenException si el usuario no es administrador.
      * @throws IllegalArgumentException si el workspaceId es nulo.
      */
     void validateWorkspaceAdmin(UUID workspaceId);
@@ -42,9 +42,9 @@ public interface SecurityService {
      * Valida que una transacción pertenezca a un espacio de trabajo al que el usuario tiene acceso.
      * 
      * @param transactionId ID de la transacción a validar.
-     * @throws com.campito.backend.exception.UnauthorizedException si no hay usuario autenticado.
-     * @throws com.campito.backend.exception.ForbiddenException si el usuario no tiene acceso.
-     * @throws jakarta.persistence.EntityNotFoundException si la transacción no existe.
+     * @throws UnauthorizedException si no hay usuario autenticado.
+     * @throws ForbiddenException si el usuario no tiene acceso.
+     * @throws EntityNotFoundException si la transacción no existe.
      * @throws IllegalArgumentException si el transactionId es nulo.
      */
     void validateTransactionOwnership(Long transactionId);
@@ -53,9 +53,9 @@ public interface SecurityService {
      * Valida que una compra a crédito pertenezca a un espacio de trabajo al que el usuario tiene acceso.
      * 
      * @param compraCreditoId ID de la compra a crédito a validar.
-     * @throws com.campito.backend.exception.UnauthorizedException si no hay usuario autenticado.
-     * @throws com.campito.backend.exception.ForbiddenException si el usuario no tiene acceso.
-     * @throws jakarta.persistence.EntityNotFoundException si la compra no existe.
+     * @throws UnauthorizedException si no hay usuario autenticado.
+     * @throws ForbiddenException si el usuario no tiene acceso.
+     * @throws EntityNotFoundException si la compra no existe.
      * @throws IllegalArgumentException si el compraCreditoId es nulo.
      */
     void validateCompraCreditoOwnership(Long compraCreditoId);
@@ -64,9 +64,9 @@ public interface SecurityService {
      * Valida que una cuenta bancaria pertenezca a un espacio de trabajo al que el usuario tiene acceso.
      * 
      * @param cuentaBancariaId ID de la cuenta bancaria a validar.
-     * @throws com.campito.backend.exception.UnauthorizedException si no hay usuario autenticado.
-     * @throws com.campito.backend.exception.ForbiddenException si el usuario no tiene acceso.
-     * @throws jakarta.persistence.EntityNotFoundException si la cuenta no existe.
+     * @throws UnauthorizedException si no hay usuario autenticado.
+     * @throws ForbiddenException si el usuario no tiene acceso.
+     * @throws EntityNotFoundException si la cuenta no existe.
      * @throws IllegalArgumentException si el cuentaBancariaId es nulo.
      */
     void validateCuentaBancariaOwnership(Long cuentaBancariaId);
@@ -75,9 +75,9 @@ public interface SecurityService {
      * Valida que una tarjeta pertenezca a un espacio de trabajo al que el usuario tiene acceso.
      * 
      * @param tarjetaId ID de la tarjeta a validar.
-     * @throws com.campito.backend.exception.UnauthorizedException si no hay usuario autenticado.
-     * @throws com.campito.backend.exception.ForbiddenException si el usuario no tiene acceso.
-     * @throws jakarta.persistence.EntityNotFoundException si la tarjeta no existe.
+     * @throws UnauthorizedException si no hay usuario autenticado.
+     * @throws ForbiddenException si el usuario no tiene acceso.
+     * @throws EntityNotFoundException si la tarjeta no existe.
      * @throws IllegalArgumentException si el tarjetaId es nulo.
      */
     void validateTarjetaOwnership(Long tarjetaId);
@@ -86,9 +86,9 @@ public interface SecurityService {
      * Valida que una notificación pertenezca al usuario autenticado.
      * 
      * @param notificacionId ID de la notificación a validar.
-     * @throws com.campito.backend.exception.UnauthorizedException si no hay usuario autenticado.
-     * @throws com.campito.backend.exception.ForbiddenException si la notificación no pertenece al usuario.
-     * @throws jakarta.persistence.EntityNotFoundException si la notificación no existe.
+     * @throws UnauthorizedException si no hay usuario autenticado.
+     * @throws ForbiddenException si la notificación no pertenece al usuario.
+     * @throws EntityNotFoundException si la notificación no existe.
      * @throws IllegalArgumentException si el notificacionId es nulo.
      */
     void validateNotificacionOwnership(Long notificacionId);
@@ -97,9 +97,9 @@ public interface SecurityService {
     * Valida que el usuario autenticado tenga permiso para responder a una solicitud pendiente de compartir espacio de trabajo.
     * 
     * @param idSolicitud ID de la solicitud pendiente a validar.
-    * @throws com.campito.backend.exception.UnauthorizedException si no hay usuario autenticado.
-    * @throws com.campito.backend.exception.ForbiddenException si el usuario no tiene permiso para responder a esta solicitud.
-    * @throws jakarta.persistence.EntityNotFoundException si la solicitud pendiente no existe.
+    * @throws UnauthorizedException si no hay usuario autenticado.
+    * @throws ForbiddenException si el usuario no tiene permiso para responder a esta solicitud.
+    * @throws EntityNotFoundException si la solicitud pendiente no existe.
     * @throws IllegalArgumentException si el idSolicitud es nulo.
     */
     void validateSolicitudOwnership(Long idSolicitud);
