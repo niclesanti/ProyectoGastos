@@ -89,11 +89,10 @@ public class SecurityConfig {
             ));
         }
         
-        // Agregar endpoints de Actuator solo en desarrollo (acceso sin autenticación)
-        // En producción, Actuator corre en puerto separado (9090) no expuesto públicamente
-        if ("dev".equals(activeProfile)) {
-            publicEndpoints.add("/actuator/**");
-        }
+        // Los endpoints de Actuator son públicos para permitir el monitoreo.
+        // La seguridad en producción se garantiza porque el puerto 9090
+        // solo es accesible localmente (127.0.0.1) dentro del servidor.
+        publicEndpoints.add("/actuator/**");
         
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
