@@ -66,6 +66,8 @@ public class EspacioTrabajoController {
     @ApiResponse(responseCode = "200", description = "Espacio de trabajo compartido correctamente")
     @ApiResponse(responseCode = "400", description = "Error al compartir el espacio de trabajo")
     @ApiResponse(responseCode = "403", description = "No tienes permisos de administrador")
+    @ApiResponse(responseCode = "404", description = "Espacio de trabajo o usuario no encontrado")
+    @ApiResponse(responseCode = "409", description = "Ya existe una invitación pendiente para este usuario y espacio de trabajo")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @PutMapping("/compartir/{email}/{idEspacioTrabajo}")
     public ResponseEntity<Void> compartirEspacioTrabajo(
