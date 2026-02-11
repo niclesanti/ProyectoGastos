@@ -40,6 +40,9 @@ public class SecurityConfig {
     
     @Value("${springdoc.swagger-ui.enabled:false}")
     private boolean swaggerEnabled;
+    
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -84,6 +87,12 @@ public class SecurityConfig {
                 "/v3/api-docs/**",
                 "/swagger-resources/**"
             ));
+        }
+        
+        // Agregar endpoints de Actuator solo en desarrollo (acceso sin autenticación)
+        // En producción, Actuator corre en puerto separado (9090) no expuesto públicamente
+        if ("dev".equals(activeProfile)) {
+            publicEndpoints.add("/actuator/**");
         }
         
         http

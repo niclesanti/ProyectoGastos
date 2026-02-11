@@ -3,6 +3,7 @@ import { useAppStore } from '@/store/app-store'
 import { notificacionService } from '@/services/notificacion.service'
 import { toast } from 'sonner'
 import type { NotificacionDTOResponse, TipoNotificacion } from '@/types'
+import { devLog, devError } from '@/utils/logger'
 
 /**
  * Hook personalizado para la gestión de notificaciones.
@@ -58,7 +59,7 @@ export const useNotificaciones = () => {
           label: 'Ver',
           onClick: () => {
             // Este callback puede ser sobrescrito por el componente que use el hook
-            console.log('Ver notificación:', notificacion.id)
+            devLog('Ver notificación:', notificacion.id)
           },
         },
       })
@@ -71,17 +72,17 @@ export const useNotificaciones = () => {
   const conectarSSE = useCallback(() => {
     // Evitar múltiples conexiones simultáneas
     if (eventSourceRef.current?.readyState === EventSource.OPEN) {
-      console.log('⚠️ SSE: Ya existe una conexión abierta, ignorando...')
+      devLog('⚠️ SSE: Ya existe una conexión abierta, ignorando...')
       return
     }
 
     // Evitar múltiples intentos de conexión simultáneos
     if (isConnectingRef.current) {
-      console.log('⚠️ SSE: Ya hay un intento de conexión en progreso, ignorando...')
+      devLog('⚠️ SSE: Ya hay un intento de conexión en progreso, ignorando...')
       return
     }
 
-    console.log('🔄 SSE: Iniciando conexión...')
+    devLog('🔄 SSE: Iniciando conexión...')
     isConnectingRef.current = true
     
     try {
@@ -90,30 +91,30 @@ export const useNotificaciones = () => {
 
       // Listener para cuando se abre la conexión
       eventSource.onopen = () => {
-        console.log('✅ SSE: Conexión abierta exitosamente')
+        devLog('✅ SSE: Conexión abierta exitosamente')
         isConnectingRef.current = false
       }
 
       // Confirmación de conexión (evento personalizado del servidor)
       eventSource.addEventListener('connected', (event) => {
-        console.log('✅ SSE: Confirmación de conexión recibida del servidor:', event.data)
+        devLog('✅ SSE: Confirmación de conexión recibida del servidor:', event.data)
       })
 
       // Manejar notificaciones (evento con nombre "notification" enviado por el backend)
       eventSource.addEventListener('notification', (event) => {
-        console.log('📨 SSE: Notificación recibida:', event.data)
+        devLog('📨 SSE: Notificación recibida:', event.data)
         try {
           const notificacion: NotificacionDTOResponse = JSON.parse(event.data)
-          console.log('🔔 SSE: Notificación procesada:', notificacion.tipo, notificacion.mensaje)
+          devLog('🔔 SSE: Notificación procesada:', notificacion.tipo, notificacion.mensaje)
           handleNuevaNotificacion(notificacion)
         } catch (error) {
-          console.error('❌ SSE: Error al parsear notificación:', error)
+          devError('❌ SSE: Error al parsear notificación:', error)
         }
       })
 
       // Manejar errores
       eventSource.onerror = (error) => {
-        console.error('❌ SSE: Error en conexión:', {
+        devError('❌ SSE: Error en conexión:', {
           error,
           readyState: eventSource.readyState,
           url: eventSource.url
@@ -124,11 +125,11 @@ export const useNotificaciones = () => {
         
         // Estados: 0=CONNECTING, 1=OPEN, 2=CLOSED
         if (eventSource.readyState === EventSource.CLOSED) {
-          console.error('❌ SSE: Conexión cerrada por el servidor')
+          devError('❌ SSE: Conexión cerrada por el servidor')
           
           const token = localStorage.getItem('auth_token')
           if (!token) {
-            console.error('❌ SSE: No hay token JWT. Redirigiendo a login...')
+            devError('❌ SSE: No hay token JWT. Redirigiendo a login...')
             window.location.href = '/login'
             return
           }
@@ -139,14 +140,14 @@ export const useNotificaciones = () => {
         eventSourceRef.current = null
         
         // Reintentar conexión después de 5 segundos
-        console.log('🔄 SSE: Reintentando conexión en 5 segundos...')
+        devLog('🔄 SSE: Reintentando conexión en 5 segundos...')
         setTimeout(() => {
           conectarSSE()
         }, 5000)
       }
 
     } catch (error) {
-      console.error('❌ SSE: Error al crear conexión:', error)
+      devError('❌ SSE: Error al crear conexión:', error)
       isConnectingRef.current = false
     }
   }, [handleNuevaNotificacion])
@@ -156,7 +157,7 @@ export const useNotificaciones = () => {
    */
   const desconectarSSE = useCallback(() => {
     if (eventSourceRef.current) {
-      console.log('🔌 SSE: Cerrando conexión...')
+      devLog('🔌 SSE: Cerrando conexión...')
       eventSourceRef.current.close()
       eventSourceRef.current = null
     }
@@ -175,7 +176,7 @@ export const useNotificaciones = () => {
 
     // Cleanup: cerrar conexión al desmontar
     return () => {
-      console.log('🔄 SSE: Limpiando conexión al desmontar componente...')
+      devLog('🔄 SSE: Limpiando conexión al desmontar componente...')
       isConnectingRef.current = false
       desconectarSSE()
     }

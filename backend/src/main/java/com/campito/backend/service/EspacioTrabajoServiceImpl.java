@@ -101,6 +101,8 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
      * @param idEspacioTrabajo ID del espacio de trabajo a compartir.
      * @throws IllegalArgumentException si alguno de los parámetros es nulo.
      * @throws EntityNotFoundException si el espacio de trabajo o el usuario no se encuentran en la base de datos.
+     * @throws EntidadDuplicadaException si ya existe una solicitud pendiente para el mismo usuario y espacio de trabajo.
+     * @throws UsuarioNoEncontradoException si no se encuentra un usuario registrado con el email proporcionado.
      */
     @Override
     @Transactional
@@ -124,6 +126,21 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
             String mensajeUsuario = "No existe ningún usuario registrado con el correo electrónico '" + email + "'. Por favor, verifica que el correo sea correcto o invita a esa persona a registrarse primero.";
             return new UsuarioNoEncontradoException(mensajeUsuario);
         });
+
+        // Validar si ya existe una solicitud pendiente para este usuario y espacio
+        boolean existeSolicitudPendiente = solicitudPendienteRepository
+                .existsByEspacioTrabajo_IdAndUsuarioInvitado_Id(idEspacioTrabajo, usuario.getId());
+        
+        if (existeSolicitudPendiente) {
+            String mensaje = String.format(
+                "Ya existe una invitación pendiente para '%s' en el espacio de trabajo '%s'. " +
+                "Por favor, espera a que el usuario responda la invitación anterior.",
+                email, espacioTrabajo.getNombre()
+            );
+            logger.warn("Intento de crear solicitud duplicada. Espacio: {}, Usuario: {}", 
+                       idEspacioTrabajo, usuario.getId());
+            throw new EntidadDuplicadaException(mensaje);
+        }
 
         SolicitudPendienteEspacioTrabajo solicitud = SolicitudPendienteEspacioTrabajo.builder()
             .espacioTrabajo(espacioTrabajo)

@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/api-client'
 import type { NotificacionDTOResponse } from '@/types'
+import { devLog, devError } from '@/utils/logger'
 
 /**
  * Servicio para la gestión de notificaciones.
@@ -59,7 +60,7 @@ export const notificacionService = {
     const token = localStorage.getItem('auth_token')
     
     if (!token) {
-      console.error('❌ SSE: No hay token JWT disponible')
+      devError('❌ SSE: No hay token JWT disponible')
       // Retornar un EventSource dummy que falle inmediatamente
       const dummySource = new EventSource('about:blank')
       dummySource.close()
@@ -70,18 +71,18 @@ export const notificacionService = {
     // Esto es más confiable que usar headers personalizados en SSE
     const url = `${baseURL}/api/notificaciones/stream?token=${encodeURIComponent(token)}`
     
-    console.log('🔗 SSE: Creando conexión a:', `${baseURL}/api/notificaciones/stream`)
-    console.log('🔑 SSE: Token presente:', token.substring(0, 20) + '...')
+    devLog('🔗 SSE: Creando conexión a:', `${baseURL}/api/notificaciones/stream`)
+    devLog('🔑 SSE: Token presente:', token.substring(0, 20) + '...')
     
     try {
       // Usar EventSource nativo (no necesitamos polyfill con query params)
       const eventSource = new EventSource(url)
       
-      console.log('✅ SSE: EventSource creado, readyState:', eventSource.readyState)
+      devLog('✅ SSE: EventSource creado, readyState:', eventSource.readyState)
       
       return eventSource
     } catch (error) {
-      console.error('❌ SSE: Error al crear EventSource:', error)
+      devError('❌ SSE: Error al crear EventSource:', error)
       throw error
     }
   },
