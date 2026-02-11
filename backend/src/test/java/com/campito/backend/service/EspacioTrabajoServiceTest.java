@@ -326,4 +326,38 @@ public class EspacioTrabajoServiceTest {
         assertEquals(dto1, resultado.get(0));
         assertEquals(dto2, resultado.get(1));
     }
+
+    @Test
+    void compartirEspacioTrabajo_cuandoYaExisteSolicitudPendiente_entoncesLanzaEntidadDuplicadaException() {
+        // Arrange
+        String email = "compartido@test.com";
+        UUID idEspacioTrabajo = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        UUID idUsuarioInvitado = UUID.fromString("00000000-0000-0000-0000-000000000005");
+
+        Usuario usuarioInvitado = new Usuario();
+        usuarioInvitado.setId(idUsuarioInvitado);
+        usuarioInvitado.setEmail(email);
+        usuarioInvitado.setNombre("Usuario Compartido");
+
+        when(espacioTrabajoRepository.findById(idEspacioTrabajo)).thenReturn(Optional.of(espacioTrabajo));
+        when(usuarioRepository.findByEmail(email)).thenReturn(Optional.of(usuarioInvitado));
+        when(solicitudPendienteRepository.existsByEspacioTrabajo_IdAndUsuarioInvitado_Id(
+            idEspacioTrabajo, idUsuarioInvitado
+        )).thenReturn(true); // Ya existe una solicitud pendiente
+
+        // Act & Assert
+        com.campito.backend.exception.EntidadDuplicadaException exception = 
+            assertThrows(com.campito.backend.exception.EntidadDuplicadaException.class, () -> {
+                espacioTrabajoService.compartirEspacioTrabajo(email, idEspacioTrabajo);
+            });
+
+        // Verificar que el mensaje de error es amigable
+        assertTrue(exception.getMessage().contains("Ya existe una invitación pendiente"));
+        assertTrue(exception.getMessage().contains(email));
+        assertTrue(exception.getMessage().contains(espacioTrabajo.getNombre()));
+
+        // Verificar que NO se intentó guardar la solicitud
+        verify(solicitudPendienteRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
 }

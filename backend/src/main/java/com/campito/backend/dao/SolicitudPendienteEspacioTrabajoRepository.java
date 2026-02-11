@@ -12,4 +12,13 @@ import com.campito.backend.model.SolicitudPendienteEspacioTrabajo;
 public interface SolicitudPendienteEspacioTrabajoRepository extends JpaRepository<SolicitudPendienteEspacioTrabajo, Long> {
 
     List<SolicitudPendienteEspacioTrabajo> findByUsuarioInvitado_Id(UUID idUsuario);
+    
+    /**
+     * Verifica si ya existe una solicitud pendiente para un usuario y espacio específicos.
+     * 
+     * @param idEspacioTrabajo ID del espacio de trabajo
+     * @param idUsuarioInvitado ID del usuario invitado
+     * @return true si ya existe una solicitud pendiente, false en caso contrario
+     */
+    boolean existsByEspacioTrabajo_IdAndUsuarioInvitado_Id(UUID idEspacioTrabajo, UUID idUsuarioInvitado);
 }
