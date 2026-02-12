@@ -59,6 +59,8 @@ import com.campito.backend.model.Transaccion;
 
 import jakarta.persistence.EntityNotFoundException;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+
 @ExtendWith(MockitoExtension.class)
 public class CompraCreditoServiceTest {
 
@@ -113,6 +115,25 @@ public class CompraCreditoServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Usar SimpleMeterRegistry real para evitar problemas con mocks
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+        compraCreditoService = new CompraCreditoServiceImpl(
+            compraCreditoRepository,
+            espacioRepository,
+            motivoRepository,
+            contactoRepository,
+            cuentaBancariaRepository,
+            cuotaCreditoRepository,
+            tarjetaRepository,
+            transaccionRepository,
+            resumenRepository,
+            compraCreditoMapper,
+            tarjetaMapper,
+            cuotaCreditoMapper,
+            resumenMapper,
+            transaccionService,
+            meterRegistry
+        );
         espacio = new EspacioTrabajo();
         espacio.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
         espacio.setNombre("Mi Espacio");
