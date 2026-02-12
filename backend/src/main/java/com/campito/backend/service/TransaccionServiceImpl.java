@@ -46,6 +46,10 @@ import com.campito.backend.exception.SaldoInsuficienteException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import com.campito.backend.config.MetricsConfig;
+
 /**
  * Implementación del servicio para gestión de transacciones.
  * 
@@ -68,6 +72,7 @@ public class TransaccionServiceImpl implements TransaccionService {
     private final TransaccionMapper transaccionMapper;
     private final ContactoTransferenciaMapper contactoTransferenciaMapper;
     private final MotivoTransaccionMapper motivoTransaccionMapper;
+    private final MeterRegistry meterRegistry;  // Para métricas de Prometheus/Grafana
 
     /**
      * Registra una nueva transacción.
@@ -140,6 +145,14 @@ public class TransaccionServiceImpl implements TransaccionService {
         Transaccion transaccionGuardada = transaccionRepository.save(transaccion);
         logger.info("Transaccion ID {} registrada exitosamente en espacio ID {}. Nuevo saldo: {}", transaccionGuardada.getId(), espacio.getId(), espacio.getSaldo());
         
+        // 📊 MÉTRICA: Incrementar contador de transacciones creadas
+        Counter.builder(MetricsConfig.MetricNames.TRANSACCIONES_CREADAS)
+                .description("Total de transacciones registradas exitosamente")
+                .tag(MetricsConfig.TagNames.TIPO_TRANSACCION, transaccion.getTipo().name())
+                .tag(MetricsConfig.TagNames.ESPACIO_TRABAJO, espacio.getId().toString())
+                .register(meterRegistry)
+                .increment();
+        
         return transaccionMapper.toResponse(transaccionGuardada);
 
     }
@@ -184,6 +197,14 @@ public class TransaccionServiceImpl implements TransaccionService {
         transaccionRepository.delete(transaccion);
         espacioRepository.save(espacio);
         logger.info("Transaccion ID {} removida exitosamente. Saldo del espacio ID {} actualizado a {}", id, espacio.getId(), espacio.getSaldo());
+        
+        // 📊 MÉTRICA: Incrementar contador de transacciones eliminadas
+        Counter.builder(MetricsConfig.MetricNames.TRANSACCIONES_ELIMINADAS)
+                .description("Total de transacciones eliminadas")
+                .tag(MetricsConfig.TagNames.TIPO_TRANSACCION, transaccion.getTipo().name())
+                .tag(MetricsConfig.TagNames.ESPACIO_TRABAJO, espacio.getId().toString())
+                .register(meterRegistry)
+                .increment();
     }
 
     /**

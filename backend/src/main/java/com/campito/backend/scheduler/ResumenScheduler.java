@@ -25,6 +25,11 @@ import com.campito.backend.model.TipoNotificacion;
 
 import lombok.RequiredArgsConstructor;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import com.campito.backend.config.MetricsConfig;
+
 /**
  * Scheduler que ejecuta el cierre automático de resúmenes de tarjeta a medianoche.
  * 
@@ -42,6 +47,7 @@ public class ResumenScheduler {
     private final CuotaCreditoRepository cuotaCreditoRepository;
     private final ResumenRepository resumenRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final MeterRegistry meterRegistry;  // Para métricas de Prometheus/Grafana
 
     /**
      * Ejecuta el cierre de resúmenes todos los días a las 00:00hs.
@@ -60,6 +66,9 @@ public class ResumenScheduler {
         
         logger.info("Iniciando cierre automático de resúmenes para tarjetas que cerraron ayer: día {}", diaACerrar);
         
+        // 📊 MÉTRICA: Medir tiempo total de ejecución del cierre de resúmenes
+        Timer.Sample timerSample = Timer.start(meterRegistry);
+        
         // Obtener todas las tarjetas cuyo día de cierre fue ayer
         List<Tarjeta> tarjetasACerrar = tarjetaRepository.findAll().stream()
             .filter(tarjeta -> tarjeta.getDiaCierre().equals(diaACerrar))
@@ -67,15 +76,44 @@ public class ResumenScheduler {
         
         logger.info("Encontradas {} tarjetas con día de cierre {}", tarjetasACerrar.size(), diaACerrar);
         
+        // Variables para métricas de negocio
+        int resumenesGenerados = 0;
+        int errores = 0;
+        
         for (Tarjeta tarjeta : tarjetasACerrar) {
             try {
-                cerrarResumenTarjeta(tarjeta, ayer);
+                boolean generado = cerrarResumenTarjeta(tarjeta, ayer);
+                if (generado) {
+                    resumenesGenerados++;
+                }
             } catch (Exception e) {
                 logger.error("Error al cerrar resumen de tarjeta ID: {}", tarjeta.getId(), e);
+                errores++;
+                
+                // 📊 MÉTRICA: Incrementar contador de errores
+                Counter.builder(MetricsConfig.MetricNames.RESUMENES_ERRORES)
+                        .description("Total de errores al generar resúmenes")
+                        .tag("tarjeta_id", tarjeta.getId().toString())
+                        .register(meterRegistry)
+                        .increment();
             }
         }
         
-        logger.info("Cierre automático de resúmenes finalizado");
+        // 📊 MÉTRICA: Registrar tiempo de ejecución
+        timerSample.stop(Timer.builder(MetricsConfig.MetricNames.RESUMENES_TIMER)
+                .description("Tiempo de ejecución del scheduler de cierre de resúmenes")
+                .tag("resultado", errores > 0 ? "con_errores" : "exitoso")
+                .register(meterRegistry));
+        
+        // 📊 MÉTRICA: Incrementar contador de resúmenes generados
+        if (resumenesGenerados > 0) {
+            Counter.builder(MetricsConfig.MetricNames.RESUMENES_GENERADOS)
+                    .description("Total de resúmenes generados por el scheduler")
+                    .register(meterRegistry)
+                    .increment(resumenesGenerados);
+        }
+        
+        logger.info("Cierre automático de resúmenes finalizado - Generados: {} - Errores: {}", resumenesGenerados, errores);
     }
 
     /**
@@ -83,8 +121,9 @@ public class ResumenScheduler {
      * 
      * @param tarjeta La tarjeta a cerrar
      * @param fechaCierre La fecha de cierre
+     * @return true si se generó el resumen, false si ya existía o no había cuotas
      */
-    private void cerrarResumenTarjeta(Tarjeta tarjeta, LocalDate fechaCierre) {
+    private boolean cerrarResumenTarjeta(Tarjeta tarjeta, LocalDate fechaCierre) {
         // Calcular mes y año del resumen
         YearMonth mesResumen = YearMonth.from(fechaCierre);
         int anio = mesResumen.getYear();
@@ -94,7 +133,7 @@ public class ResumenScheduler {
         if (resumenRepository.findByTarjetaAndAnioAndMes(tarjeta.getId(), anio, mes).isPresent()) {
             logger.warn("Ya existe un resumen para tarjeta ID {} del período {}/{}", 
                 tarjeta.getId(), mes, anio);
-            return;
+            return false;
         }
         
         // Calcular fechas del período del resumen
@@ -115,7 +154,7 @@ public class ResumenScheduler {
         if (cuotasPendientes.isEmpty()) {
             logger.info("No hay cuotas pendientes para cerrar en tarjeta ID {} del período {}/{}", 
                 tarjeta.getId(), mes, anio);
-            return;
+            return false;
         }
         
         // Calcular monto total del resumen
@@ -169,6 +208,8 @@ public class ResumenScheduler {
             logger.error("Error al enviar notificación de cierre de resumen para tarjeta ID: {}", tarjeta.getId(), e);
             // No propagamos la excepción para no afectar el cierre del resumen que ya fue guardado exitosamente
         }
+        
+        return true;
     }
 
     /**
