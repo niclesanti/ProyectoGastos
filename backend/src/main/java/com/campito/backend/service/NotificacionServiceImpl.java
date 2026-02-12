@@ -15,6 +15,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import com.campito.backend.config.MetricsConfig;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +38,7 @@ public class NotificacionServiceImpl implements NotificacionService {
     private final NotificacionRepository notificacionRepository;
     private final NotificacionMapper notificacionMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final MeterRegistry meterRegistry;  // Para métricas de Prometheus/Grafana
     
     /**
      * Obtiene las notificaciones de un usuario (máximo 50 más recientes).
@@ -86,6 +91,13 @@ public class NotificacionServiceImpl implements NotificacionService {
             notificacion.setFechaLeida(LocalDateTime.now());
             notificacionRepository.save(notificacion);
             logger.info("Notificación {} marcada como leída", idNotificacion);
+            
+            // 📊 MÉTRICA: Incrementar contador de notificaciones leídas
+            Counter.builder(MetricsConfig.MetricNames.NOTIFICACIONES_LEIDAS)
+                    .description("Total de notificaciones marcadas como leídas")
+                    .tag(MetricsConfig.TagNames.TIPO_NOTIFICACION, notificacion.getTipo().name())
+                    .register(meterRegistry)
+                    .increment();
         }
     }
     

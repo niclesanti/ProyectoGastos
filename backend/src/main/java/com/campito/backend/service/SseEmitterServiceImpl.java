@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Servicio para gestionar conexiones Server-Sent Events (SSE).
@@ -39,6 +40,7 @@ public class SseEmitterServiceImpl implements SseEmitterService {
     private final Map<UUID, SseEmitter> emitters = new ConcurrentHashMap<>();
     
     private final NotificacionMapper notificacionMapper;
+    private final AtomicInteger sseConexionesActivasGauge;  // Gauge inyectado desde MetricsConfig
     
     /**
      * Crea un nuevo emitter SSE para un usuario.
@@ -54,21 +56,25 @@ public class SseEmitterServiceImpl implements SseEmitterService {
         emitter.onCompletion(() -> {
             logger.info("SSE completado para usuario: {}", idUsuario);
             emitters.remove(idUsuario);
+            sseConexionesActivasGauge.set(emitters.size());  // 📊 MÉTRICA: Actualizar gauge
         });
         
         // Handler de timeout
         emitter.onTimeout(() -> {
             logger.info("SSE timeout para usuario: {}", idUsuario);
             emitters.remove(idUsuario);
+            sseConexionesActivasGauge.set(emitters.size());  // 📊 MÉTRICA: Actualizar gauge
         });
         
         // Handler de error
         emitter.onError((e) -> {
             logger.error("Error en SSE para usuario {}: {}", idUsuario, e.getMessage());
             emitters.remove(idUsuario);
+            sseConexionesActivasGauge.set(emitters.size());  // 📊 MÉTRICA: Actualizar gauge
         });
         
         emitters.put(idUsuario, emitter);
+        sseConexionesActivasGauge.set(emitters.size());  // 📊 MÉTRICA: Actualizar gauge
         logger.info("SSE emitter creado para usuario: {}", idUsuario);
         
         // Enviar evento inicial de confirmación de conexión
