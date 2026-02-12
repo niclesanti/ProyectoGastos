@@ -10,6 +10,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3.3-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Prometheus](https://img.shields.io/badge/Metrics-Prometheus-E6522C?style=flat&logo=prometheus&logoColor=white)](https://prometheus.io/)
 
 [Características](#-características-principales) • [Tecnologías](#-stack-tecnológico) • [Arquitectura](#-arquitectura) • [Instalación](#-inicio-rápido) • [Documentación](#-documentación) • [Contribuir](CONTRIBUTING.md)
 
@@ -28,6 +29,7 @@ Sistema Full-Stack profesional para la gestión integral de finanzas personales 
 - 🔐 **Seguridad OAuth2**: Autenticación moderna con proveedores externos
 - 📊 **Dashboard Interactivo**: Visualizaciones y análisis financiero en tiempo real
 - 👥 **Multi-Tenant**: Espacios de trabajo colaborativos para gestión grupal
+- 🔍 **Observabilidad y Telemetría**: Métricas de negocio y salud del sistema con Prometheus y Grafana para monitoreo proactivo
 - 🚀 **Producción Ready**: Dockerizado y desplegable en cloud con un comando
 
 ---
@@ -63,6 +65,12 @@ Sistema Full-Stack profesional para la gestión integral de finanzas personales 
 - **Alertas Inteligentes**: Cierres de tarjeta, vencimientos, invitaciones
 - **Persistencia**: Historial completo de notificaciones con estado leído/no leído
 
+### 📈 Observabilidad y Métricas
+- **Instrumentación Completa**: Métricas de lógica de negocio con Micrometer
+- **Monitoreo en Tiempo Real**: Formato Prometheus para visualización en Grafana
+- **Métricas Clave**: Transacciones, compras a crédito, resúmenes, conexiones SSE
+- **Production-Ready**: Configurado con Spring Boot Actuator para diagnóstico y análisis
+
 ---
 
 ## 🛠 Stack Tecnológico
@@ -94,6 +102,12 @@ Sistema Full-Stack profesional para la gestión integral de finanzas personales 
 - 🔨 Lombok (Reducción boilerplate)
 - 📚 SpringDoc OpenAPI (Swagger)
 - 🔄 Flyway (Migraciones BD)
+
+**Observabilidad y Telemetría**
+- 📊 Spring Boot Actuator
+- 📈 Micrometer (Métricas)
+- 🔍 Prometheus (Formato export)
+- 📉 Grafana (Visualización)
 
 **Testing**
 - ✅ JUnit 5
@@ -216,7 +230,9 @@ ProyectoGastos/
 ├── docs/                       # Documentación
 │   ├── DiagramaDeClasesUML.puml
 │   ├── HistoriasDeUsuario.md
-│   └── GuiaDocker.md
+│   ├── GuiaDocker.md
+|   ├── DespliegueProduccion.md
+|   └── ProblemasSoluciones.md
 │
 ├── docker-compose.yml          # Orquestación Docker
 ├── docker-compose.override.yml # Configuración desarrollo
