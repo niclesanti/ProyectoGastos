@@ -60,6 +60,10 @@ import com.campito.backend.model.Transaccion;
 
 import jakarta.persistence.EntityNotFoundException;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import com.campito.backend.config.MetricsConfig;
+
 /**
  * Implementación del servicio para gestión de compras a crédito y tarjetas.
  * 
@@ -88,6 +92,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     private final ResumenMapper resumenMapper;
 
     private final TransaccionService transaccionService;
+    private final MeterRegistry meterRegistry;  // Para métricas de Prometheus/Grafana
 
     /**
      * Registra una compra a crédito en el sistema.
@@ -161,6 +166,15 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         CompraCredito compraCreditoGuardada = compraCreditoRepository.save(compraCredito);
         crearCuotas(compraCreditoGuardada);
         logger.info("Compra credito ID {} registrada exitosamente en espacio ID {}.", compraCreditoGuardada.getId(), espacio.getId());
+        
+        // 📊 MÉTRICA: Incrementar contador de compras a crédito registradas
+        Counter.builder(MetricsConfig.MetricNames.COMPRAS_CREDITO_CREADAS)
+                .description("Total de compras a crédito registradas exitosamente")
+                .tag(MetricsConfig.TagNames.ESPACIO_TRABAJO, espacio.getId().toString())
+                .tag("tarjeta_id", tarjeta.getId().toString())
+                .tag("cuotas", String.valueOf(compraCreditoGuardada.getCantidadCuotas()))
+                .register(meterRegistry)
+                .increment();
         
         return compraCreditoMapper.toResponse(compraCreditoGuardada);
     }
@@ -567,6 +581,20 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         }
         
         cuotaCreditoRepository.saveAll(cuotasDelResumen);
+        
+        // 📊 MÉTRICA: Incrementar contador de resúmenes pagados
+        Counter.builder(MetricsConfig.MetricNames.RESUMENES_PAGADOS)
+                .description("Total de resúmenes de tarjetas pagados exitosamente")
+                .tag(MetricsConfig.TagNames.ESPACIO_TRABAJO, resumen.getTarjeta().getEspacioTrabajo().getId().toString())
+                .tag("tarjeta_id", resumen.getTarjeta().getId().toString())
+                .register(meterRegistry)
+                .increment();
+        
+        // 📊 MÉTRICA: Incrementar contador de cuotas pagadas
+        Counter.builder(MetricsConfig.MetricNames.CUOTAS_PAGADAS)
+                .description("Total de cuotas pagadas")
+                .register(meterRegistry)
+                .increment(cuotasDelResumen.size());
         
         logger.info("Pago del resumen ID: {} procesado exitosamente. Total: ${}", 
             request.idResumen(), resumen.getMontoTotal());

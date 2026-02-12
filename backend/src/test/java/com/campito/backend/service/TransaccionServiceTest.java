@@ -31,6 +31,8 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+
 @ExtendWith(MockitoExtension.class)
 public class TransaccionServiceTest {
 
@@ -71,6 +73,21 @@ public class TransaccionServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Usar SimpleMeterRegistry real para evitar problemas con mocks
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+        transaccionService = new TransaccionServiceImpl(
+            transaccionRepository,
+            espacioRepository,
+            motivoRepository,
+            contactoRepository,
+            cuentaBancariaRepository,
+            gastosIngresosMensualesRepository,
+            cuentaBancariaService,
+            transaccionMapper,
+            contactoTransferenciaMapper,
+            motivoTransaccionMapper,
+            meterRegistry
+        );
         usuarioAdmin = new Usuario();
         usuarioAdmin.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
         usuarioAdmin.setNombre("Admin");

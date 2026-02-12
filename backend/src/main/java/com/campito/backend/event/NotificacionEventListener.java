@@ -15,6 +15,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import com.campito.backend.config.MetricsConfig;
+
 /**
  * Listener que procesa eventos de notificación de forma asíncrona.
  * 
@@ -35,6 +39,7 @@ public class NotificacionEventListener {
     private final NotificacionRepository notificacionRepository;
     private final UsuarioRepository usuarioRepository;
     private final SseEmitterService sseEmitterService;
+    private final MeterRegistry meterRegistry;  // Para métricas de Prometheus/Grafana
     
     /**
      * Maneja el evento de notificación de forma asíncrona.
@@ -67,6 +72,13 @@ public class NotificacionEventListener {
             
             // 4. Enviar via SSE (si el usuario está conectado)
             sseEmitterService.enviarNotificacion(event.getIdUsuario(), notificacion);
+            
+            // 📊 MÉTRICA: Incrementar contador de notificaciones enviadas
+            Counter.builder(MetricsConfig.MetricNames.NOTIFICACIONES_ENVIADAS)
+                    .description("Total de notificaciones enviadas exitosamente")
+                    .tag(MetricsConfig.TagNames.TIPO_NOTIFICACION, event.getTipo().name())
+                    .register(meterRegistry)
+                    .increment();
             
             logger.info("Notificación procesada exitosamente: id={}", notificacion.getId());
             
