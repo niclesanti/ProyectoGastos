@@ -1,5 +1,6 @@
 package com.campito.backend.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -441,7 +442,7 @@ public class TransaccionServiceImpl implements TransaccionService {
      * Método auxiliar para anotar gastos e ingresos por mes
      */
     @Transactional
-    private void gastosIgresosMesAnotar(TipoTransaccion tipo, Float monto, UUID idEspacioTrabajo) {
+    private void gastosIgresosMesAnotar(TipoTransaccion tipo, BigDecimal monto, UUID idEspacioTrabajo) {
 
         if (tipo == null || monto == null || idEspacioTrabajo == null) {
             logger.warn("Argumentos inválidos para anotar gastos/ingresos: tipo={}, monto={}, espacioId={}", tipo, monto, idEspacioTrabajo);
@@ -464,8 +465,8 @@ public class TransaccionServiceImpl implements TransaccionService {
             return GastosIngresosMensuales.builder()
                     .anio(anio)
                     .mes(mes)
-                    .gastos(0f)
-                    .ingresos(0f)
+                    .gastos(BigDecimal.ZERO)
+                    .ingresos(BigDecimal.ZERO)
                     .espacioTrabajo(espacio)
                     .build();
         });
@@ -485,7 +486,7 @@ public class TransaccionServiceImpl implements TransaccionService {
      * Método auxiliar para eliminar gastos e ingresos por mes porque se eliminó una transacción
      */
     @Transactional
-    private void gastosIngresosMesDelete(TipoTransaccion tipo, Float monto, UUID idEspacioTrabajo) {
+    private void gastosIngresosMesDelete(TipoTransaccion tipo, BigDecimal monto, UUID idEspacioTrabajo) {
         
         if (tipo == null || monto == null || idEspacioTrabajo == null) {
             logger.warn("Argumentos inválidos para anotar gastos/ingresos: tipo={}, monto={}, espacioId={}", tipo, monto, idEspacioTrabajo);
@@ -506,14 +507,14 @@ public class TransaccionServiceImpl implements TransaccionService {
         });
 
         if (tipo.equals(TipoTransaccion.GASTO)) {
-            if (registro.getGastos() < monto) {
+            if (registro.getGastos().compareTo(monto) < 0) {
                 String msg = String.format("No se puede eliminar la transacción. El monto a eliminar ($%.2f) es mayor que los gastos registrados en este mes ($%.2f).", monto, registro.getGastos());
                 logger.warn(msg);
                 throw new SaldoInsuficienteException(msg);
             }
             registro.eliminarGastos(monto);
         } else {
-            if (registro.getIngresos() < monto) {
+            if (registro.getIngresos().compareTo(monto) < 0) {
                 String msg = String.format("No se puede eliminar la transacción. El monto a eliminar ($%.2f) es mayor que los ingresos registrados en este mes ($%.2f).", monto, registro.getIngresos());
                 logger.warn(msg);
                 throw new SaldoInsuficienteException(msg);

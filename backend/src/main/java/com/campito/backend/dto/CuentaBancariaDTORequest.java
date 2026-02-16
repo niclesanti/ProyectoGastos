@@ -1,5 +1,6 @@
 package com.campito.backend.dto;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 import com.campito.backend.validation.ValidNombre;
 import com.campito.backend.validation.ValidSaldoActual;
@@ -19,6 +20,6 @@ public record CuentaBancariaDTORequest(
     UUID idEspacioTrabajo,
     @NotNull(message = "El saldo actual no puede ser nulo")
     @ValidSaldoActual
-    Float saldoActual
+    BigDecimal saldoActual
 ) {
 }

@@ -17,6 +17,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -38,7 +39,7 @@ public class CuentaBancaria {
     private String entidadFinanciera;
 
     @Column(name = "saldo_actual", nullable = false, columnDefinition = "NUMERIC(15,2)")
-    private Float saldoActual;
+    private BigDecimal saldoActual;
     
     @ManyToOne
     @JoinColumn(name = "id_espacio_trabajo", nullable = false)
@@ -52,19 +53,19 @@ public class CuentaBancaria {
     @Column(name = "fecha_modificacion", nullable = false)
     private LocalDateTime fechaModificacion;
 
-    public void actualizarSaldoNuevaTransaccion(Float monto, TipoTransaccion tipo) {
+    public void actualizarSaldoNuevaTransaccion(BigDecimal monto, TipoTransaccion tipo) {
         if (tipo.equals(TipoTransaccion.INGRESO)) {
-            this.saldoActual += monto;
+            this.saldoActual = this.saldoActual.add(monto);
         } else {
-            this.saldoActual -= monto;
+            this.saldoActual = this.saldoActual.subtract(monto);
         }
     }
 
-    public void actualizarSaldoEliminarTransaccion(Float monto, TipoTransaccion tipo) {
+    public void actualizarSaldoEliminarTransaccion(BigDecimal monto, TipoTransaccion tipo) {
         if (tipo.equals(TipoTransaccion.INGRESO)) {
-            this.saldoActual -= monto;
+            this.saldoActual = this.saldoActual.subtract(monto);
         } else {
-            this.saldoActual += monto;
+            this.saldoActual = this.saldoActual.add(monto);
         }
     }
 }

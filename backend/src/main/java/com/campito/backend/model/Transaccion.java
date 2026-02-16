@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -25,7 +26,7 @@ public class Transaccion {
     private TipoTransaccion tipo;
 
     @Column(name = "monto", nullable = false, columnDefinition = "NUMERIC(15,2)")
-    private Float monto;
+    private BigDecimal monto;
 
     @Column(name = "fecha", nullable = false)
     private LocalDate fecha;

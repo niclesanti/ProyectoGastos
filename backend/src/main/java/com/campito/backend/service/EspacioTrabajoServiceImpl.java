@@ -1,5 +1,6 @@
 package com.campito.backend.service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -86,7 +87,7 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
         });
 
         EspacioTrabajo espacioTrabajo = espacioTrabajoMapper.toEntity(espacioTrabajoDTO);
-        espacioTrabajo.setSaldo(0f);
+        espacioTrabajo.setSaldo(BigDecimal.ZERO);
         espacioTrabajo.setUsuarioAdmin(usuario);
         espacioTrabajo.setUsuariosParticipantes(new ArrayList<>());
         espacioTrabajo.getUsuariosParticipantes().add(usuario);

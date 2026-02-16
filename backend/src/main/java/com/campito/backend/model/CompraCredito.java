@@ -1,5 +1,6 @@
 package com.campito.backend.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -25,7 +26,7 @@ public class CompraCredito {
     private LocalDate fechaCompra;
 
     @Column(name = "monto_total", nullable = false, columnDefinition = "NUMERIC(15,2)")
-    private Float montoTotal;
+    private BigDecimal montoTotal;
 
     @Column(name = "cantidad_cuotas", nullable = false)
     private int cantidadCuotas;

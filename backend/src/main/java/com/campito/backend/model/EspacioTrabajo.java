@@ -1,5 +1,6 @@
 package com.campito.backend.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -30,7 +31,7 @@ public class EspacioTrabajo {
     private String nombre;
 
     @Column(name = "saldo", nullable = false, columnDefinition = "NUMERIC(15,2)")
-    private Float saldo;// Asignar saldo inicial a 0.0f
+    private BigDecimal saldo;// Asignar saldo inicial en BigDecimal.ZERO
 
     @ManyToOne
     @JoinColumn(name = "usuario_admin_id", nullable = false)
@@ -48,19 +49,19 @@ public class EspacioTrabajo {
     @Column(name = "fecha_modificacion", nullable = false)
     private LocalDateTime fechaModificacion;
 
-    public void actualizarSaldoNuevaTransaccion(Float monto, TipoTransaccion tipo) {
+    public void actualizarSaldoNuevaTransaccion(BigDecimal monto, TipoTransaccion tipo) {
         if (tipo.equals(TipoTransaccion.INGRESO)) {
-            this.saldo += monto;
+            this.saldo = this.saldo.add(monto);
         } else {
-            this.saldo -= monto;
+            this.saldo = this.saldo.subtract(monto);
         }
     }
 
-    public void actualizarSaldoEliminarTransaccion(Float monto, TipoTransaccion tipo) {
+    public void actualizarSaldoEliminarTransaccion(BigDecimal monto, TipoTransaccion tipo) {
         if (tipo.equals(TipoTransaccion.INGRESO)) {
-            this.saldo -= monto;
+            this.saldo = this.saldo.subtract(monto);
         } else {
-            this.saldo += monto;
+            this.saldo = this.saldo.add(monto);
         }
     }
 }

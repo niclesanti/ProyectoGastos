@@ -1,5 +1,6 @@
 package com.campito.backend.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -7,7 +8,7 @@ import java.util.UUID;
 public record CompraCreditoDTOResponse(
     Long id,
     LocalDate fechaCompra,
-    Float montoTotal,
+    BigDecimal montoTotal,
     int cantidadCuotas,
     int cuotasPagadas,
     String descripcion,

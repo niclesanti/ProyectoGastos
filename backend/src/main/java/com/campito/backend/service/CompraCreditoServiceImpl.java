@@ -1,5 +1,6 @@
 package com.campito.backend.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -57,6 +58,7 @@ import com.campito.backend.model.Resumen;
 import com.campito.backend.model.Tarjeta;
 import com.campito.backend.model.TipoTransaccion;
 import com.campito.backend.model.Transaccion;
+import com.campito.backend.util.MoneyUtils;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -498,7 +500,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
                 "El resumen no pertenece al espacio de trabajo especificado");
         }
         
-        if (!request.monto().equals(resumen.getMontoTotal())) {
+        if (request.monto().compareTo(resumen.getMontoTotal()) != 0) {
             throw new IllegalArgumentException(
                 "El monto a pagar debe ser igual al total del resumen: $" + resumen.getMontoTotal());
         }
@@ -711,7 +713,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
             return;
         }
 
-        Float montoCuota = compraCredito.getMontoTotal() / compraCredito.getCantidadCuotas();
+        BigDecimal montoCuota = MoneyUtils.divide(compraCredito.getMontoTotal(), compraCredito.getCantidadCuotas());
         
         LocalDate fechaCompra = compraCredito.getFechaCompra();
         Integer diaCierre = tarjeta.getDiaCierre();

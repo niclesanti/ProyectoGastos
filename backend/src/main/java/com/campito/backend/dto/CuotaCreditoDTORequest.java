@@ -1,5 +1,6 @@
 package com.campito.backend.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import jakarta.validation.constraints.FutureOrPresent;
@@ -18,7 +19,7 @@ public record CuotaCreditoDTORequest(
     @NotNull(message = "El monto no puede ser nulo")
     @Min(value = 0, message = "El monto no puede ser negativo")
     @Max(value = 9999999999999L, message = "El monto no puede exceder los 9.999.999.999.999,99")
-    Float montoCuota,
+    BigDecimal montoCuota,
     @NotNull(message = "El ID de la compra de crédito no puede ser nulo")
     Long idCompraCredito,
     Long idResumenAsociado
