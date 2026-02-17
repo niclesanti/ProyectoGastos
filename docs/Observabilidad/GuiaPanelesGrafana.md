@@ -26,7 +26,6 @@ Esta guía te muestra cómo crear paneles personalizados en Grafana Cloud para v
 | Nombre de Métrica | Tipo | Descripción | Tags |
 |-------------------|------|-------------|------|
 | `negocio_compras_credito_creadas_total` | Counter | Total de compras a crédito | `espacio_trabajo_id`, `tarjeta_id`, `cuotas` |
-| `negocio_cuotas_pagadas_total` | Counter | Total de cuotas pagadas | - |
 
 ### Categoría 3: Resúmenes de Tarjetas (Scheduler)
 

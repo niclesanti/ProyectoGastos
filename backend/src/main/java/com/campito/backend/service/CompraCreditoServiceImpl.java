@@ -592,12 +592,6 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
                 .register(meterRegistry)
                 .increment();
         
-        // 📊 MÉTRICA: Incrementar contador de cuotas pagadas
-        Counter.builder(MetricsConfig.MetricNames.CUOTAS_PAGADAS)
-                .description("Total de cuotas pagadas")
-                .register(meterRegistry)
-                .increment(cuotasDelResumen.size());
-        
         logger.info("Pago del resumen ID: {} procesado exitosamente. Total: ${}", 
             request.idResumen(), resumen.getMontoTotal());
     }
