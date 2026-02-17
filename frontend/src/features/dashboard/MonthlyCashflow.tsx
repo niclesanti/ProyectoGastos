@@ -11,9 +11,10 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
-import { Loader2 } from 'lucide-react'
+import { Loader2, BarChart3 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { formatCurrency } from '@/lib/utils'
+import { EmptyState } from '@/components/EmptyState'
 
 const chartConfig = {
   ingresos: {
@@ -71,6 +72,11 @@ export function MonthlyCashflow() {
 
     return filtered
   }, [stats, range])
+
+  // Verificar si hay datos reales (no solo ceros)
+  const hasRealData = useMemo(() => {
+    return chartData.some(item => item.ingresos > 0 || item.gastos > 0)
+  }, [chartData])
 
   // Función para formatear el eje Y con valores abreviados
   const formatYAxis = (value: number) => {
@@ -138,6 +144,16 @@ export function MonthlyCashflow() {
           <div className="flex items-center justify-center h-[250px] sm:h-[300px] lg:h-[350px]">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
+        ) : !hasRealData ? (
+          <EmptyState
+            illustration={
+              <div className="relative">
+                <BarChart3 className="w-full h-full text-muted-foreground" strokeWidth={1.5} />
+              </div>
+            }
+            title="Aún no hay tendencias"
+            description="Comienza a registrar tus ingresos y gastos para ver tu flujo de caja mensual aquí."
+          />
         ) : (
           <ChartContainer config={chartConfig} className="h-[200px] sm:h-[280px] lg:h-[350px] w-full">
             <BarChart accessibilityLayer data={chartData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>

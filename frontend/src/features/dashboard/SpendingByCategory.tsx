@@ -10,8 +10,9 @@ import {
 } from '@/components/ui/chart'
 import { useMemo } from 'react'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
-import { Loader2 } from 'lucide-react'
+import { Loader2, PieChart as PieChartIcon } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { EmptyState } from '@/components/EmptyState'
 
 // Función para generar colores con alta saturación similares al chart de flujo de caja
 const generateCategoryColor = (index: number, total: number): string => {
@@ -77,9 +78,16 @@ export function SpendingByCategory() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : chartDataWithColors.length === 0 ? (
-          <div className="flex items-center justify-center min-h-[150px] sm:min-h-[200px] text-muted-foreground">
-            No hay datos de gastos por categoría
-          </div>
+          <EmptyState
+            illustration={
+              <div className="relative">
+                <PieChartIcon className="w-full h-full text-muted-foreground" strokeWidth={1.5} />
+              </div>
+            }
+            title="Sin gastos registrados"
+            description="Aún no tienes gastos en este mes. Registra tus movimientos para ver la distribución por categoría."
+            size="sm"
+          />
         ) : (
         <ChartContainer
           config={chartConfig}

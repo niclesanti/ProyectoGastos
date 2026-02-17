@@ -21,6 +21,8 @@ import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
 import { useRemoverTransaccion } from '@/features/selectors/api/selector-queries'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/hooks/useToast'
+import { EmptyState } from '@/components/EmptyState'
+import { History } from 'lucide-react'
 
 const formatFecha = (fechaString: string): string => {
   try {
@@ -250,6 +252,24 @@ export function RecentTransactions() {
     return (
       <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
         <p className="text-sm text-destructive">{error}</p>
+      </div>
+    )
+  }
+
+  if (transactions.length === 0) {
+    return (
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Actividad reciente</h3>
+        <EmptyState
+          illustration={
+            <div className="relative">
+              <History className="w-full h-full text-muted-foreground" strokeWidth={1.5} />
+            </div>
+          }
+          title="El historial está limpio"
+          description="Tus ingresos y gastos aparecerán aquí cronológicamente. Comienza registrando tu primera transacción."
+          size="md"
+        />
       </div>
     )
   }

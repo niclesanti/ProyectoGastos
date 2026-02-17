@@ -5,6 +5,8 @@ import { useAppStore } from '@/store/app-store'
 import { useEffect, useState } from 'react'
 import type { CuentaBancaria } from '@/types'
 import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/EmptyState'
+import { Landmark } from 'lucide-react'
 
 const columns: ColumnDef<CuentaBancaria>[] = [
   {
@@ -87,6 +89,24 @@ export function BankAccounts() {
     return (
       <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
         <p className="text-sm text-destructive">{error}</p>
+      </div>
+    )
+  }
+
+  if (accounts.length === 0) {
+    return (
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Cuentas bancarias</h3>
+        <EmptyState
+          illustration={
+            <div className="relative">
+              <Landmark className="w-full h-full text-muted-foreground" strokeWidth={1.5} />
+            </div>
+          }
+          title="Tu billetera está esperando"
+          description="Registra tus cuentas bancarias para tener una visión clara de tu saldo disponible."
+          size="md"
+        />
       </div>
     )
   }
