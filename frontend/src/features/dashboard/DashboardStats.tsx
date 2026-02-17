@@ -4,6 +4,7 @@ import { ArrowUpRight, ArrowDownRight, DollarSign, CreditCard, AlertCircle, Wall
 import { formatCurrency } from '@/lib/utils'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { MoneyValue, toMoneyDecimal } from '@/types/money'
+import { AnimatedCounter } from '@/components/AnimatedCounter'
 
 
 interface StatsCardProps {
@@ -19,12 +20,9 @@ interface StatsCardProps {
 
 export function StatsCard({ title, value, change, description, icon, trend, isLoading, highlightNegative }: StatsCardProps) {
   // Handle formatting for different value types
-  const formattedValue = typeof value === 'string' 
-    ? value 
-    : formatCurrency(value)
+  const numericValue = typeof value === 'string' ? 0 : toMoneyDecimal(value).toNumber()
   
   // Check if negative for highlighting
-  const numericValue = typeof value === 'string' ? 0 : toMoneyDecimal(value).toNumber()
   const isNegative = numericValue < 0 && highlightNegative
   const valueClass = isNegative ? 'text-rose-300' : 'text-white'
 
@@ -44,7 +42,12 @@ export function StatsCard({ title, value, change, description, icon, trend, isLo
             <>
               <p className="text-xs md:text-sm font-medium text-muted-foreground mb-1 md:mb-2">{title}</p>
               <div className="flex items-baseline gap-2">
-                <h3 className={`text-lg md:text-2xl font-bold ${valueClass}`}>{formattedValue}</h3>
+                <h3 className={`text-lg md:text-2xl font-bold ${valueClass}`}>
+                  <AnimatedCounter
+                    value={numericValue}
+                    formatFn={(val) => formatCurrency(val)}
+                  />
+                </h3>
                 {change !== undefined && (
                   <Badge variant={trend === 'up' ? 'success' : 'warning'} className="text-xs">
                     {trend === 'up' ? (

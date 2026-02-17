@@ -52,7 +52,7 @@ import { CalendarIcon, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/useToast'
 import { useMoney } from '@/hooks/useMoney'
 import { MoneyDisplay } from '@/components/MoneyDisplay'
 import {

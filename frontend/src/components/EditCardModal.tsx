@@ -3,7 +3,7 @@ import { useTarjetas, useUpdateTarjeta } from '@/features/selectors/api/selector
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/useToast'
 import { Button } from '@/components/ui/button'
 import {
   Form,

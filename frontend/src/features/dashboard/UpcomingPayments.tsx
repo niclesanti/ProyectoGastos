@@ -13,11 +13,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Eye, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Eye, Trash2, CalendarCheck2 } from 'lucide-react'
 import { CreditPurchaseDetailsModal } from '@/components/CreditPurchaseDetailsModal'
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
 import { useRemoverCompraCredito } from '@/features/selectors/api/selector-queries'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/useToast'
+import { EmptyState } from '@/components/EmptyState'
 
 export function UpcomingPayments() {
   const currentWorkspace = useAppStore((state) => state.currentWorkspace)
@@ -190,6 +191,24 @@ export function UpcomingPayments() {
     return (
       <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
         <p className="text-sm text-destructive">{error}</p>
+      </div>
+    )
+  }
+
+  if (compras.length === 0) {
+    return (
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Compras con cuotas pendientes</h3>
+        <EmptyState
+          illustration={
+            <div className="relative">
+              <CalendarCheck2 className="w-full h-full text-muted-foreground" strokeWidth={1.5} />
+            </div>
+          }
+          title="¡Todo al día!"
+          description="No tienes compras con cuotas pendientes por ahora. Tus finanzas están bajo control."
+          size="md"
+        />
       </div>
     )
   }

@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/useToast'
 import { MoneyInput } from '@/components/MoneyInput'
 
 // Esquema de validación Zod
