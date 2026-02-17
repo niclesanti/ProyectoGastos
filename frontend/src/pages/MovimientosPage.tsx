@@ -1,11 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useAppStore } from '@/store/app-store'
 import { useBuscarTransacciones, useMotivosTransaccion, useContactosTransaccion, useRemoverTransaccion } from '@/features/selectors/api/selector-queries'
-import { useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import { TransactionDetailsModal } from '@/components/TransactionDetailsModal'
-import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
-import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -89,6 +84,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { MoneyDecimal } from '@/lib/money'
+import { useMoney } from '@/hooks/useMoney'
+import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
+import { TransactionDetailsModal } from '@/components/TransactionDetailsModal'
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
+import { formatCurrency } from '@/lib/utils'
 
 interface Transaction {
   id: string
@@ -97,7 +100,7 @@ interface Transaction {
   motivo: string
   contacto: string
   cuenta: string
-  monto: number
+  monto: MoneyDecimal
   descripcion?: string
   nombreEspacioTrabajo: string
   nombreCompletoAuditoria: string
@@ -266,24 +269,21 @@ export function MovimientosPage() {
     })
   }
 
+  const { sum } = useMoney()
+
   // Las transacciones ya vienen ordenadas del backend por fechaCreacion DESC
   const filteredTransactions = transactions
 
   // Calcular totales de la página actual
   const { totalIngresos, totalGastos } = useMemo(() => {
-    const ingresos = filteredTransactions
-      .filter(t => t.tipo === 'Ingreso')
-      .reduce((sum, t) => sum + t.monto, 0)
+    const transaccionesIngresos = filteredTransactions.filter(t => t.tipo === 'Ingreso')
+    const transaccionesGastos = filteredTransactions.filter(t => t.tipo === 'Gasto')
     
-    const gastos = filteredTransactions
-      .filter(t => t.tipo === 'Gasto')
-      .reduce((sum, t) => sum + t.monto, 0)
-
     return {
-      totalIngresos: ingresos,
-      totalGastos: gastos
+      totalIngresos: sum(transaccionesIngresos.map(t => t.monto)),
+      totalGastos: sum(transaccionesGastos.map(t => t.monto)),
     }
-  }, [filteredTransactions])
+  }, [filteredTransactions, sum])
 
   // Verificar si hay filtros activos
   const hasActiveFilters = mesSeleccionado !== 'todos' || 
@@ -362,15 +362,6 @@ export function MovimientosPage() {
     }
   }
 
-  // Formatear moneda
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 2,
-    }).format(amount)
-  }
-
   const columns: ColumnDef<Transaction>[] = [
     {
       id: 'drag',
@@ -428,7 +419,7 @@ export function MovimientosPage() {
       accessorKey: 'monto',
       header: () => <div className="text-right">Monto</div>,
       cell: ({ row }) => {
-        const monto = row.getValue('monto') as number
+        const monto = row.getValue('monto') as MoneyDecimal
         const tipo = row.original.tipo
         return (
           <div className={cn(

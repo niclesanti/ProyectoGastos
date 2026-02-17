@@ -20,11 +20,14 @@ import {
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { MoneyDecimal } from '@/lib/money'
+import { MoneyDisplay } from '@/components/MoneyDisplay'
+import { useMoney } from '@/hooks/useMoney'
 
 interface CreditPurchase {
   id: string
   fechaCompra: string
-  montoTotal: number
+  montoTotal: MoneyDecimal
   cantidadCuotas: number
   cuotasPagadas: number
   descripcion?: string
@@ -49,18 +52,13 @@ export function CreditPurchaseDetailsModal({
   open,
   onOpenChange,
 }: CreditPurchaseDetailsModalProps) {
+  const { divide } = useMoney()
+  
   if (!purchase) return null
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 2,
-    }).format(amount)
-  }
 
   const porcentajePagado = Math.round((purchase.cuotasPagadas / purchase.cantidadCuotas) * 100)
   const isPaid = purchase.cuotasPagadas === purchase.cantidadCuotas
+  const montoPorCuota = divide(purchase.montoTotal, purchase.cantidadCuotas)
 
   const formatCardNumber = (numero: string | undefined) => {
     if (!numero) return '-'
@@ -87,10 +85,10 @@ export function CreditPurchaseDetailsModal({
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Monto total</p>
                 <p className="text-2xl font-bold font-mono tabular-nums text-amber-400">
-                  {formatCurrency(purchase.montoTotal)}
+                  <MoneyDisplay value={purchase.montoTotal} />
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {purchase.cantidadCuotas} cuotas de {formatCurrency(purchase.montoTotal / purchase.cantidadCuotas)}
+                  {purchase.cantidadCuotas} cuotas de <MoneyDisplay value={montoPorCuota} />
                 </p>
               </div>
               <div className="flex flex-col items-end gap-2">
