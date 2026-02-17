@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '@/store/app-store'
 import { useTarjetas, useCreateTarjeta } from '@/features/selectors/api/selector-queries'
 import { useForm } from 'react-hook-form'
@@ -123,12 +124,36 @@ function CreditCardComponent({ card }: { card: TarjetaDTOResponse }) {
   }
 
   return (
-    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
-      <div className={cn(
-        'relative h-48 p-6 flex flex-col justify-between bg-gradient-to-br overflow-hidden',
-        'border-t border-white/10',
-        getCardColor(card.redDePago)
-      )}>
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+      animate={{ 
+        opacity: 1, 
+        scale: 1, 
+        y: 0,
+        transition: {
+          type: 'spring',
+          stiffness: 350,
+          damping: 25,
+        }
+      }}
+      exit={{ 
+        opacity: 0, 
+        scale: 0.9,
+        transition: { duration: 0.2 }
+      }}
+      whileHover={{ 
+        scale: 1.02,
+        y: -4,
+        transition: { type: 'spring', stiffness: 400, damping: 20 }
+      }}
+    >
+      <Card className="overflow-hidden shadow-lg group">
+        <div className={cn(
+          'relative h-48 p-6 flex flex-col justify-between bg-gradient-to-br overflow-hidden',
+          'border-t border-white/10',
+          getCardColor(card.redDePago)
+        )}>
         {/* SVG Wave Pattern Background */}
         <svg
           className="absolute inset-0 w-full h-full opacity-10 pointer-events-none"
@@ -197,7 +222,8 @@ function CreditCardComponent({ card }: { card: TarjetaDTOResponse }) {
           </div>
         </div>
       </CardContent>
-    </Card>
+      </Card>
+    </motion.div>
   )
 }
 
@@ -475,11 +501,16 @@ export function CreditosPage() {
           <p className="text-muted-foreground">Cargando tarjetas...</p>
         </div>
       ) : tarjetas.length > 0 ? (
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {tarjetas.map((card) => (
-            <CreditCardComponent key={card.id} card={card} />
-          ))}
-        </div>
+        <motion.div 
+          className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          layout
+        >
+          <AnimatePresence mode="popLayout">
+            {tarjetas.map((card) => (
+              <CreditCardComponent key={card.id} card={card} />
+            ))}
+          </AnimatePresence>
+        </motion.div>
       ) : (
         /* Empty State */
         <Card>
