@@ -11,6 +11,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
@@ -147,7 +148,7 @@ public class CompraCreditoServiceTest {
         compraCreditoEntity = new CompraCredito();
         compraCreditoEntity.setId(100L);
         compraCreditoEntity.setTarjeta(tarjeta);
-        compraCreditoEntity.setMontoTotal(1000f);
+        compraCreditoEntity.setMontoTotal(new BigDecimal("1000.00"));
         compraCreditoEntity.setCantidadCuotas(5);
         compraCreditoEntity.setFechaCompra(LocalDate.of(2025, Month.JANUARY, 1));
         MotivoTransaccion motivoDefault = new MotivoTransaccion();
@@ -215,7 +216,7 @@ public class CompraCreditoServiceTest {
 
     @Test
     void registrarCompraCredito_espacioNoExiste_lanzaEntityNotFound() {
-        CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.now(), 100f, 2, "desc", "Aud", espacio.getId(), 1L, null, 1L);
+        CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.now(), new BigDecimal("100.00"), 2, "desc", "Aud", espacio.getId(), 1L, null, 1L);
         when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.empty());
         assertThrows(EntityNotFoundException.class, () -> compraCreditoService.registrarCompraCredito(dto));
         verify(compraCreditoRepository, never()).save(any());
@@ -223,7 +224,7 @@ public class CompraCreditoServiceTest {
 
     @Test
     void registrarCompraCredito_creaCuotasSiCantidadValida_yGuardaCompra() {
-        CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.of(2025, Month.JULY, 20), 1000f, 3, "desc", "Aud", espacio.getId(), 1L, null, 10L);
+        CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.of(2025, Month.JULY, 20), new BigDecimal("1000.00"), 3, "desc", "Aud", espacio.getId(), 1L, null, 10L);
         when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
         MotivoTransaccion motivoConId = new MotivoTransaccion();
         motivoConId.setId(1L);
@@ -254,7 +255,7 @@ public class CompraCreditoServiceTest {
 
     @Test
     void registrarCompraCredito_conComercioOpcional_asignaComercio() {
-        CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.of(2025, Month.JUNE, 10), 500f, 2, "desc", "Aud", espacio.getId(), 1L, 99L, 10L);
+        CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.of(2025, Month.JUNE, 10), new BigDecimal("500.00"), 2, "desc", "Aud", espacio.getId(), 1L, 99L, 10L);
 
         when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
         MotivoTransaccion motivoConId2 = new MotivoTransaccion();
@@ -292,7 +293,7 @@ public class CompraCreditoServiceTest {
 
     @Test
     void registrarCompraCredito_cantidadCuotasCero_noCreaCuotas() {
-        CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.now(), 1000f, 0, "desc", "Aud", espacio.getId(), 1L, null, 10L);
+        CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.now(), new BigDecimal("1000.00"), 0, "desc", "Aud", espacio.getId(), 1L, null, 10L);
         when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
         MotivoTransaccion motivoConId3 = new MotivoTransaccion();
         motivoConId3.setId(1L);
@@ -449,7 +450,7 @@ public class CompraCreditoServiceTest {
         CompraCredito c = new CompraCredito();
         c.setId(200L);
         when(compraCreditoRepository.findByEspacioTrabajo_IdAndCuotasPendientesPageable(eq(espacio.getId()), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(c)));
-        when(compraCreditoMapper.toResponse(any())).thenReturn(new CompraCreditoDTOResponse(200L, LocalDate.now(), 100f, 2, 0, "desc", "Aud", LocalDate.now().atStartOfDay(), espacio.getId(), "esp", 1L, "mot", null, null, 10L, "num", "ent", "red"));
+        when(compraCreditoMapper.toResponse(any())).thenReturn(new CompraCreditoDTOResponse(200L, LocalDate.now(), new BigDecimal("100.00"), 2, 0, "desc", "Aud", LocalDate.now().atStartOfDay(), espacio.getId(), "esp", 1L, "mot", null, null, 10L, "num", "ent", "red"));
 
         var res = compraCreditoService.listarComprasCreditoDebeCuotas(espacio.getId(), null, null);
         assertEquals(1, res.getContent().size());
@@ -465,7 +466,7 @@ public class CompraCreditoServiceTest {
         CompraCredito c = new CompraCredito();
         c.setId(201L);
         when(compraCreditoRepository.findByEspacioTrabajo_Id(espacio.getId())).thenReturn(List.of(c));
-        when(compraCreditoMapper.toResponse(any())).thenReturn(new CompraCreditoDTOResponse(201L, LocalDate.now(), 50f, 1, 0, "desc2", "Aud", LocalDate.now().atStartOfDay(), espacio.getId(), "esp", 1L, "mot", null, null, 10L, "num", "ent", "red"));
+        when(compraCreditoMapper.toResponse(any())).thenReturn(new CompraCreditoDTOResponse(201L, LocalDate.now(), new BigDecimal("50.00"), 1, 0, "desc2", "Aud", LocalDate.now().atStartOfDay(), espacio.getId(), "esp", 1L, "mot", null, null, 10L, "num", "ent", "red"));
 
         var res = compraCreditoService.BuscarComprasCredito(espacio.getId());
         assertEquals(1, res.size());
@@ -510,7 +511,7 @@ public class CompraCreditoServiceTest {
 
     @Test
     void pagarResumenTarjeta_resumenNoExiste_lanzaEntityNotFound() {
-        var req = new PagarResumenTarjetaRequest(999L, LocalDate.now(), 100f, "Aud", espacio.getId(), null);
+        var req = new PagarResumenTarjetaRequest(999L, LocalDate.now(), new BigDecimal("100.00"), "Aud", espacio.getId(), null);
         when(resumenRepository.findById(999L)).thenReturn(Optional.empty());
         assertThrows(EntityNotFoundException.class, () -> compraCreditoService.pagarResumenTarjeta(req));
     }
@@ -521,7 +522,7 @@ public class CompraCreditoServiceTest {
         resumen.setId(50L);
         resumen.setEstado(EstadoResumen.PAGADO);
         resumen.setTarjeta(tarjeta);
-        var req = new PagarResumenTarjetaRequest(50L, LocalDate.now(), 100f, "Aud", espacio.getId(), null);
+        var req = new PagarResumenTarjetaRequest(50L, LocalDate.now(), new BigDecimal("100.00"), "Aud", espacio.getId(), null);
         when(resumenRepository.findById(50L)).thenReturn(Optional.of(resumen));
         assertThrows(IllegalStateException.class, () -> compraCreditoService.pagarResumenTarjeta(req));
     }
@@ -532,8 +533,8 @@ public class CompraCreditoServiceTest {
         resumen.setId(51L);
         resumen.setEstado(EstadoResumen.CERRADO);
         resumen.setTarjeta(tarjeta);
-        resumen.setMontoTotal(200f);
-        var req = new PagarResumenTarjetaRequest(51L, LocalDate.now(), 100f, "Aud", espacio.getId(), null);
+        resumen.setMontoTotal(new BigDecimal("200.00"));
+        var req = new PagarResumenTarjetaRequest(51L, LocalDate.now(), new BigDecimal("100.00"), "Aud", espacio.getId(), null);
         when(resumenRepository.findById(51L)).thenReturn(Optional.of(resumen));
         assertThrows(IllegalArgumentException.class, () -> compraCreditoService.pagarResumenTarjeta(req));
     }
@@ -544,11 +545,11 @@ public class CompraCreditoServiceTest {
         resumen.setId(52L);
         resumen.setEstado(EstadoResumen.CERRADO);
         resumen.setTarjeta(tarjeta);
-        resumen.setMontoTotal(100f);
+        resumen.setMontoTotal(new BigDecimal("100.00"));
 
         CuentaBancaria cuenta = new CuentaBancaria();
         cuenta.setId(3L);
-        cuenta.setSaldoActual(50f);
+        cuenta.setSaldoActual(new BigDecimal("50.00"));
         cuenta.setEspacioTrabajo(espacio);
 
         when(resumenRepository.findById(52L)).thenReturn(Optional.of(resumen));
@@ -565,7 +566,7 @@ public class CompraCreditoServiceTest {
         );
 
         // request indicando idCuentaBancaria = 3L
-        assertThrows(IllegalStateException.class, () -> compraCreditoService.pagarResumenTarjeta(new PagarResumenTarjetaRequest(52L, LocalDate.now(), 100f, "Aud", espacio.getId(), 3L)));
+        assertThrows(IllegalStateException.class, () -> compraCreditoService.pagarResumenTarjeta(new PagarResumenTarjetaRequest(52L, LocalDate.now(), new BigDecimal("100.00"), "Aud", espacio.getId(), 3L)));
     }
 
     @Test
@@ -574,7 +575,7 @@ public class CompraCreditoServiceTest {
         resumen.setId(60L);
         resumen.setEstado(EstadoResumen.CERRADO);
         resumen.setTarjeta(tarjeta);
-        resumen.setMontoTotal(300f);
+        resumen.setMontoTotal(new BigDecimal("300.00"));
 
         when(resumenRepository.findById(60L)).thenReturn(Optional.of(resumen));
 
@@ -583,7 +584,7 @@ public class CompraCreditoServiceTest {
         when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // Transaccion creada por TransaccionService
-        TransaccionDTOResponse txResp = new TransaccionDTOResponse(700L, LocalDate.now(), 300f, TipoTransaccion.GASTO, "desc", "Aud", java.time.LocalDateTime.now(), espacio.getId(), "esp", 1L, "mot", 1L, "contact", "nombreCuenta");
+        TransaccionDTOResponse txResp = new TransaccionDTOResponse(700L, LocalDate.now(), new BigDecimal("300.00"), TipoTransaccion.GASTO, "desc", "Aud", java.time.LocalDateTime.now(), espacio.getId(), "esp", 1L, "mot", 1L, "contact", "nombreCuenta");
         when(transaccionService.registrarTransaccion(any())).thenReturn(txResp);
         when(transaccionRepository.findById(700L)).thenReturn(Optional.of(new Transaccion()));
 
@@ -593,7 +594,7 @@ public class CompraCreditoServiceTest {
         when(cuotaCreditoRepository.findByResumenAsociado_Id(60L)).thenReturn(List.of(cuota1, cuota2));
 
         // Ejecutar
-        PagarResumenTarjetaRequest req = new PagarResumenTarjetaRequest(60L, LocalDate.now(), 300f, "Aud", espacio.getId(), null);
+        PagarResumenTarjetaRequest req = new PagarResumenTarjetaRequest(60L, LocalDate.now(), new BigDecimal("300.00"), "Aud", espacio.getId(), null);
         compraCreditoService.pagarResumenTarjeta(req);
 
         // Verificaciones
@@ -629,7 +630,7 @@ public class CompraCreditoServiceTest {
     void listarResumenesPorEspacioTrabajo_retornaLista() {
         Resumen r = new Resumen(); r.setId(2L);
         when(resumenRepository.findByEspacioTrabajoId(espacio.getId())).thenReturn(List.of(r));
-        when(resumenMapper.toResponse(any())).thenReturn(new com.campito.backend.dto.ResumenDTOResponse(2L, 2025, 6, LocalDate.now(), EstadoResumen.CERRADO, 100f, 10L, "num", "ent", "red", null, 1, List.of()));
+        when(resumenMapper.toResponse(any())).thenReturn(new com.campito.backend.dto.ResumenDTOResponse(2L, 2025, 6, LocalDate.now(), EstadoResumen.CERRADO, new BigDecimal("100.00"), 10L, "num", "ent", "red", null, 1, List.of()));
         var res = compraCreditoService.listarResumenesPorEspacioTrabajo(espacio.getId());
         assertEquals(1, res.size());
     }

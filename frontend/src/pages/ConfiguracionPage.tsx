@@ -132,7 +132,6 @@ export function ConfiguracionPage() {
     try {
       const data = await espacioTrabajoService.getMiembros(espacioActual.id)
       setMiembros(data)
-      console.log('Miembros cargados:', data)
     } catch (error: any) {
       console.error('Error al cargar miembros:', error)
       setErrorMiembros(error?.message || 'No se pudieron cargar los miembros')

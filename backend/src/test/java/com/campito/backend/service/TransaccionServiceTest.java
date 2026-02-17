@@ -17,6 +17,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -103,7 +104,7 @@ public class TransaccionServiceTest {
         espacioTrabajo = new EspacioTrabajo();
         espacioTrabajo.setId(espacioId = UUID.fromString("00000000-0000-0000-0000-000000000002"));
         espacioTrabajo.setNombre("Espacio de Prueba");
-        espacioTrabajo.setSaldo(1000.0f);
+        espacioTrabajo.setSaldo(new BigDecimal("1000.00"));
         espacioTrabajo.setUsuarioAdmin(usuarioAdmin);
 
         motivoTransaccion = new MotivoTransaccion();
@@ -195,7 +196,7 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarTransaccion_cuandoEspacioTrabajoNoExiste_entoncesLanzaExcepcion() {
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", UUID.fromString("00000000-0000-0000-0000-000000000099"), 1L, null, null);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), new BigDecimal("100.00"), TipoTransaccion.INGRESO, "Desc", "Auditor", UUID.fromString("00000000-0000-0000-0000-000000000099"), 1L, null, null);
         when(espacioRepository.findById(UUID.fromString("00000000-0000-0000-0000-000000000099"))).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
@@ -207,7 +208,7 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarTransaccion_cuandoMotivoNoExiste_entoncesLanzaExcepcion() {
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 99L, null, null);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), new BigDecimal("100.00"), TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 99L, null, null);
         when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -220,7 +221,7 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarTransaccion_cuandoIdContactoExistePeroContactoNoExiste_entoncesLanzaExcepcion() {
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 1L, 99L, null);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), new BigDecimal("100.00"), TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 1L, 99L, null);
         when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(contactoRepository.findById(99L)).thenReturn(Optional.empty());
@@ -234,7 +235,7 @@ public class TransaccionServiceTest {
 
     @Test
     void registrarTransaccion_cuandoOpcionCorrecta_entoncesRegistroExitoso() {
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 1L, 1L, null);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), new BigDecimal("100.00"), TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 1L, 1L, null);
         when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(contactoRepository.findById(1L)).thenReturn(Optional.of(contactoTransferencia));
@@ -261,7 +262,7 @@ public class TransaccionServiceTest {
         assertEquals(1L, result.id());
         verify(transaccionRepository, times(1)).save(any(Transaccion.class));
         verify(espacioRepository, times(1)).save(any(EspacioTrabajo.class));
-        assertEquals(1100.0f, espacioTrabajo.getSaldo()); // 1000 inicial + 100 de ingreso
+        assertEquals(new BigDecimal("1100.00"), espacioTrabajo.getSaldo()); // 1000 inicial + 100 de ingreso
     }
 
     @Test
@@ -269,9 +270,9 @@ public class TransaccionServiceTest {
         // Arrange
         CuentaBancaria cuentaBancaria = new CuentaBancaria();
         cuentaBancaria.setId(1L);
-        cuentaBancaria.setSaldoActual(500.0f);
+        cuentaBancaria.setSaldoActual(new BigDecimal("500.00"));
 
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 1L, 1L, 1L);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), new BigDecimal("100.00"), TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 1L, 1L, 1L);
 
         when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
@@ -286,7 +287,7 @@ public class TransaccionServiceTest {
             m.setId(1L);
             return m;
         });
-        when(cuentaBancariaService.actualizarCuentaBancaria(anyLong(), any(TipoTransaccion.class), anyFloat())).thenReturn(cuentaBancaria);
+        when(cuentaBancariaService.actualizarCuentaBancaria(anyLong(), any(TipoTransaccion.class), any(BigDecimal.class))).thenReturn(cuentaBancaria);
         when(transaccionRepository.save(any(Transaccion.class))).thenAnswer(invocation -> {
             Transaccion trans = invocation.getArgument(0);
             trans.setId(1L);
@@ -302,8 +303,8 @@ public class TransaccionServiceTest {
         assertEquals(1L, result.id());
         verify(transaccionRepository, times(1)).save(any(Transaccion.class));
         verify(espacioRepository, times(1)).save(any(EspacioTrabajo.class));
-        verify(cuentaBancariaService, times(1)).actualizarCuentaBancaria(1L, TipoTransaccion.INGRESO, 100f);
-        assertEquals(1100.0f, espacioTrabajo.getSaldo());
+        verify(cuentaBancariaService, times(1)).actualizarCuentaBancaria(1L, TipoTransaccion.INGRESO, new BigDecimal("100.00"));
+        assertEquals(new BigDecimal("1100.00"), espacioTrabajo.getSaldo());
     }
 
     @Test
@@ -314,12 +315,12 @@ public class TransaccionServiceTest {
         GastosIngresosMensuales registro = GastosIngresosMensuales.builder()
                 .anio(año)
                 .mes(mes)
-                .gastos(0f)
-                .ingresos(0f)
+                .gastos(BigDecimal.ZERO)
+                .ingresos(BigDecimal.ZERO)
                 .espacioTrabajo(espacioTrabajo)
                 .build();
 
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 200f, TipoTransaccion.INGRESO, "Venta mayor", "Auditor", espacioId, 1L, null, null);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), new BigDecimal("200.00"), TipoTransaccion.INGRESO, "Venta mayor", "Auditor", espacioId, 1L, null, null);
 
         when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
@@ -344,13 +345,13 @@ public class TransaccionServiceTest {
         // registro debe haber sido actualizado y guardado
         verify(gastosIngresosMensualesRepository, times(1)).save(any(GastosIngresosMensuales.class));
         // El saldo del espacio se actualizó
-        assertEquals(1200.0f, espacioTrabajo.getSaldo());
+        assertEquals(new BigDecimal("1200.00"), espacioTrabajo.getSaldo());
     }
 
     @Test
     void registrarTransaccion_cuandoRegistroMensualAusente_entoncesCreaRegistro() {
 
-        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), 100f, TipoTransaccion.INGRESO, "Venta pequena", "Auditor", espacioId, 1L, null, null);
+        TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), new BigDecimal("100.00"), TipoTransaccion.INGRESO, "Venta pequena", "Auditor", espacioId, 1L, null, null);
 
         when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
@@ -372,7 +373,7 @@ public class TransaccionServiceTest {
         assertNotNull(result);
         assertEquals(1L, result.id());
         verify(gastosIngresosMensualesRepository, times(1)).save(any(GastosIngresosMensuales.class));
-        assertEquals(1100.0f, espacioTrabajo.getSaldo());
+        assertEquals(new BigDecimal("1100.00"), espacioTrabajo.getSaldo());
     }
 
     // Tests para removerTransaccion
@@ -402,7 +403,7 @@ public class TransaccionServiceTest {
         Transaccion transaccion = Transaccion.builder()
             .id(1L)
             .tipo(TipoTransaccion.GASTO)
-            .monto(50.0f)
+            .monto(new BigDecimal("50.00"))
             .fecha(LocalDate.now())
             .descripcion("Gasto Test")
             .nombreCompletoAuditoria("Auditor")
@@ -411,11 +412,11 @@ public class TransaccionServiceTest {
             .motivo(motivoTransaccion)
             .contacto(null)
             .build();
-        espacioTrabajo.setSaldo(950.0f); // Saldo después del gasto
+        espacioTrabajo.setSaldo(new BigDecimal("950.00")); // Saldo después del gasto
 
         int año = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getYear();
         int mes = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getMonthValue();
-        GastosIngresosMensuales registro = GastosIngresosMensuales.builder().anio(año).mes(mes).gastos(50f).ingresos(0f).espacioTrabajo(espacioTrabajo).build();
+        GastosIngresosMensuales registro = GastosIngresosMensuales.builder().anio(año).mes(mes).gastos(new BigDecimal("50.00")).ingresos(BigDecimal.ZERO).espacioTrabajo(espacioTrabajo).build();
 
         when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
         doNothing().when(transaccionRepository).delete(any(Transaccion.class));
@@ -427,7 +428,7 @@ public class TransaccionServiceTest {
         verify(transaccionRepository, times(1)).findById(1L);
         verify(transaccionRepository, times(1)).delete(transaccion);
         verify(espacioRepository, times(1)).save(espacioTrabajo);
-        assertEquals(1000.0f, espacioTrabajo.getSaldo()); // 950 + 50 de reversión
+        assertEquals(new BigDecimal("1000.00"), espacioTrabajo.getSaldo()); // 950 + 50 de reversión
     }
 
     @Test
@@ -435,12 +436,12 @@ public class TransaccionServiceTest {
         // Arrange
         CuentaBancaria cuentaBancaria = new CuentaBancaria();
         cuentaBancaria.setId(1L);
-        cuentaBancaria.setSaldoActual(400.0f);
+        cuentaBancaria.setSaldoActual(new BigDecimal("400.00"));
 
         Transaccion transaccion = Transaccion.builder()
             .id(1L)
             .tipo(TipoTransaccion.GASTO)
-            .monto(100.0f)
+            .monto(new BigDecimal("100.00"))
             .fecha(LocalDate.now())
             .descripcion("Gasto Test")
             .nombreCompletoAuditoria("Auditor")
@@ -449,11 +450,11 @@ public class TransaccionServiceTest {
             .motivo(motivoTransaccion)
             .cuentaBancaria(cuentaBancaria)
             .build();
-        espacioTrabajo.setSaldo(900.0f); // Saldo después del gasto
+        espacioTrabajo.setSaldo(new BigDecimal("900.00")); // Saldo después del gasto
 
         int año = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getYear();
         int mes = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getMonthValue();
-        GastosIngresosMensuales registro = GastosIngresosMensuales.builder().anio(año).mes(mes).gastos(100f).ingresos(0f).espacioTrabajo(espacioTrabajo).build();
+        GastosIngresosMensuales registro = GastosIngresosMensuales.builder().anio(año).mes(mes).gastos(new BigDecimal("100.00")).ingresos(BigDecimal.ZERO).espacioTrabajo(espacioTrabajo).build();
 
         when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
         doNothing().when(transaccionRepository).delete(any(Transaccion.class));
@@ -469,8 +470,8 @@ public class TransaccionServiceTest {
         verify(transaccionRepository, times(1)).delete(transaccion);
         verify(espacioRepository, times(1)).save(espacioTrabajo);
         verify(cuentaBancariaRepository, times(1)).save(cuentaBancaria);
-        assertEquals(1000.0f, espacioTrabajo.getSaldo()); // 900 + 100 de reversión
-        assertEquals(500.0f, cuentaBancaria.getSaldoActual()); // 400 + 100 de reversión
+        assertEquals(new BigDecimal("1000.00"), espacioTrabajo.getSaldo()); // 900 + 100 de reversión
+        assertEquals(new BigDecimal("500.00"), cuentaBancaria.getSaldoActual()); // 400 + 100 de reversión
     }
 
     @Test
@@ -478,12 +479,12 @@ public class TransaccionServiceTest {
         // Arrange
         CuentaBancaria cuentaBancaria = new CuentaBancaria();
         cuentaBancaria.setId(1L);
-        cuentaBancaria.setSaldoActual(600.0f);
+        cuentaBancaria.setSaldoActual(new BigDecimal("600.00"));
 
         Transaccion transaccion = Transaccion.builder()
             .id(1L)
             .tipo(TipoTransaccion.INGRESO)
-            .monto(100.0f)
+            .monto(new BigDecimal("100.00"))
             .fecha(LocalDate.now())
             .descripcion("Ingreso Test")
             .nombreCompletoAuditoria("Auditor")
@@ -492,11 +493,11 @@ public class TransaccionServiceTest {
             .motivo(motivoTransaccion)
             .cuentaBancaria(cuentaBancaria)
             .build();
-        espacioTrabajo.setSaldo(1100.0f); // Saldo después del ingreso
+        espacioTrabajo.setSaldo(new BigDecimal("1100.00")); // Saldo después del ingreso
 
         int año = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getYear();
         int mes = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getMonthValue();
-        GastosIngresosMensuales registro = GastosIngresosMensuales.builder().anio(año).mes(mes).gastos(0f).ingresos(200f).espacioTrabajo(espacioTrabajo).build();
+        GastosIngresosMensuales registro = GastosIngresosMensuales.builder().anio(año).mes(mes).gastos(BigDecimal.ZERO).ingresos(new BigDecimal("200.00")).espacioTrabajo(espacioTrabajo).build();
 
         when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
         doNothing().when(transaccionRepository).delete(any(Transaccion.class));
@@ -512,8 +513,8 @@ public class TransaccionServiceTest {
         verify(transaccionRepository, times(1)).delete(transaccion);
         verify(espacioRepository, times(1)).save(espacioTrabajo);
         verify(cuentaBancariaRepository, times(1)).save(cuentaBancaria);
-        assertEquals(1000.0f, espacioTrabajo.getSaldo()); // 1100 - 100 de reversión
-        assertEquals(500.0f, cuentaBancaria.getSaldoActual()); // 600 - 100 de reversión
+        assertEquals(new BigDecimal("1000.00"), espacioTrabajo.getSaldo()); // 1100 - 100 de reversión
+        assertEquals(new BigDecimal("500.00"), cuentaBancaria.getSaldoActual()); // 600 - 100 de reversión
     }
 
     @Test
@@ -525,15 +526,15 @@ public class TransaccionServiceTest {
         GastosIngresosMensuales registro = GastosIngresosMensuales.builder()
                 .anio(año)
                 .mes(mes)
-                .gastos(50f)
-                .ingresos(0f)
+                .gastos(new BigDecimal("50.00"))
+                .ingresos(BigDecimal.ZERO)
                 .espacioTrabajo(espacioTrabajo)
                 .build();
 
         Transaccion transaccion = Transaccion.builder()
             .id(1L)
             .tipo(TipoTransaccion.GASTO)
-            .monto(100.0f)
+            .monto(new BigDecimal("100.00"))
             .fecha(LocalDate.now())
             .descripcion("Gasto grande")
             .nombreCompletoAuditoria("Auditor")
@@ -578,7 +579,7 @@ public class TransaccionServiceTest {
         TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, 2023, null, null, espacioId, null, null);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
-            .monto(100f)
+            .monto(new BigDecimal("100.00"))
             .fecha(LocalDate.of(2023, 1, 1))
             .descripcion("Test")
             .nombreCompletoAuditoria("User")
@@ -602,7 +603,7 @@ public class TransaccionServiceTest {
         TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(1, 2023, null, null, espacioId, null, null);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
-            .monto(100f)
+            .monto(new BigDecimal("100.00"))
             .fecha(LocalDate.of(2023, 1, 1))
             .descripcion("Test")
             .nombreCompletoAuditoria("User")
@@ -626,7 +627,7 @@ public class TransaccionServiceTest {
         TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, "Cliente A", espacioId, null, null);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
-            .monto(100f)
+            .monto(new BigDecimal("100.00"))
             .fecha(LocalDate.now())
             .descripcion("Test")
             .nombreCompletoAuditoria("User")
@@ -651,7 +652,7 @@ public class TransaccionServiceTest {
         TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, "Venta", null, espacioId, null, null);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
-            .monto(100f)
+            .monto(new BigDecimal("100.00"))
             .fecha(LocalDate.now())
             .descripcion("Test")
             .nombreCompletoAuditoria("User")
@@ -675,7 +676,7 @@ public class TransaccionServiceTest {
         TransaccionBusquedaDTO dto = new TransaccionBusquedaDTO(null, null, null, null, espacioId, null, null);
         Transaccion t = Transaccion.builder()
             .tipo(TipoTransaccion.INGRESO)
-            .monto(100f)
+            .monto(new BigDecimal("100.00"))
             .fecha(LocalDate.now())
             .descripcion("Test")
             .nombreCompletoAuditoria("User")
@@ -938,7 +939,7 @@ public class TransaccionServiceTest {
         for (int i = 0; i < 10; i++) {
             Transaccion t = Transaccion.builder()
                 .tipo(TipoTransaccion.INGRESO)
-                .monto(100f)
+                .monto(new BigDecimal("100.00"))
                 .fecha(LocalDate.now())
                 .descripcion("Desc " + i)
                 .nombreCompletoAuditoria("User")

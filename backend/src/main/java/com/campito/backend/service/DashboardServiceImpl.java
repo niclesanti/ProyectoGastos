@@ -30,6 +30,7 @@ import com.campito.backend.model.CuotaCredito;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.GastosIngresosMensuales;
 import com.campito.backend.model.Tarjeta;
+import com.campito.backend.util.MoneyUtils;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -74,7 +75,7 @@ public class DashboardServiceImpl implements DashboardService {
             logger.warn(msg);
             return new EntityNotFoundException(msg);
         });
-        Float balanceTotal = espacio.getSaldo();
+        BigDecimal balanceTotal = espacio.getSaldo();
 
         // 2. Gastos del mes actual
         ZoneId buenosAiresZone = ZoneId.of("America/Argentina/Buenos_Aires");
@@ -88,16 +89,16 @@ public class DashboardServiceImpl implements DashboardService {
             return GastosIngresosMensuales.builder()
                     .anio(anioActual)
                     .mes(mesActual)
-                    .gastos(0f)
-                    .ingresos(0f)
+                    .gastos(BigDecimal.ZERO)
+                    .ingresos(BigDecimal.ZERO)
                     .espacioTrabajo(espacio)
                     .build();
         });
 
-        Float gastosMensuales = registro.getGastos();
+        BigDecimal gastosMensuales = registro.getGastos();
 
         // 3. Deuda total pendiente (todas las cuotas impagadas)
-        Float deudaTotalPendiente = cuotaCreditoRepository.calcularDeudaTotalPendiente(idEspacio);
+        BigDecimal deudaTotalPendiente = cuotaCreditoRepository.calcularDeudaTotalPendiente(idEspacio);
 
         // 4. Flujo mensual (últimos 12 meses)
         LocalDate now = LocalDate.now();
@@ -127,8 +128,8 @@ public class DashboardServiceImpl implements DashboardService {
             if (reg != null) {
                 flujoMensualCompleto.add(new IngresosGastosMesDTOImpl(
                     mes,
-                    BigDecimal.valueOf(reg.getIngresos()),
-                    BigDecimal.valueOf(reg.getGastos())
+                    reg.getIngresos(),
+                    reg.getGastos()
                 ));
             } else {
                 // Mes sin datos: ingresos y gastos en cero
@@ -148,7 +149,7 @@ public class DashboardServiceImpl implements DashboardService {
         List<DistribucionGastoDTO> distribucionGastos = dashboardRepository.findDistribucionGastos(idEspacio, fechaLimite);
 
         // 6. Resumen mensual (suma de las cuotas que entrarán en los próximos resúmenes por tarjeta)
-        float resumenMensual = 0.0f;
+        BigDecimal resumenMensual = BigDecimal.ZERO;
         List<Tarjeta> tarjetas = tarjetaRepository.findByEspacioTrabajo_Id(idEspacio);
         for (Tarjeta tarjeta : tarjetas) {
             int diaCierre = tarjeta.getDiaCierre();
@@ -167,8 +168,8 @@ public class DashboardServiceImpl implements DashboardService {
             LocalDate fechaFin = calcularFechaVencimiento(fechaCierre, tarjeta.getDiaVencimientoPago());
 
             List<CuotaCredito> cuotasPendientes = cuotaCreditoRepository.findByTarjetaSinResumenEnRango(tarjeta.getId(), fechaInicio, fechaFin);
-            float monto = cuotasPendientes.stream().map(CuotaCredito::getMontoCuota).reduce(0.0f, Float::sum);
-            resumenMensual += monto;
+            BigDecimal monto = MoneyUtils.sum(cuotasPendientes.stream().map(CuotaCredito::getMontoCuota).toList());
+            resumenMensual = resumenMensual.add(monto);
         }
 
         DashboardStatsDTO stats = new DashboardStatsDTO(

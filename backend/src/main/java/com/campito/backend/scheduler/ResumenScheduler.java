@@ -1,5 +1,6 @@
 package com.campito.backend.scheduler;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -22,6 +23,7 @@ import com.campito.backend.model.EstadoResumen;
 import com.campito.backend.model.Resumen;
 import com.campito.backend.model.Tarjeta;
 import com.campito.backend.model.TipoNotificacion;
+import com.campito.backend.util.MoneyUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -158,9 +160,11 @@ public class ResumenScheduler {
         }
         
         // Calcular monto total del resumen
-        float montoTotal = cuotasPendientes.stream()
-            .map(CuotaCredito::getMontoCuota)
-            .reduce(0.0f, Float::sum);
+        BigDecimal montoTotal = MoneyUtils.sum(
+            cuotasPendientes.stream()
+                .map(CuotaCredito::getMontoCuota)
+                .toList()
+        );
         
         // Calcular fecha de vencimiento del pago
         LocalDate fechaVencimiento = calcularFechaVencimiento(fechaCierre, tarjeta.getDiaVencimientoPago());

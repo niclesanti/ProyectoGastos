@@ -1,5 +1,6 @@
 package com.campito.backend.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -86,7 +87,7 @@ public class CuentaBancariaController {
             @PathVariable @NotNull(message = "La cuenta de destino es obligatoria") Long idCuentaDestino, 
             @PathVariable @NotNull(message = "El monto es obligatorio") 
             @DecimalMin(value = "0.009", message = "El monto debe ser mayor a 0")
-            @ValidMonto Float monto) {
+            @ValidMonto BigDecimal monto) {
             
         securityService.validateCuentaBancariaOwnership(idCuentaOrigen);
         securityService.validateCuentaBancariaOwnership(idCuentaDestino);

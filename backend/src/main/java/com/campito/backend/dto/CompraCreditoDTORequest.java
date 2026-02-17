@@ -1,5 +1,6 @@
 package com.campito.backend.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -20,7 +21,7 @@ public record CompraCreditoDTORequest(
     @NotNull(message = "El monto no puede ser nulo")
     @DecimalMin(value = "0.009", message = "El monto debe ser mayor a 0")
     @ValidMonto
-    Float montoTotal,
+    BigDecimal montoTotal,
     @NotNull(message = "La cantidad de cuotas no puede ser nula")
     @Min(value = 1, message = "La cantidad de cuotas debe ser al menos 1")
     @Max(value = 12, message = "La cantidad de cuotas no puede exceder los 12")
