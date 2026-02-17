@@ -20,7 +20,7 @@ import { TransactionDetailsModal } from '@/components/TransactionDetailsModal'
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
 import { useRemoverTransaccion } from '@/features/selectors/api/selector-queries'
 import { useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/useToast'
 
 const formatFecha = (fechaString: string): string => {
   try {

@@ -8,7 +8,7 @@ import { CreditosPage } from '@/pages/CreditosPage'
 import { ConfiguracionPage } from '@/pages/ConfiguracionPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { OAuthCallback } from '@/pages/OAuthCallback'
-import { Toaster } from 'sonner'
+import { Toaster } from '@/components/ui/toaster'
 
 const router = createBrowserRouter(
   [
@@ -43,7 +43,7 @@ function App() {
   return (
     <AuthProvider>
       <RouterProvider router={router} />
-      <Toaster richColors position="top-right" />
+      <Toaster />
     </AuthProvider>
   )
 }

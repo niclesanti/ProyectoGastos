@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useAppStore } from '@/store/app-store'
 import { notificacionService } from '@/services/notificacion.service'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/useToast'
 import type { NotificacionDTOResponse, TipoNotificacion } from '@/types'
 import { devLog, devError } from '@/utils/logger'
 

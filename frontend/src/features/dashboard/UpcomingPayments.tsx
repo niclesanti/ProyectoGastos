@@ -17,7 +17,7 @@ import { MoreHorizontal, Eye, Trash2 } from 'lucide-react'
 import { CreditPurchaseDetailsModal } from '@/components/CreditPurchaseDetailsModal'
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
 import { useRemoverCompraCredito } from '@/features/selectors/api/selector-queries'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/useToast'
 
 export function UpcomingPayments() {
   const currentWorkspace = useAppStore((state) => state.currentWorkspace)
