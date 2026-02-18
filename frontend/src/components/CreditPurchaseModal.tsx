@@ -53,7 +53,8 @@ import { CalendarIcon, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/useToast'
+import { MoneyInput } from '@/components/MoneyInput'
 
 // Esquema de validación para nuevo motivo
 const newMotivoSchema = z.object({
@@ -82,17 +83,14 @@ const creditPurchaseFormSchema = z.object({
   }),
   tarjeta: z.string().min(1, { message: "Por favor, selecciona una tarjeta de crédito." }),
   cuotas: z.string().min(1, { message: "Por favor, selecciona la cantidad de cuotas." }),
-  monto: z.string()
-    .min(1, { message: "Por favor, indica el monto de la compra." })
+  monto: z.number()
+    .positive("El monto debe ser mayor a 0")
     .refine((val) => {
-      const num = parseFloat(val)
-      return !isNaN(num) && num > 0
-    }, { message: "El monto debe ser mayor a 0." })
-    .refine((val) => {
-      const parts = val.split('.')
-      if (parts.length === 1) return parts[0].length <= 8
-      return parts[0].length <= 8 && parts[1].length <= 2
-    }, { message: "Máximo 8 dígitos enteros y 2 decimales." }),
+      const str = val.toString()
+      const parts = str.split('.')
+      if (parts.length === 1) return parts[0].length <= 12
+      return parts[0].length <= 12 && (parts[1]?.length || 0) <= 2
+    }, { message: "Máximo 12 dígitos enteros y 2 decimales." }),
   motivo: z.string().min(1, { message: "Debes asignar un motivo a la compra." }),
   comercio: z.string().optional(),
   descripcion: z.string()
@@ -147,7 +145,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
       fecha: new Date(),
       tarjeta: '',
       cuotas: '',
-      monto: '',
+      monto: null as unknown as number,
       motivo: '',
       comercio: 'none',
       descripcion: '',
@@ -161,7 +159,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
         fecha: new Date(),
         tarjeta: '',
         cuotas: '',
-        monto: '',
+        monto: null as unknown as number,
         motivo: '',
         comercio: 'none',
         descripcion: '',
@@ -232,7 +230,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
     try {
       const compraData = {
         fechaCompra: format(data.fecha, 'yyyy-MM-dd'),
-        montoTotal: parseFloat(data.monto),
+        montoTotal: data.monto,
         cantidadCuotas: parseInt(data.cuotas),
         descripcion: data.descripcion && data.descripcion.trim() !== '' ? data.descripcion : undefined,
         nombreCompletoAuditoria: user.nombre,
@@ -260,13 +258,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
     toast.error('Por favor, revisa los campos obligatorios.')
   }
 
-  // Restringir entrada de monto
-  const handleMontoChange = (value: string) => {
-    const regex = /^\d{0,8}(\.\d{0,2})?$/
-    if (regex.test(value) || value === '') {
-      form.setValue('monto', value)
-    }
-  }
+  // MoneyInput maneja la validación de formato automáticamente
 
   // Filtrar caracteres no permitidos en motivo
   const handleMotivoInputChange = (value: string) => {
@@ -412,19 +404,15 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
                   <FormItem>
                     <FormLabel>Monto final a pagar</FormLabel>
                     <FormControl>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                          $
-                        </span>
-                        <Input
-                          {...field}
-                          type="text"
-                          inputMode="decimal"
-                          placeholder="0.00"
-                          className="h-9 pl-7"
-                          onChange={(e) => handleMontoChange(e.target.value)}
-                        />
-                      </div>
+                      <MoneyInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        min={0}
+                        maxDigits={12}
+                        maxDecimals={2}
+                        placeholder="0.00"
+                        className="h-9"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

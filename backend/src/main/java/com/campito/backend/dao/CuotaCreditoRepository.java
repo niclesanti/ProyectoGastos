@@ -1,5 +1,6 @@
 package com.campito.backend.dao;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -27,11 +28,11 @@ public interface CuotaCreditoRepository extends JpaRepository<CuotaCredito, Long
         @Param("fechaFin") LocalDate fechaFin
     );
     
-    @Query("SELECT COALESCE(SUM(c.montoCuota), 0.0) FROM CuotaCredito c " +
+    @Query("SELECT COALESCE(SUM(c.montoCuota), 0) FROM CuotaCredito c " +
            "JOIN c.compraCredito cc " +
            "WHERE cc.espacioTrabajo.id = :idEspacioTrabajo " +
            "AND c.pagada = false")
-    Float calcularDeudaTotalPendiente(@Param("idEspacioTrabajo") UUID idEspacioTrabajo);
+    BigDecimal calcularDeudaTotalPendiente(@Param("idEspacioTrabajo") UUID idEspacioTrabajo);
     
     /**
      * Busca cuotas sin resumen asociado para una tarjeta en un rango de fechas.

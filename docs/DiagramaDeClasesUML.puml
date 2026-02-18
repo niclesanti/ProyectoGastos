@@ -20,26 +20,26 @@ class Usuario {
 class EspacioTrabajo {
   - id: UUID
   - nombre: String
-  - saldo: Float
+  - saldo: BigDecimal
   - fechaCreacion: LocalDateTime
   - fechaModificacion: LocalDateTime
-  + actualizarSaldoNuevaTransaccion(monto: Float, tipo: TipoTransaccion): void
-  + actualizarSaldoEliminarTransaccion(monto: Float, tipo: TipoTransaccion): void
+  + actualizarSaldoNuevaTransaccion(monto: BigDecimal, tipo: TipoTransaccion): void
+  + actualizarSaldoEliminarTransaccion(monto: BigDecimal, tipo: TipoTransaccion): void
 }
 
 class CuentaBancaria {
   - id: Long
   - nombre: String
   - entidadFinanciera: String
-  - saldoActual: Float
-  + actualizarSaldoNuevaTransaccion(monto: Float, tipo: TipoTransaccion): void
-  + actualizarSaldoEliminarTransaccion(monto: Float, tipo: TipoTransaccion): void
+  - saldoActual: BigDecimal
+  + actualizarSaldoNuevaTransaccion(monto: BigDecimal, tipo: TipoTransaccion): void
+  + actualizarSaldoEliminarTransaccion(monto: BigDecimal, tipo: TipoTransaccion): void
 }
 
 class Transaccion {
   - id: Long
   - tipo: TipoTransaccion
-  - monto: Float
+  - monto: BigDecimal
   - fecha: LocalDate
   - descripcion: String
   - nombreCompletoAuditoria: String
@@ -68,7 +68,7 @@ class Tarjeta {
 class CompraCredito {
   - id: Long
   - fechaCompra: LocalDate
-  - montoTotal: Float
+  - montoTotal: BigDecimal
   - cantidadCuotas: int
   - cuotasPagadas: int
   - descripcion: String
@@ -81,7 +81,7 @@ class CuotaCredito {
   - id: Long
   - numeroCuota: int
   - fechaVencimiento: LocalDate
-  - montoCuota: Float
+  - montoCuota: BigDecimal
   - pagada: boolean
   + pagarCuota(): void
 }
@@ -92,7 +92,7 @@ class Resumen {
   - mes: Integer
   - fechaVencimiento: LocalDate
   - estado: EstadoResumen
-  - montoTotal: Float
+  - montoTotal: BigDecimal
   + asociarTransaccion(transaccion: Transaccion): void
 }
 
@@ -100,12 +100,12 @@ class GastosIngresosMensuales {
   - id: Long
   - anio: Integer
   - mes: Integer
-  - gastos: Float
-  - ingresos: Float
-  + actualizarGastos(nuevoGasto: Float): void
-  + actualizarIngresos(nuevoIngreso: Float): void
-  + eliminarGastos(nuevoGasto: Float): void
-  + eliminarIngresos(nuevoIngreso: Float): void
+  - gastos: BigDecimal
+  - ingresos: BigDecimal
+  + actualizarGastos(nuevoGasto: BigDecimal): void
+  + actualizarIngresos(nuevoIngreso: BigDecimal): void
+  + eliminarGastos(nuevoGasto: BigDecimal): void
+  + eliminarIngresos(nuevoIngreso: BigDecimal): void
 }
 
 class Notificacion {
@@ -207,20 +207,20 @@ class UsuarioDTOResponse {
 
 class EspacioTrabajoDTORequest {
   - nombre: String
-  - saldo: Float
+  - saldo: BigDecimal
   - idUsuarioAdmin: Long
 }
 
 class EspacioTrabajoDTOResponse {
   - id: Long
   - nombre: String
-  - saldo: Float
+  - saldo: BigDecimal
 }
 
 class CuentaBancariaDTORequest {
   - nombre: String
   - entidadFinanciera: String
-  - saldoActual: Float
+  - saldoActual: BigDecimal
   - idEspacioTrabajo: Long
 }
 
@@ -228,12 +228,12 @@ class CuentaBancariaDTOResponse {
   - id: Long
   - nombre: String
   - entidadFinanciera: String
-  - saldoActual: Float
+  - saldoActual: BigDecimal
 }
 
 class TransaccionDTORequest {
   - tipo: TipoTransaccion
-  - monto: Float
+  - monto: BigDecimal
   - fecha: LocalDate
   - descripcion: String
   - idEspacioTrabajo: Long
@@ -246,7 +246,7 @@ class TransaccionDTORequest {
 class TransaccionDTOResponse {
   - id: Long
   - tipo: TipoTransaccion
-  - monto: Float
+  - monto: BigDecimal
   - fecha: LocalDate
   - descripcion: String
   - nombreCompletoAuditoria: String
@@ -306,7 +306,7 @@ class TarjetaDTOResponse {
 
 class CompraCreditoDTORequest {
   - fechaCompra: LocalDate
-  - montoTotal: Float
+  - montoTotal: BigDecimal
   - cantidadCuotas: int
   - descripcion: String
   - idEspacioTrabajo: Long
@@ -319,7 +319,7 @@ class CompraCreditoDTORequest {
 class CompraCreditoDTOResponse {
   - id: Long
   - fechaCompra: LocalDate
-  - montoTotal: Float
+  - montoTotal: BigDecimal
   - cantidadCuotas: int
   - cuotasPagadas: int
   - descripcion: String
@@ -339,7 +339,7 @@ class CuotaCreditoDTOResponse {
   - id: Long
   - numeroCuota: int
   - fechaVencimiento: LocalDate
-  - montoCuota: Float
+  - montoCuota: BigDecimal
   - pagada: boolean
   - idCompraCredito: Long
   - descripcionCompra: String
@@ -356,7 +356,7 @@ class ResumenDTOResponse {
   - mes: Integer
   - fechaVencimiento: LocalDate
   - estado: EstadoResumen
-  - montoTotal: Float
+  - montoTotal: BigDecimal
   - idTarjeta: Long
   - numeroTarjeta: String
   - entidadFinanciera: String
@@ -369,46 +369,46 @@ class ResumenDTOResponse {
 class CuotaResumenDTO {
   - id: Long
   - numeroCuota: Integer
-  - montoCuota: Float
+  - montoCuota: BigDecimal
   - descripcion: String
   - totalCuotas: Integer
   - motivo: String
 }
 
 class DashboardStatsDTO {
-  - balanceTotal: Float
-  - gastosMensuales: Float
-  - resumenMensual: Float
-  - deudaTotalPendiente: Float
+  - balanceTotal: BigDecimal
+  - gastosMensuales: BigDecimal
+  - resumenMensual: BigDecimal
+  - deudaTotalPendiente: BigDecimal
   - flujoMensual: List<IngresosGastosMesDTO>
   - distribucionGastos: List<DistribucionGastoDTO>
 }
 
 class IngresosGastosMesDTO {
   - mes: Integer
-  - totalIngresos: Float
-  - totalGastos: Float
+  - totalIngresos: BigDecimal
+  - totalGastos: BigDecimal
 }
 
 class IngresosGastosMesDTOImpl {
   - mes: Integer
-  - totalIngresos: Float
-  - totalGastos: Float
+  - totalIngresos: BigDecimal
+  - totalGastos: BigDecimal
 }
 
 class DistribucionGastoDTO {
   - motivo: String
-  - porcentaje: Float
+  - porcentaje: BigDecimal
 }
 
 class SaldoAcumuladoMesDTO {
   - mes: Integer
-  - saldoAcumulado: Float
+  - saldoAcumulado: BigDecimal
 }
 
 class SaldoAcumuladoMesDTOImpl {
   - mes: Integer
-  - saldoAcumulado: Float
+  - saldoAcumulado: BigDecimal
 }
 
 class NotificacionDTOResponse {
@@ -507,16 +507,16 @@ class EspacioTrabajoServiceImpl <<service>> {
 
 interface CuentaBancariaService <<service>> {
   + crearCuentaBancaria(cuentaBancariaDTO: CuentaBancariaDTORequest): void
-  + actualizarCuentaBancaria(id: Long, tipo: TipoTransaccion, monto: Float): CuentaBancaria
+  + actualizarCuentaBancaria(id: Long, tipo: TipoTransaccion, monto: BigDecimal): CuentaBancaria
   + listarCuentasBancarias(idEspacioTrabajo: UUID): List<CuentaBancariaDTOResponse>
-  + transaccionEntreCuentas(idCuentaOrigen: Long, idCuentaDestino: Long, monto: Float): void
+  + transaccionEntreCuentas(idCuentaOrigen: Long, idCuentaDestino: Long, monto: BigDecimal): void
 }
 
 class CuentaBancariaServiceImpl <<service>> {
   + crearCuentaBancaria(cuentaBancariaDTO: CuentaBancariaDTORequest): void
-  + actualizarCuentaBancaria(id: Long, tipo: TipoTransaccion, monto: Float): CuentaBancaria
+  + actualizarCuentaBancaria(id: Long, tipo: TipoTransaccion, monto: BigDecimal): CuentaBancaria
   + listarCuentasBancarias(idEspacioTrabajo: UUID): List<CuentaBancariaDTOResponse>
-  + transaccionEntreCuentas(idCuentaOrigen: Long, idCuentaDestino: Long, monto: Float): void
+  + transaccionEntreCuentas(idCuentaOrigen: Long, idCuentaDestino: Long, monto: BigDecimal): void
 }
 
 interface TransaccionService <<service>> {

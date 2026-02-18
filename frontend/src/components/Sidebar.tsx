@@ -38,6 +38,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAppStore } from '@/store/app-store'
+import { MoneyDisplay } from '@/components/MoneyDisplay'
 import { TransactionModal } from '@/components/TransactionModal'
 import { AccountTransferModal } from '@/components/AccountTransferModal'
 import { CreditPurchaseModal } from '@/components/CreditPurchaseModal'
@@ -157,7 +158,9 @@ export function AppSidebar() {
                       </div>
                       <div className="flex flex-col">
                         <span>{workspace.nombre}</span>
-                        <span className="text-xs text-muted-foreground">${workspace.saldo.toFixed(2)}</span>
+                        <span className="text-xs text-muted-foreground">
+                          <MoneyDisplay value={workspace.saldo} decimals={2} showCurrency={true} />
+                        </span>
                       </div>
                     </DropdownMenuItem>
                   ))

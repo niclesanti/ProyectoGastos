@@ -62,6 +62,7 @@ interface DataTableProps<TData, TValue> {
   onReorder?: (data: TData[]) => void
   title?: string
   pageSize?: number
+  footer?: React.ReactNode
 }
 
 export function DataTable<TData, TValue>({
@@ -70,6 +71,7 @@ export function DataTable<TData, TValue>({
   onReorder,
   title,
   pageSize,
+  footer,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -157,48 +159,51 @@ export function DataTable<TData, TValue>({
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-sidebar">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    )
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              <SortableContext
-                items={data.map((item: any) => item.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <SortableRow key={row.id} row={row} />
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
-                      No hay resultados.
-                    </TableCell>
+        <div className="rounded-md border overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-sidebar">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => {
+                      return (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </TableHead>
+                      )
+                    })}
                   </TableRow>
-                )}
-              </SortableContext>
-            </TableBody>
-          </Table>
+                ))}
+              </TableHeader>
+              <TableBody>
+                <SortableContext
+                  items={data.map((item: any) => item.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <SortableRow key={row.id} row={row} />
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center"
+                      >
+                        No hay resultados.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </SortableContext>
+              </TableBody>
+            </Table>
+          </div>
+          {footer}
         </div>
       </DndContext>
       {pageSize && (

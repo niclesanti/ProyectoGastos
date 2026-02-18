@@ -31,24 +31,21 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/useToast'
+import { MoneyInput } from '@/components/MoneyInput'
 
 // Esquema de validación Zod
 const transferFormSchema = z.object({
   cuentaOrigen: z.string().min(1, { message: "Por favor, selecciona una cuenta de origen." }),
   cuentaDestino: z.string().min(1, { message: "Por favor, selecciona una cuenta de destino." }),
-  monto: z.string()
-    .min(1, { message: "Por favor, indica el monto a transferir." })
+  monto: z.number()
+    .positive("El monto debe ser mayor a 0")
     .refine((val) => {
-      const num = parseFloat(val)
-      return !isNaN(num) && num > 0
-    }, { message: "El monto debe ser mayor a 0." })
-    .refine((val) => {
-      const parts = val.split('.')
-      if (parts.length === 1) return parts[0].length <= 8
-      return parts[0].length <= 8 && parts[1].length <= 2
-    }, { message: "Máximo 8 dígitos enteros y 2 decimales." }),
+      const str = val.toString()
+      const parts = str.split('.')
+      if (parts.length === 1) return parts[0].length <= 12
+      return parts[0].length <= 12 && (parts[1]?.length || 0) <= 2
+    }, { message: "Máximo 12 dígitos enteros y 2 decimales." }),
 }).refine((data) => data.cuentaOrigen !== data.cuentaDestino, {
   message: "La cuenta de origen y destino no pueden ser iguales.",
   path: ["cuentaDestino"],
@@ -74,7 +71,7 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
     defaultValues: {
       cuentaOrigen: '',
       cuentaDestino: '',
-      monto: '',
+      monto: null as unknown as number,
     },
   })
 
@@ -84,7 +81,7 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
       form.reset({
         cuentaOrigen: '',
         cuentaDestino: '',
-        monto: '',
+        monto: null as unknown as number,
       })
     }
   }, [open, form])
@@ -97,7 +94,7 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
       await transferenciaMutation.mutateAsync({
         idCuentaOrigen: parseInt(data.cuentaOrigen),
         idCuentaDestino: parseInt(data.cuentaDestino),
-        monto: parseFloat(data.monto),
+        monto: data.monto,
       })
       
       // Actualizar todo el dashboard incluyendo stats
@@ -116,13 +113,7 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
     toast.error('Por favor, revisa los campos obligatorios.')
   }
 
-  // Restringir entrada de monto
-  const handleMontoChange = (value: string) => {
-    const regex = /^\d{0,8}(\.\d{0,2})?$/
-    if (regex.test(value) || value === '') {
-      form.setValue('monto', value)
-    }
-  }
+  // MoneyInput maneja la validación de formato automáticamente
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -165,7 +156,7 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
                             value={c.id.toString()}
                             disabled={c.id.toString() === form.watch('cuentaDestino')}
                           >
-                            {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toFixed(2)})
+                            {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toNumber().toFixed(2)})
                           </SelectItem>
                         ))
                       )}
@@ -205,7 +196,7 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
                             value={c.id.toString()}
                             disabled={c.id.toString() === form.watch('cuentaOrigen')}
                           >
-                            {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toFixed(2)})
+                            {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toNumber().toFixed(2)})
                           </SelectItem>
                         ))
                       )}
@@ -224,19 +215,15 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
                 <FormItem>
                   <FormLabel>Monto</FormLabel>
                   <FormControl>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        $
-                      </span>
-                      <Input
-                        {...field}
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="0.00"
-                        className="h-9 pl-7"
-                        onChange={(e) => handleMontoChange(e.target.value)}
-                      />
-                    </div>
+                    <MoneyInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      min={0}
+                      maxDigits={12}
+                      maxDecimals={2}
+                      placeholder="0.00"
+                      className="h-9"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

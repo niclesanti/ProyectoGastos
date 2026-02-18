@@ -1,5 +1,5 @@
 import { Card } from '@/components/ui/card'
-import { LayoutGrid } from 'lucide-react'
+import { Shovel } from 'lucide-react'
 
 export function WorkspacePlaceholder() {
   return (
@@ -7,7 +7,7 @@ export function WorkspacePlaceholder() {
       <Card className="max-w-2xl w-full border-dashed border-2 bg-zinc-950/50 p-12">
         <div className="flex flex-col items-center text-center space-y-6">
           <div className="rounded-full bg-zinc-900 p-6">
-            <LayoutGrid className="h-16 w-16 text-muted-foreground/50" />
+            <Shovel className="h-16 w-16 text-muted-foreground/50" />
           </div>
           
           <div className="space-y-2">

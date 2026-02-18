@@ -1,5 +1,6 @@
 package com.campito.backend.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -20,7 +21,7 @@ public record TransaccionDTORequest(
     @NotNull(message = "El monto no puede ser nulo")
     @DecimalMin(value = "0.009", message = "El monto debe ser mayor a 0")
     @ValidMonto
-    Float monto,
+    BigDecimal monto,
     @NotNull(message = "El tipo de transacción no puede ser nulo")
     TipoTransaccion tipo,
     @Size(max = 100, message = "La descripción no puede exceder los 100 caracteres")

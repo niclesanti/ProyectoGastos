@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '@/store/app-store'
 import { useTarjetas, useCreateTarjeta } from '@/features/selectors/api/selector-queries'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/useToast'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -95,8 +96,9 @@ const calculateDaysUntilClosure = (diaCierre: number): number => {
 }
 
 // Componente de tarjeta visual
-function CreditCardComponent({ card }: { card: TarjetaDTOResponse }) {
-  const daysUntilClosure = calculateDaysUntilClosure(card.diaCierre)
+const CreditCardComponent = React.forwardRef<HTMLDivElement, { card: TarjetaDTOResponse }>(
+  ({ card }, ref) => {
+    const daysUntilClosure = calculateDaysUntilClosure(card.diaCierre)
   
   // Color dinámico según días hasta cierre
   const getClosureBadgeColor = (days: number) => {
@@ -123,12 +125,37 @@ function CreditCardComponent({ card }: { card: TarjetaDTOResponse }) {
   }
 
   return (
-    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
-      <div className={cn(
-        'relative h-48 p-6 flex flex-col justify-between bg-gradient-to-br overflow-hidden',
-        'border-t border-white/10',
-        getCardColor(card.redDePago)
-      )}>
+    <motion.div
+      ref={ref}
+      layout
+      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+      animate={{ 
+        opacity: 1, 
+        scale: 1, 
+        y: 0,
+        transition: {
+          type: 'spring',
+          stiffness: 350,
+          damping: 25,
+        }
+      }}
+      exit={{ 
+        opacity: 0, 
+        scale: 0.9,
+        transition: { duration: 0.2 }
+      }}
+      whileHover={{ 
+        scale: 1.02,
+        y: -4,
+        transition: { type: 'spring', stiffness: 400, damping: 20 }
+      }}
+    >
+      <Card className="overflow-hidden shadow-lg group">
+        <div className={cn(
+          'relative h-48 p-6 flex flex-col justify-between bg-gradient-to-br overflow-hidden',
+          'border-t border-white/10',
+          getCardColor(card.redDePago)
+        )}>
         {/* SVG Wave Pattern Background */}
         <svg
           className="absolute inset-0 w-full h-full opacity-10 pointer-events-none"
@@ -197,9 +224,12 @@ function CreditCardComponent({ card }: { card: TarjetaDTOResponse }) {
           </div>
         </div>
       </CardContent>
-    </Card>
+      </Card>
+    </motion.div>
   )
-}
+})
+
+CreditCardComponent.displayName = 'CreditCardComponent'
 
 // Modal de registro
 function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: string }) {
@@ -447,8 +477,30 @@ export function CreditosPage() {
 
   if (!espacioActual) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">Selecciona un espacio de trabajo</p>
+      <div className="flex items-center justify-center min-h-[calc(100vh-200px)] p-6">
+        <Card className="max-w-2xl w-full border-dashed border-2 bg-zinc-950/50 p-12">
+          <div className="flex flex-col items-center text-center space-y-6">
+            <div className="rounded-full bg-zinc-900 p-6">
+              <CreditCardIcon className="h-16 w-16 text-muted-foreground/50" />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-2xl font-semibold tracking-tight">
+                Selecciona un espacio de trabajo
+              </h3>
+              <p className="text-muted-foreground max-w-md">
+                Para gestionar tus tarjetas de crédito y controlar cierres y vencimientos, primero elige un espacio en el menú lateral.
+              </p>
+            </div>
+
+            <div className="pt-4">
+              <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+                <span>Usa el menú lateral para comenzar</span>
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
     )
   }
@@ -475,11 +527,16 @@ export function CreditosPage() {
           <p className="text-muted-foreground">Cargando tarjetas...</p>
         </div>
       ) : tarjetas.length > 0 ? (
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {tarjetas.map((card) => (
-            <CreditCardComponent key={card.id} card={card} />
-          ))}
-        </div>
+        <motion.div 
+          className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          layout
+        >
+          <AnimatePresence mode="popLayout">
+            {tarjetas.map((card) => (
+              <CreditCardComponent key={card.id} card={card} />
+            ))}
+          </AnimatePresence>
+        </motion.div>
       ) : (
         /* Empty State */
         <Card>

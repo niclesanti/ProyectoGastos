@@ -22,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -79,7 +80,7 @@ public class EspacioTrabajoServiceTest {
         espacioTrabajo = new EspacioTrabajo();
         espacioTrabajo.setId(UUID.fromString("00000000-0000-0000-0000-000000000002"));
         espacioTrabajo.setNombre("Espacio de Prueba");
-        espacioTrabajo.setSaldo(0f);
+        espacioTrabajo.setSaldo(BigDecimal.ZERO);
         espacioTrabajo.setUsuarioAdmin(usuarioAdmin);
         espacioTrabajo.setUsuariosParticipantes(new java.util.ArrayList<>());
         espacioTrabajo.getUsuariosParticipantes().add(usuarioAdmin);

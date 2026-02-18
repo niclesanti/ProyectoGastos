@@ -1,5 +1,6 @@
 package com.campito.backend.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import jakarta.persistence.Column;
@@ -43,7 +44,7 @@ public class Resumen {
     private EstadoResumen estado;
 
     @Column(name = "monto_total", nullable = false, columnDefinition = "NUMERIC(15,2)")
-    private Float montoTotal;
+    private BigDecimal montoTotal;
 
     @ManyToOne
     @JoinColumn(name = "tarjeta_id", nullable = false)

@@ -1,18 +1,33 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { MoneyValue } from "@/types/money"
+import { toMoneyDecimal } from "@/types/money"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number): string {
-  const formatted = new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 2,
-  }).format(amount)
-  // Eliminar espacio después del símbolo $ para formato más compacto
-  return formatted.replace('$ ', '$')
+/**
+ * Formatea un valor monetario en formato de moneda argentina (ARS)
+ * 
+ * @param amount - Valor monetario (number o MoneyDecimal)
+ * @returns String formateado como moneda (ej: "$1,234.56")
+ * 
+ * @remarks
+ * Usa el método nativo `.format()` de MoneyDecimal para precisión decimal completa.
+ * Acepta tanto number como MoneyDecimal para flexibilidad.
+ * Se convierte internamente a MoneyDecimal usando toMoneyDecimal().
+ * 
+ * @example
+ * ```ts
+ * formatCurrency(1234.56) // "$1,234.56"
+ * formatCurrency(MoneyDecimal.fromNumber(1234.56)) // "$1,234.56"
+ * ```
+ */
+export function formatCurrency(amount: MoneyValue): string {
+  const amountDecimal = toMoneyDecimal(amount);
+  const formatted = amountDecimal.format();
+  return formatted.replace('$ ', '$');
 }
 
 export function formatDate(date: string | Date): string {

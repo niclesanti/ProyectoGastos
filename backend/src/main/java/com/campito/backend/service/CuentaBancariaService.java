@@ -1,5 +1,6 @@
 package com.campito.backend.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -10,7 +11,7 @@ import com.campito.backend.model.TipoTransaccion;
 
 public interface CuentaBancariaService {
     public void crearCuentaBancaria(CuentaBancariaDTORequest cuentaBancariaDTO);
-    public CuentaBancaria actualizarCuentaBancaria(Long id, TipoTransaccion tipo, Float monto);
+    public CuentaBancaria actualizarCuentaBancaria(Long id, TipoTransaccion tipo, BigDecimal monto);
     public List<CuentaBancariaDTOResponse> listarCuentasBancarias(UUID idEspacioTrabajo);
-    public void transaccionEntreCuentas(Long idCuentaOrigen, Long idCuentaDestino, Float monto);
+    public void transaccionEntreCuentas(Long idCuentaOrigen, Long idCuentaDestino, BigDecimal monto);
 }

@@ -61,7 +61,8 @@ import { CalendarIcon, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/useToast'
+import { MoneyInput } from '@/components/MoneyInput'
 
 // Validación Zod para el formulario principal
 const transactionFormSchema = z.object({
@@ -71,17 +72,14 @@ const transactionFormSchema = z.object({
   }).refine((date) => date <= new Date(), {
     message: "La fecha debe ser en el pasado o presente.",
   }),
-  monto: z.string()
-    .min(1, { message: "Por favor, indica el monto de la operación." })
+  monto: z.number()
+    .positive("El monto debe ser mayor a 0")
     .refine((val) => {
-      const num = parseFloat(val)
-      return !isNaN(num) && num > 0
-    }, { message: "El monto debe ser mayor a 0." })
-    .refine((val) => {
-      const parts = val.split('.')
-      if (parts.length === 1) return parts[0].length <= 8
-      return parts[0].length <= 8 && parts[1].length <= 2
-    }, { message: "Máximo 8 dígitos enteros y 2 decimales." }),
+      const str = val.toString()
+      const parts = str.split('.')
+      if (parts.length === 1) return parts[0].length <= 12
+      return parts[0].length <= 12 && (parts[1]?.length || 0) <= 2
+    }, { message: "Máximo 12 dígitos enteros y 2 decimales." }),
   motivo: z.string().min(1, { message: "Debes asignar un motivo a la transacción." }),
   cuenta: z.string().optional(),
   contacto: z.string().optional(),
@@ -124,9 +122,9 @@ const newCuentaSchema = z.object({
     .refine((val) => {
       if (!val || val.trim() === '') return true
       const parts = val.split('.')
-      if (parts.length === 1) return parts[0].length <= 8
-      return parts[0].length <= 8 && parts[1].length <= 2
-    }, { message: "Máximo 8 dígitos enteros y 2 decimales." }),
+      if (parts.length === 1) return parts[0].length <= 12
+      return parts[0].length <= 12 && parts[1].length <= 2
+    }, { message: "Máximo 12 dígitos enteros y 2 decimales." }),
   entidad: z.string().min(1, { message: "Debes seleccionar una entidad financiera." }),
 })
 
@@ -204,7 +202,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
     defaultValues: {
       tipo: 'gasto', // Por defecto Gasto
       fecha: new Date(), // Fecha actual por defecto
-      monto: '',
+      monto: null as unknown as number,
       motivo: '',
       cuenta: 'none',
       contacto: 'none',
@@ -218,7 +216,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
       form.reset({
         tipo: 'gasto', // Por defecto Gasto
         fecha: new Date(),
-        monto: '',
+        monto: null as unknown as number,
         motivo: '',
         cuenta: 'none',
         contacto: 'none',
@@ -251,7 +249,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
       const transaccionData = {
         tipo: data.tipo.toUpperCase(), // Convertir a GASTO o INGRESO
         fecha: formatDate(data.fecha, 'yyyy-MM-dd'),
-        monto: parseFloat(data.monto),
+        monto: data.monto,
         descripcion: data.descripcion || undefined,
         nombreCompletoAuditoria: user.nombre,
         idEspacioTrabajo: currentWorkspace.id,
@@ -335,14 +333,6 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
       ? parseFloat(newCuentaSaldo) 
       : 0
 
-    console.log('Datos de cuenta a enviar:', {
-      nombre: newCuentaNombre,
-      entidadFinanciera: newCuentaEntidad,
-      saldoActual: saldoValue,
-      saldoOriginal: newCuentaSaldo,
-      idEspacioTrabajo: currentWorkspace.id
-    })
-
     try {
       await createCuentaMutation.mutateAsync({
         nombre: newCuentaNombre,
@@ -396,18 +386,11 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
     }
   }
 
-  // Restringir entrada de monto
-  const handleMontoChange = (value: string) => {
-    // Permitir solo números, un punto y máximo 2 decimales
-    const regex = /^\d{0,8}(\.\d{0,2})?$/
-    if (regex.test(value) || value === '') {
-      form.setValue('monto', value)
-    }
-  }
+  // MoneyInput maneja la validación de formato automáticamente
 
   // Restringir entrada de saldo de cuenta
   const handleSaldoCuentaChange = (value: string) => {
-    const regex = /^\d{0,8}(\.\d{0,2})?$/
+    const regex = /^\d{0,12}(\.\d{0,2})?$/
     if (regex.test(value) || value === '') {
       setNewCuentaSaldo(value)
       setNewCuentaError('')
@@ -504,19 +487,15 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                   <FormItem>
                     <FormLabel>Monto</FormLabel>
                     <FormControl>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                          $
-                        </span>
-                        <Input
-                          {...field}
-                          type="text"
-                          inputMode="decimal"
-                          placeholder="0.00"
-                          className="h-9 pl-7"
-                          onChange={(e) => handleMontoChange(e.target.value)}
-                        />
-                      </div>
+                      <MoneyInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        min={0}
+                        maxDigits={12}
+                        maxDecimals={2}
+                        placeholder="0.00"
+                        className="h-9"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

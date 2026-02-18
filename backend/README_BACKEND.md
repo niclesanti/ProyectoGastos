@@ -17,6 +17,7 @@
 - [Seguridad y Autenticación](#-seguridad-y-autenticación)
 - [Migraciones de Base de Datos](#-migraciones-de-base-de-datos)
 - [Testing](#-testing)
+- [CI/CD - Integración y Despliegue Continuo](#-cicd---integración-y-despliegue-continuo)
 - [Despliegue con Docker](#-despliegue-con-docker)
 - [Mejores Prácticas Implementadas](#-mejores-prácticas-implementadas)
 
@@ -34,6 +35,7 @@ Sistema backend RESTful desarrollado con Spring Boot que proporciona una soluci�
 - ✅ **Procesamiento Automático**: Cierre automático de resúmenes de tarjetas mediante schedulers
 - ✅ **Notificaciones en Tiempo Real**: SSE (Server-Sent Events) y arquitectura dirigida por eventos
 - ✅ **Observabilidad y Métricas**: Instrumentación completa con Micrometer y Prometheus para monitoreo en producción
+- ✅ **CI/CD Automatizado**: Pipeline completo de integración y despliegue continuo con GitHub Actions
 - ✅ **Validaciones Robustas**: Bean Validation con validadores personalizados
 - ✅ **Documentación Automática**: API documentada con Swagger/OpenAPI
 - ✅ **Manejo de Errores**: Sistema centralizado de gestión de excepciones
@@ -192,6 +194,12 @@ Este backend proporciona una API REST completa que permite:
 ### Despliegue
 - **Docker**: Contenerización de la aplicación
 - **Multi-stage Build**: Optimización de imágenes Docker
+
+### CI/CD
+- **GitHub Actions**: Automatización de workflows
+- **Continuous Integration**: Tests automáticos en cada push
+- **Continuous Deployment**: Despliegue automático a producción
+- **Docker Hub**: Registro de imágenes Docker
 
 ---
 
@@ -1869,7 +1877,164 @@ src/test/
 
 ---
 
-## 🐳 Despliegue con Docker
+## � CI/CD - Integración y Despliegue Continuo
+
+### Visión General
+
+El proyecto implementa un pipeline completo de **CI/CD (Continuous Integration / Continuous Deployment)** utilizando **GitHub Actions** para automatizar testing, construcción y despliegue en producción.
+
+### 🎯 Objetivos
+
+- ✅ **Calidad Automatizada**: Ejecutar tests en cada cambio de código
+- ✅ **Despliegue Rápido**: Reducir tiempo de despliegue de ~15 minutos a ~5-7 minutos
+- ✅ **Cero Errores Humanos**: Eliminar pasos manuales propensos a fallos
+- ✅ **Trazabilidad**: Registro completo de cada despliegue
+- ✅ **Rollback Fácil**: Revertir a versión anterior con un simple revert del commit
+
+### 📋 Workflows Implementados
+
+#### 1. CI - Continuous Integration ([ci.yml](../.github/workflows/ci.yml))
+
+**Trigger**: Push o Pull Request a `develop` o `main`
+
+**Acciones**:
+1. Checkout del código
+2. Configuración de Java 21 (Temurin)
+3. Caché de dependencias Maven
+4. Ejecución de todos los tests
+5. Reporte de resultados
+
+**Propósito**: Validar que los cambios no rompan funcionalidad existente.
+
+```yaml
+# Flujo simplificado
+Checkout → Setup Java 21 → Maven Cache → Run Tests → Report
+```
+
+#### 2. CD - Continuous Deployment ([cd.yml](../.github/workflows/cd.yml))
+
+**Trigger**: Push a `main` (solo después de que CI pase)
+
+**Fases**:
+
+##### Fase 1: Testing
+- Ejecuta todos los tests de Maven
+- Si fallan, el pipeline se detiene
+
+##### Fase 2: Build & Push
+- Construye la imagen Docker (en servidores de GitHub)
+- Usa cache de Docker para builds más rápidos
+- Push automático a Docker Hub
+- Tag: `usuario/proyecto-gastos-backend:latest`
+
+##### Fase 3: Deploy
+- Conexión SSH al servidor Oracle Cloud
+- Pull de la nueva imagen desde Docker Hub
+- Reinicio del contenedor de backend
+- Limpieza de imágenes antiguas
+- Verificación de logs de arranque
+
+```yaml
+# Flujo completo
+Tests → Build Docker Image → Push to Docker Hub → SSH to Server → Pull & Restart → Verify
+```
+
+### 🔐 Seguridad: GitHub Secrets
+
+Todo el flujo funciona sin exponer credenciales gracias a **GitHub Secrets**:
+
+| Secret | Descripción | Uso |
+|--------|-------------|-----|
+| `DOCKERHUB_USERNAME` | Usuario de Docker Hub | Login en Docker Hub |
+| `DOCKERHUB_TOKEN` | Token de acceso (no contraseña) | Autenticación segura |
+| `ORACLE_SSH_HOST` | IP del servidor Oracle Cloud | Conexión SSH |
+| `ORACLE_SSH_USERNAME` | Usuario SSH (normalmente `ubuntu`) | Autenticación SSH |
+| `ORACLE_SSH_KEY` | Clave privada SSH completa | Conexión segura al servidor |
+
+**Ventajas de GitHub Secrets**:
+- 🔒 Cifrado de extremo a extremo
+- 🙈 No aparecen en logs (reemplazados por `***`)
+- 🚫 No accesibles después de guardarlos (ni siquiera por ti)
+- ✅ Solo disponibles durante la ejecución del workflow
+
+### 📊 Comparación: Antes vs Después
+
+| Aspecto | Antes (Manual) | Ahora (CI/CD) |
+|---------|----------------|---------------|
+| **Tests** | Ejecutar localmente (opcional) | Automáticos en cada push |
+| **Build** | `docker build` en PC local | Build en GitHub servidores |
+| **Push a Registry** | `docker push` manual | Automático tras tests exitosos |
+| **Deploy** | SSH + comandos manuales | Automático en `main` |
+| **Tiempo Total** | ~15 minutos (tu tiempo) | ~5-7 minutos (sin tu intervención) |
+| **Riesgo de Error** | Alto (pasos olvidados) | Mínimo (proceso estandarizado) |
+| **Auditoría** | Ninguna | Completa en GitHub Actions |
+
+### 🚀 Flujo de Trabajo para Desarrolladores
+
+#### Desarrollo Normal (feature branches)
+```bash
+git checkout -b feature/nueva-funcionalidad
+# ... hacer cambios ...
+git commit -m "feat: agregar nueva funcionalidad"
+git push origin feature/nueva-funcionalidad
+# → Crear Pull Request a 'develop'
+# → CI se ejecuta automáticamente
+# → Revisar resultados antes de merge
+```
+
+#### Despliegue a Producción
+```bash
+# Merge de develop a main
+git checkout main
+git merge develop
+git push origin main
+# → CI ejecuta tests
+# → CD construye imagen Docker
+# → CD despliega automáticamente a Oracle Cloud
+# → Backend actualizado en ~7 minutos
+```
+
+### 📝 Logs y Monitoreo
+
+**Ver ejecuciones del workflow**:
+1. Ir a la pestaña **Actions** en GitHub
+2. Seleccionar el workflow (`CI - Tests` o `CD - Deploy a Producción`)
+3. Ver logs en tiempo real de cada paso
+
+**Estados posibles**:
+- 🟢 **Success**: Todo correcto
+- 🔴 **Failure**: Algún paso falló (ver logs para detalles)
+- 🟡 **In Progress**: Ejecutándose actualmente
+- ⚪ **Skipped**: No se ejecutó (ej: CD se salta si CI falla)
+
+### 🛠️ Mantenimiento del Pipeline
+
+**Actualizar secretos**:
+- GitHub → Settings → Secrets and variables → Actions
+- Update/Add secret según sea necesario
+- Los workflows tomarán los nuevos valores automáticamente
+
+**Modificar workflows**:
+- Editar archivos en `.github/workflows/`
+- Los cambios aplican en el siguiente push
+- Probar en rama de feature antes de merge a main
+
+### 📚 Recursos de Configuración
+
+Para configurar los secretos necesarios, consulta:
+- 📘 [Guía de Configuración de Secrets](../docs/ConfiguracionSecretsCD.md)
+- 🐳 [Guía de Despliegue en Producción](../docs/DespliegueProduccion.md)
+
+### ⚠️ Notas Importantes
+
+1. **Solo `main` despliega**: Los cambios en `develop` ejecutan solo CI (tests)
+2. **Zero Downtime**: Durante el reinicio del contenedor (~10-20s) habrá un error 502 temporal
+3. **Rollback**: Si algo falla, revert el commit y push para redesplegar la versión anterior
+4. **Costos**: GitHub Actions es gratuito para repositorios públicos (2000 min/mes para privados)
+
+---
+
+## �🐳 Despliegue con Docker
 
 ### Dockerfile Multi-Stage
 
@@ -1992,6 +2157,9 @@ docker-compose down -v
 ### DevOps
 
 - ✅ **Docker**: Contenerización con multi-stage build
+- ✅ **CI/CD**: GitHub Actions para integración y despliegue continuo
+- ✅ **Automatización**: Testing y deployment automáticos
+- ✅ **Docker Hub**: Registro centralizado de imágenes
 - ✅ **Maven Wrapper**: Independencia de versión de Maven
 - ✅ **Variables de entorno**: Configuración externalizada
 - ✅ **Health checks**: Actuator para monitoring
@@ -2006,6 +2174,8 @@ docker-compose down -v
 - [Historias de Usuario](../docs/HistoriasDeUsuario.md)
 - [Problemas y Soluciones](../docs/ProblemasSoluciones.md)
 - [Guía Docker](../docs/GuiaDocker.md)
+- [Despliegue en Producción](../docs/DespliegueProduccion.md)
+- [Configuración de Secrets para CI/CD](../docs/ConfiguracionSecretsCD.md)
 
 ### Enlaces Útiles
 
@@ -2025,6 +2195,6 @@ Para consultas o soporte relacionado con el backend:
 
 ---
 
-**Versión del documento**: 1.0.0  
-**Última actualización**: Enero 2026  
+**Versión del documento**: 1.1.0  
+**Última actualización**: Febrero 2026  
 **Mantenido por**: Nicle Santiago

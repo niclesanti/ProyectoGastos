@@ -1,3 +1,5 @@
+import { transformMoneyFields, serializeMoneyFields } from './money-transformer'
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
 
 export class ApiError extends Error {
@@ -19,7 +21,9 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
   const contentType = response.headers.get('content-type')
   if (contentType && contentType.includes('application/json')) {
-    return response.json()
+    const jsonData = await response.json()
+    // Transformar campos monetarios de number a MoneyDecimal
+    return transformMoneyFields(jsonData)
   }
 
   return {} as T
@@ -47,7 +51,7 @@ export const api = {
         ...options?.headers,
       },
       credentials: 'include',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data ? serializeMoneyFields(data) : undefined,
       ...options,
     })
     return handleResponse<T>(response)
@@ -61,7 +65,7 @@ export const api = {
         ...options?.headers,
       },
       credentials: 'include',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data ? serializeMoneyFields(data) : undefined,
       ...options,
     })
     return handleResponse<T>(response)
