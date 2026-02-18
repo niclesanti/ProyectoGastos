@@ -4,13 +4,14 @@
 
 ### Plataforma Full-Stack moderna para gestión financiera familiar y personal
 
-[![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat&logo=openjdk&logoColor=white)](https://openjdk.org/)
+[![Java](https://img.shields.io/badge/☕_Java-21-ED8B00?style=flat)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5.3-6DB33F?style=flat&logo=spring-boot)](https://spring.io/projects/spring-boot)
 [![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3.3-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Prometheus](https://img.shields.io/badge/Metrics-Prometheus-E6522C?style=flat&logo=prometheus&logoColor=white)](https://prometheus.io/)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?style=flat&logo=github-actions&logoColor=white)](https://github.com/features/actions)
 
 [Características](#-características-principales) • [Tecnologías](#-stack-tecnológico) • [Arquitectura](#-arquitectura) • [Instalación](#-inicio-rápido) • [Documentación](#-documentación) • [Contribuir](CONTRIBUTING.md)
 
@@ -20,7 +21,7 @@
 
 ## 📖 Descripción
 
-Sistema Full-Stack profesional para la gestión integral de finanzas personales y familiares. Ofrece control completo sobre el registro de transacciones, cuentas bancarias, tarjetas de crédito, compras en cuotas y análisis financiero mediante dashboards interactivos. Desarrollado con tecnologías modernas y siguiendo las mejores prácticas de la industria.
+Sistema Full-Stack profesional para la gestión integral de finanzas personales y familiares. Ofrece control completo sobre el registro de transacciones, cuentas bancarias, tarjetas de crédito, compras en cuotas y análisis financiero mediante dashboards interactivos con excelente precisión en los datos que permite llevar todos tus números al día. Desarrollado con tecnologías modernas y siguiendo las mejores prácticas de la industria.
 
 ### ✨ ¿Por qué este proyecto?
 
@@ -31,6 +32,7 @@ Sistema Full-Stack profesional para la gestión integral de finanzas personales 
 - 👥 **Multi-Tenant**: Espacios de trabajo colaborativos para gestión grupal
 - 🔍 **Observabilidad y Telemetría**: Métricas de negocio y salud del sistema con Prometheus y Grafana para monitoreo proactivo
 - 🚀 **Producción Ready**: Dockerizado y desplegable en cloud con un comando
+- ⚙️ **CI/CD Automatizado**: Integración y despliegue continuo con GitHub Actions
 
 ---
 
@@ -41,6 +43,7 @@ Sistema Full-Stack profesional para la gestión integral de finanzas personales 
 - **Cuentas Bancarias**: Gestión de múltiples cuentas con actualización de saldos
 - **Tarjetas de Crédito**: Control de tarjetas con ciclos de facturación configurables
 - **Compras en Cuotas**: Seguimiento automático de cuotas y generación de resúmenes mensuales
+- **Precisión Decimal**: Cálculos financieros con máxima exactitud
 
 ### 📊 Dashboard y Analytics
 - **KPIs en Tiempo Real**: Balance total, gastos mensuales, deuda pendiente
@@ -109,10 +112,11 @@ Sistema Full-Stack profesional para la gestión integral de finanzas personales 
 - 🔍 Prometheus (Formato export)
 - 📉 Grafana (Visualización)
 
-**Testing**
+**Testing & CI/CD**
 - ✅ JUnit 5
 - 🧪 Mockito
 - 💾 H2 (BD en memoria)
+- 🔄 GitHub Actions (CI/CD)
 
 </td>
 <td width="50%" valign="top">
@@ -148,11 +152,12 @@ Sistema Full-Stack profesional para la gestión integral de finanzas personales 
 </tr>
 </table>
 
-### Infraestructura
+### Infraestructura & DevOps
 
 - 🐳 **Docker & Docker Compose**: Contenerización completa
 - 🛠️ **Maven**: Gestión de dependencias backend
 - 📦 **npm**: Gestión de dependencias frontend
+- 🔄 **GitHub Actions**: Workflows de CI/CD automatizados
 
 ---
 
