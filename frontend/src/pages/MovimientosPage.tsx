@@ -426,7 +426,7 @@ export function MovimientosPage() {
     {
       accessorKey: 'motivo',
       header: 'Motivo',
-      cell: ({ row }) => <div className="font-medium hidden md:block md:table-cell">{row.getValue('motivo')}</div>,
+      cell: ({ row }) => <div className="font-medium">{row.getValue('motivo')}</div>,
     },
     {
       accessorKey: 'cuenta',
