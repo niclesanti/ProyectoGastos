@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '@/store/app-store'
 import { useTarjetas, useCreateTarjeta } from '@/features/selectors/api/selector-queries'
@@ -96,8 +96,9 @@ const calculateDaysUntilClosure = (diaCierre: number): number => {
 }
 
 // Componente de tarjeta visual
-function CreditCardComponent({ card }: { card: TarjetaDTOResponse }) {
-  const daysUntilClosure = calculateDaysUntilClosure(card.diaCierre)
+const CreditCardComponent = React.forwardRef<HTMLDivElement, { card: TarjetaDTOResponse }>(
+  ({ card }, ref) => {
+    const daysUntilClosure = calculateDaysUntilClosure(card.diaCierre)
   
   // Color dinámico según días hasta cierre
   const getClosureBadgeColor = (days: number) => {
@@ -125,6 +126,7 @@ function CreditCardComponent({ card }: { card: TarjetaDTOResponse }) {
 
   return (
     <motion.div
+      ref={ref}
       layout
       initial={{ opacity: 0, scale: 0.9, y: 20 }}
       animate={{ 
@@ -225,7 +227,9 @@ function CreditCardComponent({ card }: { card: TarjetaDTOResponse }) {
       </Card>
     </motion.div>
   )
-}
+})
+
+CreditCardComponent.displayName = 'CreditCardComponent'
 
 // Modal de registro
 function AddCardDialog({ espacioTrabajoId }: { espacioTrabajoId: string }) {
