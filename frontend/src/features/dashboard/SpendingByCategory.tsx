@@ -86,7 +86,6 @@ export function SpendingByCategory() {
             }
             title="Sin gastos registrados"
             description="Aún no tienes gastos en este mes. Registra tus movimientos para ver la distribución por categoría."
-            size="sm"
           />
         ) : (
         <ChartContainer

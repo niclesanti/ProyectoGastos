@@ -198,7 +198,7 @@ export function MovimientosPage() {
   const [motivoSeleccionado, setMotivoSeleccionado] = useState('todos')
   const [contactoSeleccionado, setContactoSeleccionado] = useState('todos')
   
-  // Ordenamiento (ya no se usa por ahora, el backend ordena por fechaCreacion DESC)
+  // Ordenamiento de transacciones
   const [ordenamiento, setOrdenamiento] = useState<'fecha-desc' | 'fecha-asc' | 'monto-desc' | 'monto-asc'>('fecha-desc')
   
   // Popovers state
@@ -273,8 +273,37 @@ export function MovimientosPage() {
 
   const { sum } = useMoney()
 
-  // Las transacciones ya vienen ordenadas del backend por fechaCreacion DESC
-  const filteredTransactions = transactions
+  // Aplicar ordenamiento a las transacciones
+  const filteredTransactions = useMemo(() => {
+    if (!transactions || transactions.length === 0) return []
+
+    const sorted = [...transactions]
+
+    switch (ordenamiento) {
+      case 'fecha-desc':
+        return sorted.sort((a, b) => {
+          const dateA = parseISO(a.fecha)
+          const dateB = parseISO(b.fecha)
+          return dateB.getTime() - dateA.getTime()
+        })
+      case 'fecha-asc':
+        return sorted.sort((a, b) => {
+          const dateA = parseISO(a.fecha)
+          const dateB = parseISO(b.fecha)
+          return dateA.getTime() - dateB.getTime()
+        })
+      case 'monto-desc':
+        return sorted.sort((a, b) => {
+          return b.monto.toNumber() - a.monto.toNumber()
+        })
+      case 'monto-asc':
+        return sorted.sort((a, b) => {
+          return a.monto.toNumber() - b.monto.toNumber()
+        })
+      default:
+        return sorted
+    }
+  }, [transactions, ordenamiento])
 
   // Calcular totales de la página actual
   const { totalIngresos, totalGastos } = useMemo(() => {
@@ -708,8 +737,8 @@ export function MovimientosPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8">
-                  <ArrowUpDown className="mr-2 h-4 w-4" />
-                  Ordenar
+                  <ArrowUpDown className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Ordenar</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -734,7 +763,8 @@ export function MovimientosPage() {
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-8">
-                Columnas <ChevronDown className="ml-2 h-4 w-4" />
+                <span className="hidden sm:inline">Columnas</span>
+                <ChevronDown className="h-4 w-4 sm:ml-2" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

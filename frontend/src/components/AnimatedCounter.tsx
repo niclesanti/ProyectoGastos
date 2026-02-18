@@ -51,9 +51,10 @@ export function AnimatedCounter({
     mass: 1,
   })
 
-  // Transform spring value to rounded integer
+  // Transform spring value with full decimal precision
+  // No rounding - formatFn handles decimal formatting correctly
   const display = useTransform(spring, (current) =>
-    formatFn ? formatFn(Math.floor(current)) : Math.floor(current).toLocaleString()
+    formatFn ? formatFn(current) : current.toLocaleString()
   )
 
   useEffect(() => {
