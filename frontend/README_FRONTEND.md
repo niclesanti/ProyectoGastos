@@ -151,6 +151,221 @@ Aplicación web moderna y responsiva desarrollada con React 18 y TypeScript que 
 - **Autoprefixer**: Vendor prefixes automáticos
 - **vite-plugin-svgr**: Importación de SVGs como componentes
 
+### Precisión Decimal en Operaciones Financieras
+- **decimal.js 7.6.2**: Biblioteca de precisión arbitraria para cálculos monetarios
+- **@types/decimal.js**: Definiciones de tipos TypeScript
+- **MoneyDecimal**: Wrapper personalizado sobre decimal.js
+- **MoneyDisplay**: Componente React para visualización monetaria
+- **MoneyInput**: Componente React para entrada monetaria con validación
+- **useMoney**: Hook personalizado con 20+ operaciones monetarias
+- **Money Transformer**: Transformación automática API (JSON ↔ MoneyDecimal)
+
+### Testing
+- **Vitest 4.0.18**: Framework de testing ultrarrápido
+- **@testing-library/react**: Testing de componentes React
+- **@testing-library/jest-dom**: Matchers de DOM personalizados
+- **@testing-library/user-event**: Simulación de interacciones de usuario
+- **@vitest/ui**: Interfaz visual para tests
+- **@vitest/coverage-v8**: Reportes de cobertura de código
+
+---
+
+## 💰 Sistema de Precisión Decimal
+
+### Problema Resuelto
+
+JavaScript utiliza **IEEE 754 floating-point** que causa errores de precisión en operaciones financieras:
+
+```javascript
+// ❌ Problema con números nativos
+0.1 + 0.2 === 0.3  // false (0.30000000000000004)
+
+// ✅ Solución con MoneyDecimal
+MoneyDecimal.fromNumber(0.1)
+  .add(0.2)
+  .equals(0.3)  // true
+```
+
+### Arquitectura de Precisión
+
+```
+┌─────────────────────────────────────────────┐
+│          BACKEND (Java Spring Boot)         │
+│    BigDecimal → JSON (string/number)        │
+└──────────────────┬──────────────────────────┘
+                   │ HTTP/JSON
+┌──────────────────▼──────────────────────────┐
+│      TRANSFORMACIÓN AUTOMÁTICA (API)        │
+│   money-transformer.ts (Axios Interceptor)  │
+│   JSON → MoneyDecimal (24 campos)           │
+└──────────────────┬──────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────┐
+│          FRONTEND (React + TS)              │
+│  MoneyDecimal en interfaces TypeScript      │
+│  Cálculos con precisión arbitraria          │
+└──────────────────┬──────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────┐
+│         COMPONENTES UI                      │
+│  MoneyDisplay: Visualización formateada     │
+│  MoneyInput: Entrada con validación         │
+│  useMoney: Hook con 20+ operaciones         │
+└─────────────────────────────────────────────┘
+```
+
+### Componentes del Sistema
+
+#### 1. MoneyDecimal (`src/lib/money.ts`)
+Wrapper inmutable sobre decimal.js con API fluida:
+
+```typescript
+import { MoneyDecimal } from '@/lib/money'
+
+// Creación
+const price = MoneyDecimal.fromNumber(1234.56)
+const discount = MoneyDecimal.fromString('10.50')
+
+// Operaciones
+const total = price.subtract(discount)  // 1224.06
+const withTax = total.multiply(1.21)    // 1481.11
+
+// Comparaciones
+if (total.greaterThan(1000)) {
+  console.log('Compra grande')
+}
+
+// Conversión
+total.toNumber()   // 1224.06
+total.toString()   // "1224.06"
+total.toFixed(2)   // "1224.06"
+total.format()     // "$1,224.06"
+```
+
+**Características**:
+- ✅ Inmutabilidad (todas las operaciones retornan nuevas instancias)
+- ✅ Validación de entrada (NaN, Infinity, strings vacíos)
+- ✅ Precisión arbitraria (no hay límite de dígitos)
+- ✅ API fluida y chainable
+- ✅ Redondeo bancario (ROUND_HALF_UP)
+
+#### 2. MoneyDisplay (`src/components/MoneyDisplay.tsx`)
+Componente React para visualización monetaria:
+
+```tsx
+import { MoneyDisplay } from '@/components/MoneyDisplay'
+
+// Uso básico
+<MoneyDisplay value={1234.56} />  // $ 1.234,56
+
+// Con props
+<MoneyDisplay 
+  value={balance} 
+  colored              // Verde si positivo, rojo si negativo
+  showCurrency={false} // Sin símbolo $
+  decimals={3}         // 3 decimales
+  fallback="N/A"       // Si es null/undefined
+  className="text-lg"  // Clases CSS adicionales
+/>
+```
+
+#### 3. MoneyInput (`src/components/MoneyInput.tsx`)
+Componente React para entrada monetaria con validación:
+
+```tsx
+import { MoneyInput } from '@/components/MoneyInput'
+
+<MoneyInput
+  value={monto}
+  onChange={setMonto}
+  min={0}                  // Valor mínimo
+  max={balance}            // Valor máximo
+  allowNegative={false}    // Bloquear negativos
+  showPrefix={true}        // Mostrar $ prefix
+  placeholder="0.00"
+/>
+```
+
+**Características**:
+- ✅ Validación en tiempo real
+- ✅ Filtrado de caracteres inválidos
+- ✅ Clamping automático (min/max)
+- ✅ Input mode="decimal" para teclados móviles
+- ✅ Accesibilidad completa
+
+#### 4. useMoney Hook (`src/hooks/useMoney.ts`)
+Hook personalizado con 20+ operaciones monetarias:
+
+```typescript
+import { useMoney } from '@/hooks/useMoney'
+
+const { compare, add, sum, average, isPositive } = useMoney()
+
+// Comparaciones
+compare(100, 200)  // -1
+isPositive(balance)  // boolean
+
+// Aritmética
+const total = add(price, tax)
+const avg = average([100, 200, 300])  // 200
+
+// Agregaciones
+const totalGastos = sum(transacciones.map(t => t.monto))
+const maxGasto = max(transacciones.map(t => t.monto))
+```
+
+**Operaciones disponibles**: compare, isPositive, isNegative, isZero, isGreaterThan, isLessThan, isGreaterThanOrEqual, isLessThanOrEqual, add, subtract, multiply, divide, abs, sum, average, max, min, toCurrency, toFixed, roundTo
+
+#### 5. Money Transformer (`src/services/money-transformer.ts`)
+Transformación automática bidireccional entre backend y frontend:
+
+```typescript
+// ✅ Automático en todas las llamadas API
+// Backend envía: { saldo: 1234.56, deuda: 500.00 }
+// Frontend recibe: { saldo: MoneyDecimal(1234.56), deuda: MoneyDecimal(500.00) }
+
+// ✅ Configurado en api-client.ts con Axios interceptors
+// 24 campos monetarios transformados automáticamente
+```
+
+**Campos transformados**: saldo, saldoActual, monto, montoTotal, deuda, deudaTotal, gastosMensuales, ingresos, gastos, precioUnitario, subtotal, montoCuota, montoAPagar, saldoInicial, etc.
+
+### Testing del Sistema Monetario
+
+**128 tests** con **100% de cobertura** en componentes críticos:
+
+```bash
+# Ejecutar tests
+npm run test
+
+# Tests con UI visual
+npm run test:ui
+
+# Single run (CI)
+npm run test:run
+
+# Con cobertura
+npm run test:coverage
+```
+
+**Test suites** (`src/__tests__/`):
+- `lib/money.test.ts`: 37 tests - MoneyDecimal core (factory, aritmética, comparaciones, precisión, edge cases, inmutabilidad)
+- `hooks/useMoney.test.ts`: 31 tests - Hook operations (comparaciones, aritmética, agregaciones, escenarios reales)
+- `components/MoneyDisplay.test.tsx`: 30 tests - Component rendering (props, formateo, colores, null handling, locale-agnostic)
+- `components/MoneyInput.test.tsx`: 30 tests - User input (validación, min/max, negativos, edge cases)
+
+**Cobertura lograda**:
+- MoneyDisplay: **100%** statements
+- MoneyInput: **88%** statements  
+- useMoney: **100%** statements
+- money.ts: **53%** statements (core methods al 100%, utilidades auxiliares sin tests)
+
+### Documentación Completa
+
+Para guía detallada de uso, mejores prácticas, ejemplos avanzados y troubleshooting:
+
+📖 **Ver**: [`MONEY_GUIDE.md`](./MONEY_GUIDE.md)
+
 ---
 
 ## 🏗 Arquitectura y Patrones

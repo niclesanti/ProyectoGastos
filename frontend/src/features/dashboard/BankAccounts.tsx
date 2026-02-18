@@ -2,9 +2,11 @@ import { DataTable } from '@/components/ui/data-table'
 import { ColumnDef } from '@tanstack/react-table'
 import { formatCurrency } from '@/lib/utils'
 import { useAppStore } from '@/store/app-store'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import type { CuentaBancaria } from '@/types'
 import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/EmptyState'
+import { Landmark } from 'lucide-react'
 
 const columns: ColumnDef<CuentaBancaria>[] = [
   {
@@ -72,6 +74,13 @@ export function BankAccounts() {
     fetchAccounts()
   }, [currentWorkspace?.id, loadBankAccounts, bankAccountsCache])
 
+  // Calcular el saldo total
+  const saldoTotal = useMemo(() => {
+    return accounts.reduce((total, cuenta) => {
+      return total + parseFloat(cuenta.saldoActual.toString())
+    }, 0)
+  }, [accounts])
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -91,12 +100,43 @@ export function BankAccounts() {
     )
   }
 
+  if (accounts.length === 0) {
+    return (
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Cuentas bancarias</h3>
+        <EmptyState
+          illustration={
+            <div className="relative">
+              <Landmark className="w-full h-full text-muted-foreground" strokeWidth={1.5} />
+            </div>
+          }
+          title="Tu billetera está esperando"
+          description="Registra tus cuentas bancarias para tener una visión clara de tu saldo disponible."
+          size="md"
+        />
+      </div>
+    )
+  }
+
   return (
     <DataTable 
       columns={columns} 
       data={accounts}
       title="Cuentas bancarias"
       pageSize={6}
+      footer={
+        <div className="bg-muted/30 border-t">
+          <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_minmax(150px,1fr)_auto] gap-4 px-4 py-3 items-center">
+            <div className="font-semibold text-sm">
+              Saldo total
+            </div>
+            <div className="hidden md:block"></div>
+            <div className="text-right font-semibold">
+              {formatCurrency(saldoTotal)}
+            </div>
+          </div>
+        </div>
+      }
     />
   )
 }

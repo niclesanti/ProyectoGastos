@@ -1,5 +1,6 @@
 package com.campito.backend.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -11,7 +12,7 @@ public record ResumenDTOResponse(
     Integer mes,
     LocalDate fechaVencimiento,
     EstadoResumen estado,
-    Float montoTotal,
+    BigDecimal montoTotal,
     Long idTarjeta,
     String numeroTarjeta,
     String entidadFinanciera,

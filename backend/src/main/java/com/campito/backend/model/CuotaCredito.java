@@ -1,5 +1,6 @@
 package com.campito.backend.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import jakarta.persistence.*;
@@ -27,7 +28,7 @@ public class CuotaCredito {
     private LocalDate fechaVencimiento;
 
     @Column(name = "monto_cuota", nullable = false, columnDefinition = "NUMERIC(15,2)")
-    private Float montoCuota;
+    private BigDecimal montoCuota;
 
     @Column(name = "pagada", nullable = false)
     private boolean pagada;

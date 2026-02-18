@@ -73,7 +73,7 @@ class DashboardServiceTest {
     void setUp() {
         espacio = new EspacioTrabajo();
         espacio.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
-        espacio.setSaldo(123.45f);
+        espacio.setSaldo(new BigDecimal("123.45"));
     }
 
     // --------------------------------------------------
@@ -98,7 +98,7 @@ class DashboardServiceTest {
         when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(any(java.util.UUID.class), anyInt(), anyInt()))
             .thenReturn(Optional.empty());
 
-        when(cuotaCreditoRepository.calcularDeudaTotalPendiente(espacio.getId())).thenReturn(500.0f);
+        when(cuotaCreditoRepository.calcularDeudaTotalPendiente(espacio.getId())).thenReturn(new BigDecimal("500.00"));
         when(dashboardRepository.findDistribucionGastos(eq(espacio.getId()), any(LocalDate.class))).thenReturn(new ArrayList<>());
         when(tarjetaRepository.findByEspacioTrabajo_Id(espacio.getId())).thenReturn(new ArrayList<>());
         when(gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(eq(espacio.getId()), anyList())).thenReturn(new ArrayList<>());
@@ -107,14 +107,14 @@ class DashboardServiceTest {
 
         assertNotNull(stats);
         assertEquals(espacio.getSaldo(), stats.balanceTotal());
-        assertEquals(0.0f, stats.gastosMensuales());
-        assertEquals(500.0f, stats.deudaTotalPendiente());
-        assertEquals(0.0f, stats.resumenMensual());
+        assertEquals(0, new BigDecimal("0.00").compareTo(stats.gastosMensuales()));
+        assertEquals(new BigDecimal("500.00"), stats.deudaTotalPendiente());
+        assertEquals(0, new BigDecimal("0.00").compareTo(stats.resumenMensual()));
         assertEquals(12, stats.flujoMensual().size(), "Debe devolver 12 meses en flujo mensual");
 
         for (var mes : stats.flujoMensual()) {
-            assertEquals(BigDecimal.ZERO, mes.getIngresos());
-            assertEquals(BigDecimal.ZERO, mes.getGastos());
+            assertEquals(0, new BigDecimal("0.00").compareTo(mes.getIngresos()));
+            assertEquals(0, new BigDecimal("0.00").compareTo(mes.getGastos()));
         }
     }
 
@@ -138,16 +138,16 @@ class DashboardServiceTest {
         GastosIngresosMensuales g1 = GastosIngresosMensuales.builder()
                 .anio(ym1.getYear())
                 .mes(ym1.getMonthValue())
-                .gastos(100f)
-                .ingresos(400f)
+                .gastos(new BigDecimal("100.00"))
+                .ingresos(new BigDecimal("400.00"))
                 .espacioTrabajo(espacio)
                 .build();
 
         GastosIngresosMensuales g2 = GastosIngresosMensuales.builder()
                 .anio(ym2.getYear())
                 .mes(ym2.getMonthValue())
-                .gastos(50f)
-                .ingresos(150f)
+                .gastos(new BigDecimal("50.00"))
+                .ingresos(new BigDecimal("150.00"))
                 .espacioTrabajo(espacio)
                 .build();
 
@@ -157,7 +157,7 @@ class DashboardServiceTest {
         when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(eq(espacio.getId()), anyInt(), anyInt()))
                 .thenReturn(Optional.of(g1));
 
-        when(cuotaCreditoRepository.calcularDeudaTotalPendiente(espacio.getId())).thenReturn(250.5f);
+        when(cuotaCreditoRepository.calcularDeudaTotalPendiente(espacio.getId())).thenReturn(new BigDecimal("250.50"));
 
         // Distribucion de gastos
         DistribucionGastoDTO distribMock = mock(DistribucionGastoDTO.class);
@@ -170,9 +170,9 @@ class DashboardServiceTest {
         tarjeta.setDiaVencimientoPago(10);
         when(tarjetaRepository.findByEspacioTrabajo_Id(espacio.getId())).thenReturn(List.of(tarjeta));
         CuotaCredito cuota1 = new CuotaCredito();
-        cuota1.setMontoCuota(120.0f);
+        cuota1.setMontoCuota(new BigDecimal("120.00"));
         CuotaCredito cuota2 = new CuotaCredito();
-        cuota2.setMontoCuota(80.0f);
+        cuota2.setMontoCuota(new BigDecimal("80.00"));
 
         // Capture the date range used for query to assert later
         when(cuotaCreditoRepository.findByTarjetaSinResumenEnRango(eq(20L), any(LocalDate.class), any(LocalDate.class)))
@@ -182,9 +182,9 @@ class DashboardServiceTest {
 
         assertNotNull(stats);
         assertEquals(espacio.getSaldo(), stats.balanceTotal());
-        assertEquals(100f, stats.gastosMensuales()); // because findByEspacioTrabajo_IdAndAnioAndMes returned g1
-        assertEquals(250.5f, stats.deudaTotalPendiente());
-        assertEquals(200.0f, stats.resumenMensual(), "Resumen mensual es la suma de las cuotas devueltas");
+        assertEquals(new BigDecimal("100.00"), stats.gastosMensuales()); // because findByEspacioTrabajo_IdAndAnioAndMes returned g1
+        assertEquals(new BigDecimal("250.50"), stats.deudaTotalPendiente());
+        assertEquals(new BigDecimal("200.00"), stats.resumenMensual(), "Resumen mensual es la suma de las cuotas devueltas");
         assertEquals(12, stats.flujoMensual().size());
         assertEquals(1, stats.distribucionGastos().size());
 
@@ -203,9 +203,9 @@ class DashboardServiceTest {
     void obtenerDashboardStats_sinTarjetas_resumenMensualCero() {
         when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
         when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(eq(espacio.getId()), anyInt(), anyInt()))
-                .thenReturn(Optional.of(GastosIngresosMensuales.builder().anio(LocalDate.now().getYear()).mes(LocalDate.now().getMonthValue()).gastos(10f).ingresos(20f).espacioTrabajo(espacio).build()));
+                .thenReturn(Optional.of(GastosIngresosMensuales.builder().anio(LocalDate.now().getYear()).mes(LocalDate.now().getMonthValue()).gastos(new BigDecimal("10.00")).ingresos(new BigDecimal("20.00")).espacioTrabajo(espacio).build()));
 
-        when(cuotaCreditoRepository.calcularDeudaTotalPendiente(espacio.getId())).thenReturn(0.0f);
+        when(cuotaCreditoRepository.calcularDeudaTotalPendiente(espacio.getId())).thenReturn(BigDecimal.ZERO);
         when(dashboardRepository.findDistribucionGastos(eq(espacio.getId()), any(LocalDate.class))).thenReturn(List.of());
         when(tarjetaRepository.findByEspacioTrabajo_Id(espacio.getId())).thenReturn(List.of());
         when(gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(eq(espacio.getId()), anyList())).thenReturn(new ArrayList<>());
@@ -213,14 +213,14 @@ class DashboardServiceTest {
         DashboardStatsDTO stats = dashboardService.obtenerDashboardStats(espacio.getId());
 
         assertNotNull(stats);
-        assertEquals(0.0f, stats.resumenMensual());
+        assertEquals(0, new BigDecimal("0.00").compareTo(stats.resumenMensual()));
     }
 
     @Test
     void obtenerDashboardStats_whenDebtCalcThrows_propagatesException() {
         when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
         when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(eq(espacio.getId()), anyInt(), anyInt()))
-                .thenReturn(Optional.of(GastosIngresosMensuales.builder().anio(LocalDate.now().getYear()).mes(LocalDate.now().getMonthValue()).gastos(10f).ingresos(20f).espacioTrabajo(espacio).build()));
+                .thenReturn(Optional.of(GastosIngresosMensuales.builder().anio(LocalDate.now().getYear()).mes(LocalDate.now().getMonthValue()).gastos(new BigDecimal("10.00")).ingresos(new BigDecimal("20.00")).espacioTrabajo(espacio).build()));
 
         when(cuotaCreditoRepository.calcularDeudaTotalPendiente(espacio.getId())).thenThrow(new RuntimeException("DB error"));
 

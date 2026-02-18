@@ -1,13 +1,14 @@
 package com.campito.backend.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public record DashboardStatsDTO(
     // KPIs
-    Float balanceTotal,
-    Float gastosMensuales,
-    Float resumenMensual,
-    Float deudaTotalPendiente,
+    BigDecimal balanceTotal,
+    BigDecimal gastosMensuales,
+    BigDecimal resumenMensual,
+    BigDecimal deudaTotalPendiente,
     
     // Gráficos
     List<IngresosGastosMesDTO> flujoMensual,

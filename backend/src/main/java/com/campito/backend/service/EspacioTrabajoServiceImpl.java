@@ -1,5 +1,6 @@
 package com.campito.backend.service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -86,7 +87,7 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
         });
 
         EspacioTrabajo espacioTrabajo = espacioTrabajoMapper.toEntity(espacioTrabajoDTO);
-        espacioTrabajo.setSaldo(0f);
+        espacioTrabajo.setSaldo(BigDecimal.ZERO);
         espacioTrabajo.setUsuarioAdmin(usuario);
         espacioTrabajo.setUsuariosParticipantes(new ArrayList<>());
         espacioTrabajo.getUsuariosParticipantes().add(usuario);
@@ -126,6 +127,18 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
             String mensajeUsuario = "No existe ningún usuario registrado con el correo electrónico '" + email + "'. Por favor, verifica que el correo sea correcto o invita a esa persona a registrarse primero.";
             return new UsuarioNoEncontradoException(mensajeUsuario);
         });
+
+        // Validar si el usuario ya es colaborador del espacio de trabajo
+        if (espacioTrabajo.getUsuariosParticipantes().contains(usuario)) {
+            String mensaje = String.format(
+                "El usuario '%s' ya es colaborador del espacio de trabajo '%s'. " +
+                "No es necesario volver a invitarlo.",
+                email, espacioTrabajo.getNombre()
+            );
+            logger.warn("Intento de invitar a usuario que ya es miembro. Espacio: {}, Usuario: {}", 
+                       idEspacioTrabajo, usuario.getId());
+            throw new EntidadDuplicadaException(mensaje);
+        }
 
         // Validar si ya existe una solicitud pendiente para este usuario y espacio
         boolean existeSolicitudPendiente = solicitudPendienteRepository

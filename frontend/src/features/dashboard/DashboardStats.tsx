@@ -3,11 +3,13 @@ import { Badge } from '@/components/ui/badge'
 import { ArrowUpRight, ArrowDownRight, DollarSign, CreditCard, AlertCircle, Wallet, Loader2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
+import { MoneyValue, toMoneyDecimal } from '@/types/money'
+import { AnimatedCounter } from '@/components/AnimatedCounter'
 
 
 interface StatsCardProps {
   title: string
-  value: string | number
+  value: string | number | MoneyValue
   change?: number
   description: string
   icon: React.ReactNode
@@ -17,8 +19,11 @@ interface StatsCardProps {
 }
 
 export function StatsCard({ title, value, change, description, icon, trend, isLoading, highlightNegative }: StatsCardProps) {
-  const formattedValue = typeof value === 'number' ? formatCurrency(value) : value
-  const isNegative = typeof value === 'number' && value < 0 && highlightNegative
+  // Handle formatting for different value types
+  const numericValue = typeof value === 'string' ? 0 : toMoneyDecimal(value).toNumber()
+  
+  // Check if negative for highlighting
+  const isNegative = numericValue < 0 && highlightNegative
   const valueClass = isNegative ? 'text-rose-300' : 'text-white'
 
   return (
@@ -37,7 +42,12 @@ export function StatsCard({ title, value, change, description, icon, trend, isLo
             <>
               <p className="text-xs md:text-sm font-medium text-muted-foreground mb-1 md:mb-2">{title}</p>
               <div className="flex items-baseline gap-2">
-                <h3 className={`text-lg md:text-2xl font-bold ${valueClass}`}>{formattedValue}</h3>
+                <h3 className={`text-lg md:text-2xl font-bold ${valueClass}`}>
+                  <AnimatedCounter
+                    value={numericValue}
+                    formatFn={(val) => formatCurrency(val)}
+                  />
+                </h3>
                 {change !== undefined && (
                   <Badge variant={trend === 'up' ? 'success' : 'warning'} className="text-xs">
                     {trend === 'up' ? (
@@ -68,7 +78,7 @@ export function DashboardStats() {
     <div className="grid gap-3 grid-cols-2 md:gap-6 lg:grid-cols-4">
       <StatsCard
         title="Balance total"
-        value={stats?.balanceTotal || 0}
+        value={stats?.balanceTotal ?? 0}
         description="Saldo disponible"
         icon={<Wallet className="h-4 w-4" />}
         isLoading={isLoading}
@@ -76,21 +86,21 @@ export function DashboardStats() {
       />
       <StatsCard
         title="Gastos mensuales"
-        value={stats?.gastosMensuales || 0}
+        value={stats?.gastosMensuales ?? 0}
         description={`Gastos de ${mesCapitalizado}`}
         icon={<DollarSign className="h-4 w-4" />}
         isLoading={isLoading}
       />
       <StatsCard
         title="Resumen mensual"
-        value={stats?.resumenMensual || 0}
+        value={stats?.resumenMensual ?? 0}
         description="Suma próximos resúmenes"
         icon={<CreditCard className="h-4 w-4" />}
         isLoading={isLoading}
       />
       <StatsCard
         title="Deuda pendiente"
-        value={stats?.deudaTotalPendiente || 0}
+        value={stats?.deudaTotalPendiente ?? 0}
         description="Sin cuotas activas"
         icon={<AlertCircle className="h-4 w-4" />}
         isLoading={isLoading}

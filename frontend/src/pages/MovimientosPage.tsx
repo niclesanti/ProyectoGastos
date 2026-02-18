@@ -1,11 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useAppStore } from '@/store/app-store'
 import { useBuscarTransacciones, useMotivosTransaccion, useContactosTransaccion, useRemoverTransaccion } from '@/features/selectors/api/selector-queries'
-import { useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import { TransactionDetailsModal } from '@/components/TransactionDetailsModal'
-import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
-import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -58,6 +53,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Card } from '@/components/ui/card'
 import { 
   MoreHorizontal, 
   X, 
@@ -68,6 +64,7 @@ import {
   Search,
   Eye,
   Trash2,
+  ArrowLeftRight,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -89,6 +86,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { MoneyDecimal } from '@/lib/money'
+import { useMoney } from '@/hooks/useMoney'
+import { Button } from '@/components/ui/button'
+import { toast } from '@/hooks/useToast'
+import { useQueryClient } from '@tanstack/react-query'
+import { TransactionDetailsModal } from '@/components/TransactionDetailsModal'
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
+import { formatCurrency } from '@/lib/utils'
 
 interface Transaction {
   id: string
@@ -97,7 +102,7 @@ interface Transaction {
   motivo: string
   contacto: string
   cuenta: string
-  monto: number
+  monto: MoneyDecimal
   descripcion?: string
   nombreEspacioTrabajo: string
   nombreCompletoAuditoria: string
@@ -193,7 +198,7 @@ export function MovimientosPage() {
   const [motivoSeleccionado, setMotivoSeleccionado] = useState('todos')
   const [contactoSeleccionado, setContactoSeleccionado] = useState('todos')
   
-  // Ordenamiento (ya no se usa por ahora, el backend ordena por fechaCreacion DESC)
+  // Ordenamiento de transacciones
   const [ordenamiento, setOrdenamiento] = useState<'fecha-desc' | 'fecha-asc' | 'monto-desc' | 'monto-asc'>('fecha-desc')
   
   // Popovers state
@@ -266,24 +271,50 @@ export function MovimientosPage() {
     })
   }
 
-  // Las transacciones ya vienen ordenadas del backend por fechaCreacion DESC
-  const filteredTransactions = transactions
+  const { sum } = useMoney()
+
+  // Aplicar ordenamiento a las transacciones
+  const filteredTransactions = useMemo(() => {
+    if (!transactions || transactions.length === 0) return []
+
+    const sorted = [...transactions]
+
+    switch (ordenamiento) {
+      case 'fecha-desc':
+        return sorted.sort((a, b) => {
+          const dateA = parseISO(a.fecha)
+          const dateB = parseISO(b.fecha)
+          return dateB.getTime() - dateA.getTime()
+        })
+      case 'fecha-asc':
+        return sorted.sort((a, b) => {
+          const dateA = parseISO(a.fecha)
+          const dateB = parseISO(b.fecha)
+          return dateA.getTime() - dateB.getTime()
+        })
+      case 'monto-desc':
+        return sorted.sort((a, b) => {
+          return b.monto.toNumber() - a.monto.toNumber()
+        })
+      case 'monto-asc':
+        return sorted.sort((a, b) => {
+          return a.monto.toNumber() - b.monto.toNumber()
+        })
+      default:
+        return sorted
+    }
+  }, [transactions, ordenamiento])
 
   // Calcular totales de la página actual
   const { totalIngresos, totalGastos } = useMemo(() => {
-    const ingresos = filteredTransactions
-      .filter(t => t.tipo === 'Ingreso')
-      .reduce((sum, t) => sum + t.monto, 0)
+    const transaccionesIngresos = filteredTransactions.filter(t => t.tipo === 'Ingreso')
+    const transaccionesGastos = filteredTransactions.filter(t => t.tipo === 'Gasto')
     
-    const gastos = filteredTransactions
-      .filter(t => t.tipo === 'Gasto')
-      .reduce((sum, t) => sum + t.monto, 0)
-
     return {
-      totalIngresos: ingresos,
-      totalGastos: gastos
+      totalIngresos: sum(transaccionesIngresos.map(t => t.monto)),
+      totalGastos: sum(transaccionesGastos.map(t => t.monto)),
     }
-  }, [filteredTransactions])
+  }, [filteredTransactions, sum])
 
   // Verificar si hay filtros activos
   const hasActiveFilters = mesSeleccionado !== 'todos' || 
@@ -362,15 +393,6 @@ export function MovimientosPage() {
     }
   }
 
-  // Formatear moneda
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 2,
-    }).format(amount)
-  }
-
   const columns: ColumnDef<Transaction>[] = [
     {
       id: 'drag',
@@ -404,7 +426,7 @@ export function MovimientosPage() {
     {
       accessorKey: 'motivo',
       header: 'Motivo',
-      cell: ({ row }) => <div className="font-medium hidden md:block md:table-cell">{row.getValue('motivo')}</div>,
+      cell: ({ row }) => <div className="font-medium">{row.getValue('motivo')}</div>,
     },
     {
       accessorKey: 'cuenta',
@@ -428,7 +450,7 @@ export function MovimientosPage() {
       accessorKey: 'monto',
       header: () => <div className="text-right">Monto</div>,
       cell: ({ row }) => {
-        const monto = row.getValue('monto') as number
+        const monto = row.getValue('monto') as MoneyDecimal
         const tipo = row.original.tipo
         return (
           <div className={cn(
@@ -483,6 +505,36 @@ export function MovimientosPage() {
     },
     // Sin paginación del cliente ya que la manejamos del lado del servidor
   })
+
+  if (!espacioActual) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-200px)] p-6">
+        <Card className="max-w-2xl w-full border-dashed border-2 bg-zinc-950/50 p-12">
+          <div className="flex flex-col items-center text-center space-y-6">
+            <div className="rounded-full bg-zinc-900 p-6">
+              <ArrowLeftRight className="h-16 w-16 text-muted-foreground/50" />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-2xl font-semibold tracking-tight">
+                Selecciona un espacio de trabajo
+              </h3>
+              <p className="text-muted-foreground max-w-md">
+                Para explorar tu historial de transacciones, primero elige un espacio en el menú lateral o crea uno nuevo.
+              </p>
+            </div>
+
+            <div className="pt-4">
+              <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+                <span>Usa el menú lateral para comenzar</span>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6 pt-4 sm:pt-6">
@@ -685,8 +737,8 @@ export function MovimientosPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8">
-                  <ArrowUpDown className="mr-2 h-4 w-4" />
-                  Ordenar
+                  <ArrowUpDown className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Ordenar</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -711,7 +763,8 @@ export function MovimientosPage() {
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-8">
-                Columnas <ChevronDown className="ml-2 h-4 w-4" />
+                <span className="hidden sm:inline">Columnas</span>
+                <ChevronDown className="h-4 w-4 sm:ml-2" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

@@ -13,6 +13,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 /*
 * Entidad creada para optimizar el cálculo de gastos e ingresos mensuales
 * de cada espacio de trabajo, evitando la necesidad de recorrer todas las transacciones
@@ -37,28 +39,28 @@ public class GastosIngresosMensuales {
     private Integer mes;
 
     @Column(name = "gastos", nullable = false, columnDefinition = "NUMERIC(15,2)")
-    private Float gastos;
+    private BigDecimal gastos;
 
     @Column(name = "ingresos", nullable = false, columnDefinition = "NUMERIC(15,2)")
-    private Float ingresos;
+    private BigDecimal ingresos;
 
     @ManyToOne
     @JoinColumn(name = "espacio_trabajo_id", nullable = false)
     private EspacioTrabajo espacioTrabajo;
 
-    public void actualizarGastos(Float nuevoGasto) {
-        this.gastos += nuevoGasto;
+    public void actualizarGastos(BigDecimal nuevoGasto) {
+        this.gastos = this.gastos.add(nuevoGasto);
     }
 
-    public void actualizarIngresos(Float nuevoIngreso) {
-        this.ingresos += nuevoIngreso;
+    public void actualizarIngresos(BigDecimal nuevoIngreso) {
+        this.ingresos = this.ingresos.add(nuevoIngreso);
     }
 
-    public void eliminarGastos(Float nuevoGasto) {
-        this.gastos -= nuevoGasto;
+    public void eliminarGastos(BigDecimal nuevoGasto) {
+        this.gastos = this.gastos.subtract(nuevoGasto);
     }
 
-    public void eliminarIngresos(Float nuevoIngreso) {
-        this.ingresos -= nuevoIngreso;
+    public void eliminarIngresos(BigDecimal nuevoIngreso) {
+        this.ingresos = this.ingresos.subtract(nuevoIngreso);
     }
 }

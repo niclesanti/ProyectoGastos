@@ -1,5 +1,6 @@
 package com.campito.backend.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -92,7 +93,7 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
      */
     @Override
     @Transactional
-    public CuentaBancaria actualizarCuentaBancaria(Long id, TipoTransaccion tipo, Float monto) {
+    public CuentaBancaria actualizarCuentaBancaria(Long id, TipoTransaccion tipo, BigDecimal monto) {
 
         if (id == null || monto == null || tipo == null) {
             logger.warn("Intento de actualizar cuenta bancaria con parametros nulos.");
@@ -107,7 +108,7 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
                 return new EntityNotFoundException(mensaje);
             });
 
-        if (tipo.equals(TipoTransaccion.GASTO) && cuenta.getSaldoActual() < monto) {
+        if (tipo.equals(TipoTransaccion.GASTO) && cuenta.getSaldoActual().compareTo(monto) < 0) {
             logger.warn("Saldo insuficiente en la cuenta bancaria ID: {} para realizar la actualización de monto: {}", id, monto);
             throw new SaldoInsuficienteException(
                 String.format("Saldo insuficiente en la cuenta '%s'. Saldo actual: $%.2f, Monto requerido: $%.2f", 
@@ -155,7 +156,7 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
      * @throws SaldoInsuficienteException si el saldo de la cuenta origen es insuficiente.
      */
     @Override
-    public void transaccionEntreCuentas(Long idCuentaOrigen, Long idCuentaDestino, Float monto) {
+    public void transaccionEntreCuentas(Long idCuentaOrigen, Long idCuentaDestino, BigDecimal monto) {
         
         if(idCuentaOrigen == null || idCuentaDestino == null || monto == null) {
             logger.warn("Intento de realizar transacción entre cuentas con parámetros nulos. Origen: {}, Destino: {}, Monto: {}", idCuentaOrigen, idCuentaDestino, monto);
@@ -176,15 +177,15 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
                 return new EntityNotFoundException(mensaje);
             });
 
-        if(cuentaOrigen.getSaldoActual() < monto) {
+        if(cuentaOrigen.getSaldoActual().compareTo(monto) < 0) {
             logger.warn("Saldo insuficiente en la cuenta origen ID: {} para realizar la transacción de monto: {}", idCuentaOrigen, monto);
             throw new SaldoInsuficienteException(
                 String.format("Saldo insuficiente en la cuenta origen '%s'. Saldo actual: $%.2f, Monto requerido: $%.2f", 
                     cuentaOrigen.getNombre(), cuentaOrigen.getSaldoActual(), monto));
         }
 
-        cuentaOrigen.setSaldoActual(cuentaOrigen.getSaldoActual() - monto);
-        cuentaDestino.setSaldoActual(cuentaDestino.getSaldoActual() + monto);
+        cuentaOrigen.setSaldoActual(cuentaOrigen.getSaldoActual().subtract(monto));
+        cuentaDestino.setSaldoActual(cuentaDestino.getSaldoActual().add(monto));
 
         cuentaBancariaRepository.save(cuentaOrigen);
         cuentaBancariaRepository.save(cuentaDestino);

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { transformMoneyFields } from '@/services/money-transformer'
 
 // Usar variable de entorno para la URL del backend
 // En desarrollo: http://localhost:8080 (desde .env.local o docker-compose)
@@ -26,7 +27,13 @@ apiClient.interceptors.request.use(
 
 // Interceptor para manejar errores y extraer mensajes personalizados del backend
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Transformar campos monetarios de number a MoneyDecimal automáticamente
+    if (response.data) {
+      response.data = transformMoneyFields(response.data)
+    }
+    return response
+  },
   (error) => {
     // Si el token es inválido o expiró, limpiar localStorage y redirigir
     if (error.response?.status === 401) {

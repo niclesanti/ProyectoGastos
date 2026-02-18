@@ -12,7 +12,7 @@ import type { MiembroEspacio } from '@/types'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/useToast'
 import {
   Users,
   Landmark,
@@ -132,7 +132,6 @@ export function ConfiguracionPage() {
     try {
       const data = await espacioTrabajoService.getMiembros(espacioActual.id)
       setMiembros(data)
-      console.log('Miembros cargados:', data)
     } catch (error: any) {
       console.error('Error al cargar miembros:', error)
       setErrorMiembros(error?.message || 'No se pudieron cargar los miembros')

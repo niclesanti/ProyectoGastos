@@ -52,7 +52,9 @@ import { CalendarIcon, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/useToast'
+import { useMoney } from '@/hooks/useMoney'
+import { MoneyDisplay } from '@/components/MoneyDisplay'
 import {
   Table,
   TableBody,
@@ -104,9 +106,9 @@ const newCuentaSchema = z.object({
     .refine((val) => {
       if (!val || val.trim() === '') return true
       const parts = val.split('.')
-      if (parts.length === 1) return parts[0].length <= 8
-      return parts[0].length <= 8 && parts[1].length <= 2
-    }, { message: "Máximo 8 dígitos enteros y 2 decimales." }),
+      if (parts.length === 1) return parts[0].length <= 12
+      return parts[0].length <= 12 && parts[1].length <= 2
+    }, { message: "Máximo 12 dígitos enteros y 2 decimales." }),
   entidadFinanciera: z.string().min(1, { message: "Debes seleccionar una entidad financiera." }),
 })
 
@@ -132,6 +134,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const { refreshDashboard } = useDashboardCache()
+  const { isLessThan, subtract } = useMoney()
   
   // Cargar datos con TanStack Query
   const { data: tarjetas = [], isLoading: loadingTarjetas } = useTarjetas(currentWorkspace?.id)
@@ -202,14 +205,6 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
     const saldoValue = data.saldoActual && data.saldoActual.trim() !== '' 
       ? parseFloat(data.saldoActual) 
       : 0
-    
-    console.log('Datos de cuenta a enviar:', {
-      nombre: data.nombre,
-      entidadFinanciera: data.entidadFinanciera,
-      saldoActual: saldoValue,
-      saldoOriginal: data.saldoActual,
-      idEspacioTrabajo: currentWorkspace!.id,
-    })
 
     try {
       await createCuentaMutation.mutateAsync({
@@ -266,9 +261,9 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
 
     // Validar saldo de cuenta si se especificó
     if (cuentaSeleccionada) {
-      if (cuentaSeleccionada.saldoActual < resumenSeleccionado.montoTotal) {
+      if (isLessThan(cuentaSeleccionada.saldoActual, resumenSeleccionado.montoTotal)) {
         toast.error(
-          `Saldo insuficiente. Disponible: $${cuentaSeleccionada.saldoActual.toFixed(2)}, necesitas: $${resumenSeleccionado.montoTotal.toFixed(2)}`
+          `Saldo insuficiente. Disponible: $${cuentaSeleccionada.saldoActual.toNumber().toFixed(2)}, necesitas: $${resumenSeleccionado.montoTotal.toNumber().toFixed(2)}`
         )
         return
       }
@@ -278,7 +273,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
       const pagoRequest = {
         idResumen: resumenSeleccionado.id,
         fecha: format(data.fecha, 'yyyy-MM-dd'),
-        monto: resumenSeleccionado.montoTotal,
+        monto: resumenSeleccionado.montoTotal.toNumber(),
         nombreCompletoAuditoria: user.nombre,
         idEspacioTrabajo: currentWorkspace.id,
         idCuentaBancaria: data.cuenta && data.cuenta !== 'none' ? parseInt(data.cuenta) : undefined,
@@ -293,7 +288,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
       queryClient.invalidateQueries({ queryKey: ['workspaces'] })
       
       toast.success(
-        `Resumen pagado exitosamente. Total: $${resumenSeleccionado.montoTotal.toFixed(2)}`
+        `Resumen pagado exitosamente. Total: $${resumenSeleccionado.montoTotal.toNumber().toFixed(2)}`
       )
       onOpenChange(false)
     } catch (error: any) {
@@ -327,7 +322,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
 
   // Restringir entrada de saldo de cuenta
   const handleSaldoCuentaChange = (value: string) => {
-    const regex = /^\d{0,8}(\.\d{0,2})?$/
+    const regex = /^\d{0,12}(\.\d{0,2})?$/
     if (regex.test(value) || value === '') {
       newCuentaForm.setValue('saldoActual', value)
     }
@@ -445,7 +440,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
                           <SelectItem value="none">Sin cuenta bancaria</SelectItem>
                           {cuentas.map((c) => (
                             <SelectItem key={c.id} value={c.id.toString()}>
-                              {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toFixed(2)})
+                              {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toNumber().toFixed(2)})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -618,7 +613,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
                                                 {format(new Date(resumen.fechaVencimiento), 'PPP', { locale: es })}
                                               </TableCell>
                                               <TableCell className="text-right font-mono font-medium tabular-nums">
-                                                ${resumen.montoTotal.toFixed(2)}
+                                                ${resumen.montoTotal.toNumber().toFixed(2)}
                                               </TableCell>
                                               <TableCell>
                                                 <Badge variant={estadoBadge.variant}>
@@ -654,7 +649,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
                                                               {cuota.descripcion} - Cuota {cuota.numeroCuota}/{cuota.totalCuotas} - {cuota.motivo}
                                                             </span>
                                                             <span className="font-mono font-medium tabular-nums">
-                                                              ${cuota.montoCuota.toFixed(2)}
+                                                              ${cuota.montoCuota.toNumber().toFixed(2)}
                                                             </span>
                                                           </div>
                                                         ))}
@@ -692,12 +687,12 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
                               </p>
                             </div>
                             <p className="text-3xl font-bold tabular-nums">
-                              ${resumenSeleccionado.montoTotal.toFixed(2)}
+                              ${resumenSeleccionado.montoTotal.toNumber().toFixed(2)}
                             </p>
                           </div>
                           {cuentaSeleccionada && (
                             <p className="text-xs text-muted-foreground mt-2">
-                              Saldo restante en cuenta: ${(cuentaSeleccionada.saldoActual - resumenSeleccionado.montoTotal).toFixed(2)}
+                              Saldo restante en cuenta: $<MoneyDisplay value={subtract(cuentaSeleccionada.saldoActual, resumenSeleccionado.montoTotal)} showCurrency={false} />
                             </p>
                           )}
                         </div>

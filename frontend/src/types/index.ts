@@ -1,3 +1,6 @@
+import { MoneyDecimal } from '../lib/money'
+import type { MoneyValue } from './money'
+
 // Enums
 export enum TipoTransaccion {
   INGRESO = 'INGRESO',
@@ -15,7 +18,7 @@ export interface Usuario {
 export interface EspacioTrabajo {
   id: string  // UUID
   nombre: string
-  saldo: number
+  saldo: MoneyDecimal
   usuarioAdmin: Usuario
   usuariosParticipantes?: Usuario[]
 }
@@ -57,7 +60,7 @@ export interface CuentaBancaria {
   id: number
   nombre: string
   entidadFinanciera: string
-  saldoActual: number
+  saldoActual: MoneyDecimal
   espacioTrabajo?: EspacioTrabajo
 }
 
@@ -70,7 +73,7 @@ export interface ContactoTransferencia {
 export interface Transaccion {
   id: number
   tipo: TipoTransaccion
-  monto: number
+  monto: MoneyDecimal
   fecha: string // ISO date string
   descripcion?: string
   nombreCompletoAuditoria: string
@@ -85,7 +88,7 @@ export interface Transaccion {
 export interface TransaccionDTOResponse {
   id: number
   fecha: string // LocalDate
-  monto: number
+  monto: MoneyDecimal
   tipo: TipoTransaccion
   descripcion?: string
   nombreCompletoAuditoria: string
@@ -102,7 +105,7 @@ export interface TransaccionDTOResponse {
 // DTOs Request
 export interface TransaccionDTORequest {
   tipo: string // 'gasto' | 'ingreso'
-  monto: number
+  monto: MoneyValue
   fecha: string // ISO date string
   descripcion?: string
   nombreCompletoAuditoria: string
@@ -116,7 +119,7 @@ export interface CuentaBancariaDTORequest {
   nombre: string
   entidadFinanciera: string
   idEspacioTrabajo: string  // UUID
-  saldoActual: number
+  saldoActual: MoneyValue
 }
 
 export interface EspacioTrabajoDTORequest {
@@ -163,7 +166,7 @@ export interface TarjetaDTOResponse {
 
 export interface CompraCreditoDTORequest {
   fechaCompra: string
-  montoTotal: number
+  montoTotal: MoneyValue
   cantidadCuotas: number
   descripcion?: string
   nombreCompletoAuditoria: string
@@ -196,13 +199,13 @@ export interface DistribucionGastoDTO {
 
 export interface IngresosGastosMesDTO {
   mes: string
-  ingresos: number
-  gastos: number
+  ingresos: MoneyDecimal
+  gastos: MoneyDecimal
 }
 
 export interface SaldoAcumuladoMesDTO {
   mes: string
-  saldo: number
+  saldo: MoneyDecimal
 }
 
 export interface DashboardInfoDTO {
@@ -213,29 +216,29 @@ export interface DashboardInfoDTO {
 
 // Dashboard Stats DTO (consolidado desde backend)
 export interface DashboardStatsDTO {
-  balanceTotal: number
-  gastosMensuales: number
-  resumenMensual: number
-  deudaTotalPendiente: number
+  balanceTotal: MoneyDecimal
+  gastosMensuales: MoneyDecimal
+  resumenMensual: MoneyDecimal
+  deudaTotalPendiente: MoneyDecimal
   flujoMensual: IngresosGastosMesDTO[]
   distribucionGastos: DistribucionGastoDTO[]
 }
 
 // Estadísticas del Dashboard
 export interface DashboardStats {
-  totalBalance: number
-  monthlySpending: number
-  upcomingCreditDue: number
-  outstandingDebt: number
-  balanceChange?: number
-  spendingChange?: number
+  totalBalance: MoneyDecimal
+  monthlySpending: MoneyDecimal
+  upcomingCreditDue: MoneyDecimal
+  outstandingDebt: MoneyDecimal
+  balanceChange?: MoneyDecimal
+  spendingChange?: MoneyDecimal
 }
 
 // Transacciones Recientes
 export interface RecentTransaction {
   id: number
   descripcion: string
-  monto: number
+  monto: MoneyDecimal
   fecha: string
   tipo: TipoTransaccion
   motivo: string
@@ -246,7 +249,7 @@ export interface RecentTransaction {
 export interface CompraCredito {
   id: number
   descripcion: string
-  montoTotal: number
+  montoTotal: MoneyDecimal
   cantidadCuotas: number
   fechaCompra: string
   espacioTrabajo?: EspacioTrabajo
@@ -255,7 +258,7 @@ export interface CompraCredito {
 export interface CompraCreditoDTOResponse {
   id: number
   fechaCompra: string
-  montoTotal: number
+  montoTotal: MoneyDecimal
   cantidadCuotas: number
   cuotasPagadas: number
   descripcion?: string
@@ -276,7 +279,7 @@ export interface CompraCreditoDTOResponse {
 export interface CuotaCredito {
   id: number
   numeroCuota: number
-  montoCuota: number
+  montoCuota: MoneyDecimal
   fechaVencimiento: string
   pagada: boolean
   compraCredito: CompraCredito
@@ -287,7 +290,7 @@ export interface ResumenTarjetaDTOResponse {
   mes: number
   anio: number
   fechaVencimiento: string
-  montoTotal: number
+  montoTotal: MoneyDecimal
   estado: 'PENDIENTE' | 'VENCIDO' | 'PAGADO'
   tarjetaId: number
   cuotas: CuotaResumenDTO[]
@@ -296,7 +299,7 @@ export interface ResumenTarjetaDTOResponse {
 export interface CuotaResumenDTO {
   id: number
   numeroCuota: number
-  montoCuota: number
+  montoCuota: MoneyDecimal
   descripcion: string
   totalCuotas: number
   motivo: string

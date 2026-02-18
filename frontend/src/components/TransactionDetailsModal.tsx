@@ -17,6 +17,8 @@ import {
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { MoneyDecimal } from '@/lib/money'
+import { MoneyDisplay } from '@/components/MoneyDisplay'
 
 interface Transaction {
   id: string
@@ -25,7 +27,7 @@ interface Transaction {
   motivo: string
   contacto: string
   cuenta: string
-  monto: number
+  monto: MoneyDecimal
   descripcion?: string
   nombreEspacioTrabajo: string
   nombreCompletoAuditoria: string
@@ -44,14 +46,6 @@ export function TransactionDetailsModal({
   onOpenChange,
 }: TransactionDetailsModalProps) {
   if (!transaction) return null
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 2,
-    }).format(amount)
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -73,7 +67,8 @@ export function TransactionDetailsModal({
                   'text-2xl font-bold font-mono tabular-nums',
                   transaction.tipo === 'Ingreso' ? 'text-emerald-400' : 'text-rose-400'
                 )}>
-                  {transaction.tipo === 'Ingreso' ? '+' : '-'}{formatCurrency(transaction.monto)}
+                  {transaction.tipo === 'Ingreso' ? '+' : '-'}
+                  <MoneyDisplay value={transaction.monto} />
                 </p>
               </div>
               <Badge

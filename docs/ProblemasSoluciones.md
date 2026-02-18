@@ -44,7 +44,7 @@ En un principio cuando el software se encontraba en etapa de diseño, producto d
 ### Solución
 
 Para solucionar esto, de decidió cambiar el tipo de dato de los montos y saldos tanto en el backend en Java como en la base de datos. En primer lugar se cambió el tipo de dato REAL en la base de datos por NUMERIC(15, 2) que permite almacenar 15 dígitos enteros y 2 decimales. Esta precisión está relativamente bien para el caso, aunque podría ser mayor, también priorizamos los costos de almacenamiento.
-Por lo pronto se agregó anotaciones para que el ORM mapea Float con NUMERIC, porque cambiar toda la logica de negocio requiere tiempo y se hará en una próxima iteración. Lo que sigue es cambiar el tipo de dato Float por BigDecimal. Con estos cambios deberíamos lograr mayor nivel de precisión.
+Lo siguiente fue cambiar el tipo de dato Float por BigDecimal en todas las entidades del dominio y los servicios. En el frotend se cambió el tipo number por MoneyDecimal (Decimal.js). Con estos cambios deberíamos lograr mayor nivel de precisión.
 Finalmente la solución de estos problemas se traduce en un aprendizaje del costo que conlleva tomar malas decisiones de diseño, que serán tenidas en cuenta para desarrollos futuros.
 
 
