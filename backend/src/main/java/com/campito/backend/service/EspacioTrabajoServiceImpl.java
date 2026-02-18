@@ -128,6 +128,18 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
             return new UsuarioNoEncontradoException(mensajeUsuario);
         });
 
+        // Validar si el usuario ya es colaborador del espacio de trabajo
+        if (espacioTrabajo.getUsuariosParticipantes().contains(usuario)) {
+            String mensaje = String.format(
+                "El usuario '%s' ya es colaborador del espacio de trabajo '%s'. " +
+                "No es necesario volver a invitarlo.",
+                email, espacioTrabajo.getNombre()
+            );
+            logger.warn("Intento de invitar a usuario que ya es miembro. Espacio: {}, Usuario: {}", 
+                       idEspacioTrabajo, usuario.getId());
+            throw new EntidadDuplicadaException(mensaje);
+        }
+
         // Validar si ya existe una solicitud pendiente para este usuario y espacio
         boolean existeSolicitudPendiente = solicitudPendienteRepository
                 .existsByEspacioTrabajo_IdAndUsuarioInvitado_Id(idEspacioTrabajo, usuario.getId());
