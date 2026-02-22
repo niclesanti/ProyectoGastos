@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -196,6 +196,9 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
   const [newContacto, setNewContacto] = useState('')
   const [newContactoError, setNewContactoError] = useState('')
 
+  // Ref para auto-focus en el campo monto
+  const montoInputRef = React.useRef<HTMLInputElement>(null)
+
   // Inicializar el formulario con React Hook Form y Zod
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionFormSchema),
@@ -233,6 +236,13 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
       setNewMotivoError('')
       setNewCuentaError('')
       setNewContactoError('')
+    }
+    
+    // Auto-focus en el campo monto después de un breve delay para que el modal termine de renderizar
+    if (open) {
+      setTimeout(() => {
+        montoInputRef.current?.focus()
+      }, 100)
     }
   }, [open, form])
 
@@ -397,6 +407,19 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
     }
   }
 
+  // Helper para formatear la fecha de manera compacta
+  const formatDateLabel = (date: Date | undefined): string => {
+    if (!date) return 'Hoy'
+    
+    const today = new Date()
+    const isToday = date.toDateString() === today.toDateString()
+    
+    if (isToday) return 'Hoy'
+    
+    // Formato corto: "21 Feb" o "15 Ene"
+    return format(date, 'd MMM', { locale: es })
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
@@ -410,96 +433,125 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
         <ScrollArea className="max-h-[55vh] sm:max-h-[60vh] pr-4 sm:pr-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-3 sm:space-y-4">
-              {/* Tipo */}
-              <FormField
-                control={form.control}
-                name="tipo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de transacción</FormLabel>
-                    <FormControl>
-                      <Tabs 
-                        value={field.value} 
-                        onValueChange={field.onChange}
-                        className="w-full"
-                      >
-                        <TabsList className="grid w-full grid-cols-2 h-9">
-                          <TabsTrigger value="gasto" className="text-sm">
-                            Gasto
-                          </TabsTrigger>
-                          <TabsTrigger value="ingreso" className="text-sm">
-                            Ingreso
-                          </TabsTrigger>
-                        </TabsList>
-                      </Tabs>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Fecha */}
-              <FormField
-                control={form.control}
-                name="fecha"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Fecha</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              'w-full h-9 justify-start text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? (
-                              format(field.value, 'PPP', { locale: es })
-                            ) : (
-                              'Elegir fecha de transacción...'
-                            )}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date > new Date()}
-                          initialFocus
+              {/* Tipo y Fecha (inline) */}
+              <div className="space-y-2">
+                <FormField
+                  control={form.control}
+                  name="tipo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Tipo de transacción</FormLabel>
+                        
+                        {/* Fecha como metadata */}
+                        <FormField
+                          control={form.control}
+                          name="fecha"
+                          render={({ field: dateField }) => (
+                            <FormItem className="flex items-center gap-1.5">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className={cn(
+                                        'h-7 px-2 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors',
+                                        !dateField.value && 'text-muted-foreground'
+                                      )}
+                                    >
+                                      <CalendarIcon className="mr-1.5 h-3 w-3" />
+                                      {formatDateLabel(dateField.value)}
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="end">
+                                  <Calendar
+                                    mode="single"
+                                    selected={dateField.value}
+                                    onSelect={dateField.onChange}
+                                    disabled={(date) => date > new Date()}
+                                    initialFocus
+                                    locale={es}
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      </div>
+                      <FormControl>
+                        <Tabs 
+                          value={field.value} 
+                          onValueChange={field.onChange}
+                          className="w-full"
+                        >
+                          <TabsList className="grid w-full grid-cols-2 h-9">
+                            <TabsTrigger value="gasto" className="text-sm">
+                              Gasto
+                            </TabsTrigger>
+                            <TabsTrigger value="ingreso" className="text-sm">
+                              Ingreso
+                            </TabsTrigger>
+                          </TabsList>
+                        </Tabs>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-              {/* Monto */}
+              {/* Monto - Premium Design */}
               <FormField
                 control={form.control}
                 name="monto"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Monto</FormLabel>
-                    <FormControl>
-                      <MoneyInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        min={0}
-                        maxDigits={12}
-                        maxDecimals={2}
-                        placeholder="0.00"
-                        className="h-9"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const tipoTransaccion = form.watch('tipo')
+                  const isIngreso = tipoTransaccion === 'ingreso'
+                  
+                  return (
+                    <FormItem className="my-2 mb-3">
+                      <FormControl>
+                        <div className="relative flex items-center justify-center py-2">
+                          {/* Símbolo de moneda fijo a la izquierda */}
+                          <span className={cn(
+                            "text-3xl sm:text-4xl font-medium transition-colors mr-1",
+                            isIngreso ? "text-emerald-500/60" : "text-muted-foreground/60"
+                          )}>
+                            $
+                          </span>
+                          
+                          {/* Input sin bordes */}
+                          <div className="flex-1 max-w-md">
+                            <MoneyInput
+                              ref={montoInputRef}
+                              value={field.value}
+                              onChange={field.onChange}
+                              min={0}
+                              maxDigits={12}
+                              maxDecimals={2}
+                              placeholder="0.00"
+                              showPrefix={false}
+                              className={cn(
+                                "border-none bg-transparent text-left shadow-none",
+                                "text-3xl sm:text-4xl font-semibold",
+                                "h-auto py-2 px-0",
+                                "focus-visible:ring-0 focus-visible:ring-offset-0",
+                                "transition-colors duration-200",
+                                isIngreso 
+                                  ? "text-emerald-500 placeholder:text-emerald-500/30" 
+                                  : "text-foreground placeholder:text-muted-foreground/30"
+                              )}
+                            />
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormMessage className="text-center" />
+                    </FormItem>
+                  )
+                }}
               />
 
               {/* Motivo */}
@@ -836,12 +888,12 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
           </Form>
         </ScrollArea>
 
-        <DialogFooter className="mt-3 sm:mt-4 flex-col sm:flex-row gap-2">
+        <DialogFooter className="mt-3 sm:mt-4 flex-row gap-2">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto"
+            className="flex-1"
           >
             Cancelar
           </Button>
@@ -849,7 +901,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
             type="submit" 
             onClick={form.handleSubmit(onSubmit, handleFormError)}
             disabled={form.formState.isSubmitting || createTransaccionMutation.isPending}
-            className="w-full sm:w-auto"
+            className="flex-1"
           >
             {createTransaccionMutation.isPending ? 'Guardando...' : 'Guardar transacción'}
           </Button>
