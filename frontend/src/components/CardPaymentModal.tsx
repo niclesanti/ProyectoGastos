@@ -332,7 +332,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader className="space-y-2">
-          <DialogTitle className="text-lg sm:text-xl">Pagar resumen tarjeta</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">Registrar pago resumen tarjeta</DialogTitle>
           <DialogDescription className="text-sm">
             Selecciona el resumen pendiente a pagar. Puedes ver detalles de qué cuotas incluye el resumen.
           </DialogDescription>
@@ -705,11 +705,12 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
           </Form>
         </ScrollArea>
 
-        <DialogFooter className="mt-4 gap-3">
+        <DialogFooter className="mt-4 flex-row gap-2">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
+            className="flex-1"
           >
             Cancelar
           </Button>
@@ -717,6 +718,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
             type="submit" 
             onClick={form.handleSubmit(onSubmit, handleFormError)}
             disabled={pagarResumenMutation.isPending || !selectedTarjetaId || !resumenSeleccionado}
+            className="flex-1"
           >
             {pagarResumenMutation.isPending ? 'Procesando pago...' : 'Pagar resumen'}
           </Button>
