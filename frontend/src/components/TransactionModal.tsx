@@ -560,7 +560,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                 name="motivo"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Motivo</FormLabel>
+                    <FormLabel>Motivo / Categoría</FormLabel>
                     <div className="flex gap-2">
                       <Select 
                         onValueChange={field.onChange} 
