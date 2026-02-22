@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -196,9 +196,6 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
   const [newContacto, setNewContacto] = useState('')
   const [newContactoError, setNewContactoError] = useState('')
 
-  // Ref para auto-focus en el campo monto
-  const montoInputRef = React.useRef<HTMLInputElement>(null)
-
   // Inicializar el formulario con React Hook Form y Zod
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionFormSchema),
@@ -236,13 +233,6 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
       setNewMotivoError('')
       setNewCuentaError('')
       setNewContactoError('')
-    }
-    
-    // Auto-focus en el campo monto después de un breve delay para que el modal termine de renderizar
-    if (open) {
-      setTimeout(() => {
-        montoInputRef.current?.focus()
-      }, 100)
     }
   }, [open, form])
 
@@ -526,7 +516,6 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                           {/* Input sin bordes */}
                           <div className="flex-1 max-w-md">
                             <MoneyInput
-                              ref={montoInputRef}
                               value={field.value}
                               onChange={field.onChange}
                               min={0}
