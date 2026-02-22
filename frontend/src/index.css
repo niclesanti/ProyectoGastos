@@ -129,6 +129,39 @@
   }
 }
 
+/* Scrollbar sutíl para modales */
+@layer components {
+  .modal-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .modal-scroll:hover {
+    scrollbar-color: hsl(var(--muted) / 0.5) transparent;
+  }
+
+  .modal-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .modal-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .modal-scroll::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 3px;
+  }
+
+  .modal-scroll:hover::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted) / 0.5);
+  }
+
+  .modal-scroll::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
+  }
+}
+
 @layer utilities {
   .tabular-nums {
     font-variant-numeric: tabular-nums;

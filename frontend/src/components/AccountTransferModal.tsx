@@ -8,13 +8,14 @@ import { useAppStore } from '@/store/app-store'
 import { useCuentasBancarias, useTransferenciaCuentas } from '@/features/selectors/api/selector-queries'
 import { useDashboardCache } from '@/hooks'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalFooter,
+  ResponsiveModalScrollArea,
+} from '@/components/ui/responsive-modal'
 import {
   Form,
   FormControl,
@@ -128,15 +129,16 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
   // MoneyInput maneja la validación de formato automáticamente
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader className="space-y-2">
-          <DialogTitle className="text-lg sm:text-xl">Movimiento entre cuentas</DialogTitle>
-          <DialogDescription className="text-sm">
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="max-w-lg">
+        <ResponsiveModalHeader className="space-y-2">
+          <ResponsiveModalTitle className="text-lg sm:text-xl">Movimiento entre cuentas</ResponsiveModalTitle>
+          <ResponsiveModalDescription className="text-sm">
             Anotar que realizaste un movimiento de dinero entre dos cuentas bancarias registradas en el sistema.
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
+        <ResponsiveModalScrollArea>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-3 sm:space-y-4">
             {/* Monto - Premium Design */}
@@ -278,8 +280,9 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
             </div>
           </form>
         </Form>
+        </ResponsiveModalScrollArea>
 
-        <DialogFooter className="mt-3 sm:mt-4 flex-row gap-2">
+        <ResponsiveModalFooter className="mt-3 sm:mt-4 flex-row gap-2">
           <Button
             type="button"
             variant="outline"
@@ -289,15 +292,15 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
             Cancelar
           </Button>
           <Button 
-            type="submit" 
+            type="button"
             onClick={form.handleSubmit(onSubmit, handleFormError)}
             disabled={form.formState.isSubmitting || transferenciaMutation.isPending}
             className="flex-1"
           >
             {transferenciaMutation.isPending ? 'Realizando...' : 'Realizar movimiento'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   )
 }

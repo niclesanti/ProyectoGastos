@@ -19,13 +19,14 @@ import { useDashboardCache } from '@/hooks'
 import { useQueryClient } from '@tanstack/react-query'
 import { format as formatDate } from 'date-fns'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalFooter,
+  ResponsiveModalScrollArea,
+} from '@/components/ui/responsive-modal'
 import {
   Form,
   FormControl,
@@ -55,7 +56,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { CalendarIcon, Plus } from 'lucide-react'
 import { format } from 'date-fns'
@@ -421,16 +421,16 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader className="space-y-2">
-          <DialogTitle className="text-lg sm:text-xl">Registrar una transacción</DialogTitle>
-          <DialogDescription className="text-sm">
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="max-w-lg">
+        <ResponsiveModalHeader className="space-y-2">
+          <ResponsiveModalTitle className="text-lg sm:text-xl">Registrar una transacción</ResponsiveModalTitle>
+          <ResponsiveModalDescription className="text-sm">
             Anotar una nueva salida o ingreso de dinero con todos sus detalles.
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
-        <ScrollArea className="max-h-[55vh] sm:max-h-[60vh] pr-4 sm:pr-6">
+        <ResponsiveModalScrollArea>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-3 sm:space-y-4">
               {/* Tipo y Fecha (inline) */}
@@ -886,9 +886,9 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
               />
             </form>
           </Form>
-        </ScrollArea>
+        </ResponsiveModalScrollArea>
 
-        <DialogFooter className="mt-3 sm:mt-4 flex-row gap-2">
+        <ResponsiveModalFooter className="mt-3 sm:mt-4 flex-row gap-2">
           <Button
             type="button"
             variant="outline"
@@ -898,15 +898,15 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
             Cancelar
           </Button>
           <Button 
-            type="submit" 
+            type="button"
             onClick={form.handleSubmit(onSubmit, handleFormError)}
             disabled={form.formState.isSubmitting || createTransaccionMutation.isPending}
             className="flex-1"
           >
             {createTransaccionMutation.isPending ? 'Guardando...' : 'Guardar transacción'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   )
 }
