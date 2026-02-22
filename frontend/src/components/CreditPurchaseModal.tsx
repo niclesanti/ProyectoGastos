@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -16,13 +16,14 @@ import {
 } from '@/features/selectors/api/selector-queries'
 import { useDashboardCache } from '@/hooks'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalFooter,
+  ResponsiveModalScrollArea,
+} from '@/components/ui/responsive-modal'
 import {
   Form,
   FormControl,
@@ -48,7 +49,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { CalendarIcon, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -127,6 +127,9 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
   const [showNewMotivo, setShowNewMotivo] = useState(false)
   const [showNewComercio, setShowNewComercio] = useState(false)
 
+  // Ref para auto-focus en el campo monto
+  const montoInputRef = React.useRef<HTMLInputElement>(null)
+
   // Formularios para subfunciones
   const newMotivoForm = useForm<z.infer<typeof newMotivoSchema>>({
     resolver: zodResolver(newMotivoSchema),
@@ -168,6 +171,13 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
       setShowNewComercio(false)
       newMotivoForm.reset()
       newComercioForm.reset()
+    }
+    
+    // Auto-focus en el campo monto después de un breve delay
+    if (open) {
+      setTimeout(() => {
+        montoInputRef.current?.focus()
+      }, 100)
     }
   }, [open, form, newMotivoForm, newComercioForm])
 
@@ -284,52 +294,112 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
     }
   }
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader className="space-y-2">
-          <DialogTitle className="text-lg sm:text-xl">Compra con crédito</DialogTitle>
-          <DialogDescription className="text-sm">
-            Anotar que hiciste una compra con tarjeta de crédito.
-          </DialogDescription>
-        </DialogHeader>
+  // Helper para formatear la fecha de manera compacta
+  const formatDateLabel = (date: Date | undefined): string => {
+    if (!date) return 'Hoy'
+    
+    const today = new Date()
+    const isToday = date.toDateString() === today.toDateString()
+    
+    if (isToday) return 'Hoy'
+    
+    // Formato corto: "21 Feb" o "15 Ene"
+    return format(date, 'd MMM', { locale: es })
+  }
 
-        <ScrollArea className="max-h-[55vh] sm:max-h-[60vh] pr-4 sm:pr-6">
+  return (
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="max-w-lg">
+        <ResponsiveModalHeader className="space-y-2">
+          <ResponsiveModalTitle className="text-lg sm:text-xl">Registrar compra con crédito</ResponsiveModalTitle>
+          <ResponsiveModalDescription className="text-sm">
+            Anotar que hiciste una compra con determinada tarjeta de crédito.
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
+
+        <ResponsiveModalScrollArea>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-3 sm:space-y-4">
-              {/* Fecha */}
+              {/* Metadata: hint del monto y fecha */}
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Monto total a pagar (con intereses)
+                </p>
+                <FormField
+                  control={form.control}
+                  name="fecha"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-1.5">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={cn(
+                                'h-7 px-2 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors',
+                                !field.value && 'text-muted-foreground'
+                              )}
+                            >
+                              <CalendarIcon className="mr-1.5 h-3 w-3" />
+                              {formatDateLabel(field.value)}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date > new Date()}
+                            initialFocus
+                            locale={es}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Monto - Premium Design */}
               <FormField
                 control={form.control}
-                name="fecha"
+                name="monto"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fecha</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
+                    <FormControl>
+                      <div className="relative flex items-center justify-center py-1">
+                        {/* Símbolo de moneda fijo a la izquierda */}
+                        <span className="text-3xl sm:text-4xl font-medium transition-colors mr-1 text-muted-foreground/60">
+                          $
+                        </span>
+                        
+                        {/* Input sin bordes */}
+                        <div className="flex-1 max-w-md">
+                          <MoneyInput
+                            ref={montoInputRef}
+                            value={field.value}
+                            onChange={field.onChange}
+                            min={0}
+                            maxDigits={12}
+                            maxDecimals={2}
+                            placeholder="0.00"
+                            showPrefix={false}
                             className={cn(
-                              'w-full h-9 justify-start text-left font-normal',
-                              !field.value && 'text-muted-foreground'
+                              "border-none bg-transparent text-left shadow-none",
+                              "text-3xl sm:text-4xl font-semibold",
+                              "h-auto py-2 px-0",
+                              "focus-visible:ring-0 focus-visible:ring-offset-0",
+                              "transition-colors duration-200",
+                              "text-foreground placeholder:text-muted-foreground/30"
                             )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, 'PPP', { locale: es }) : 'Elegir fecha de compra...'}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date > new Date()}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
+                          />
+                        </div>
+                      </div>
+                    </FormControl>
+                    <FormMessage className="text-center" />
                   </FormItem>
                 )}
               />
@@ -376,7 +446,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
                 name="cuotas"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cantidad de cuotas</FormLabel>
+                    <FormLabel>Cuotas</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="h-9">
@@ -396,28 +466,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
                 )}
               />
 
-              {/* Monto */}
-              <FormField
-                control={form.control}
-                name="monto"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Monto final a pagar</FormLabel>
-                    <FormControl>
-                      <MoneyInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        min={0}
-                        maxDigits={12}
-                        maxDecimals={2}
-                        placeholder="0.00"
-                        className="h-9"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
 
               {/* Motivo */}
               <FormField
@@ -425,7 +474,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
                 name="motivo"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Motivo</FormLabel>
+                    <FormLabel>Motivo / Categoría</FormLabel>
                     <div className="flex gap-2">
                       <Select 
                         onValueChange={field.onChange} 
@@ -630,25 +679,27 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
               />
             </form>
           </Form>
-        </ScrollArea>
+        </ResponsiveModalScrollArea>
 
-        <DialogFooter className="mt-4 gap-3">
+        <ResponsiveModalFooter className="mt-3 sm:mt-4 flex-row gap-2">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
+            className="flex-1"
           >
             Cancelar
           </Button>
           <Button 
-            type="submit" 
+            type="button"
             onClick={form.handleSubmit(onSubmit, handleFormError)}
             disabled={form.formState.isSubmitting || createCompraMutation.isPending}
+            className="flex-1"
           >
             {createCompraMutation.isPending ? 'Guardando...' : 'Guardar compra'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   )
 }

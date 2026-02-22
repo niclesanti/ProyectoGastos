@@ -1,13 +1,13 @@
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalScrollArea,
+} from '@/components/ui/responsive-modal'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Tag,
   Calendar,
@@ -48,17 +48,17 @@ export function TransactionDetailsModal({
   if (!transaction) return null
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg sm:max-w-xl lg:max-w-2xl max-h-[90vh] flex flex-col p-4 sm:p-6">
-        <DialogHeader className="space-y-2">
-          <DialogTitle className="text-lg sm:text-xl">Detalles de transacción</DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="max-w-lg sm:max-w-xl lg:max-w-2xl">
+        <ResponsiveModalHeader className="space-y-2">
+          <ResponsiveModalTitle className="text-lg sm:text-xl">Detalles de transacción</ResponsiveModalTitle>
+          <ResponsiveModalDescription className="text-xs sm:text-sm">
             Resumen completo del movimiento registrado
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4">
+        <ResponsiveModalScrollArea>
+          <div className="space-y-4 pb-4">
             {/* Hero Section - Monto y Tipo */}
             <div className="flex items-center justify-between p-4 rounded-lg bg-zinc-900/50 border border-zinc-800">
               <div>
@@ -144,8 +144,8 @@ export function TransactionDetailsModal({
               </div>
             </div>
           </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalScrollArea>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   )
 }

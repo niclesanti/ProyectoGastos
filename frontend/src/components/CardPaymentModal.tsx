@@ -16,13 +16,14 @@ import {
   usePagarResumenTarjeta
 } from '@/features/selectors/api/selector-queries'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalFooter,
+  ResponsiveModalScrollArea,
+} from '@/components/ui/responsive-modal'
 import {
   Form,
   FormControl,
@@ -47,7 +48,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { CalendarIcon, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -329,16 +329,16 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader className="space-y-2">
-          <DialogTitle className="text-lg sm:text-xl">Pagar resumen tarjeta</DialogTitle>
-          <DialogDescription className="text-sm">
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="max-w-2xl lg:max-w-4xl">
+        <ResponsiveModalHeader className="space-y-2">
+          <ResponsiveModalTitle className="text-lg sm:text-xl">Registrar pago resumen tarjeta</ResponsiveModalTitle>
+          <ResponsiveModalDescription className="text-sm">
             Selecciona el resumen pendiente a pagar. Puedes ver detalles de qué cuotas incluye el resumen.
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
-        <ScrollArea className="max-h-[60vh] sm:max-h-[65vh] pr-4 sm:pr-6">
+        <ResponsiveModalScrollArea>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-3 sm:space-y-4">
               {/* Tarjeta */}
@@ -703,25 +703,27 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
               )}
             </form>
           </Form>
-        </ScrollArea>
+        </ResponsiveModalScrollArea>
 
-        <DialogFooter className="mt-4 gap-3">
+        <ResponsiveModalFooter className="mt-4 flex-row gap-2">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
+            className="flex-1"
           >
             Cancelar
           </Button>
           <Button 
-            type="submit" 
+            type="button"
             onClick={form.handleSubmit(onSubmit, handleFormError)}
             disabled={pagarResumenMutation.isPending || !selectedTarjetaId || !resumenSeleccionado}
+            className="flex-1"
           >
             {pagarResumenMutation.isPending ? 'Procesando pago...' : 'Pagar resumen'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   )
 }
