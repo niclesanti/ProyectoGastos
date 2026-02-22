@@ -213,7 +213,7 @@ export function AppSidebar() {
                       className="gap-2 p-2"
                       onClick={() => setTransactionModalOpen(true)}
                     >
-                      <TrendingDown className="size-4 text-red-500" />
+                      <TrendingDown className="size-4 text-rose-500" />
                       <div className="flex flex-col">
                         <span className="font-medium">Gastos/Ingresos</span>
                         <span className="text-xs text-muted-foreground">
@@ -225,11 +225,11 @@ export function AppSidebar() {
                       className="gap-2 p-2"
                       onClick={() => setAccountTransferModalOpen(true)}
                     >
-                      <ArrowRightLeft className="size-4" />
+                      <ArrowRightLeft className="size-4 text-blue-500" />
                       <div className="flex flex-col">
                         <span className="font-medium">Movimiento entre cuentas</span>
                         <span className="text-xs text-muted-foreground">
-                          Transferir dinero
+                          Registrar transferencia entre cuentas
                         </span>
                       </div>
                     </DropdownMenuItem>
@@ -237,11 +237,11 @@ export function AppSidebar() {
                       className="gap-2 p-2"
                       onClick={() => setCreditPurchaseModalOpen(true)}
                     >
-                      <CreditCard className="size-4" />
+                      <CreditCard className="size-4 text-purple-500" />
                       <div className="flex flex-col">
-                        <span className="font-medium">Compra con crédito</span>
+                        <span className="font-medium">Compras con crédito</span>
                         <span className="text-xs text-muted-foreground">
-                          Nueva compra en cuotas
+                          Registrar compra en cuotas
                         </span>
                       </div>
                     </DropdownMenuItem>
@@ -249,11 +249,11 @@ export function AppSidebar() {
                       className="gap-2 p-2"
                       onClick={() => setCardPaymentModalOpen(true)}
                     >
-                      <Receipt className="size-4" />
+                      <Receipt className="size-4 text-emerald-500" />
                       <div className="flex flex-col">
-                        <span className="font-medium">Pagar resumen tarjeta</span>
+                        <span className="font-medium">Resumen mensual tarjetas</span>
                         <span className="text-xs text-muted-foreground">
-                          Liquidar resumen mensual
+                          Registrar pagos resúmenes tarjetas
                         </span>
                       </div>
                     </DropdownMenuItem>
