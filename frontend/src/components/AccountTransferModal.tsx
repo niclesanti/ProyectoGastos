@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -8,13 +8,14 @@ import { useAppStore } from '@/store/app-store'
 import { useCuentasBancarias, useTransferenciaCuentas } from '@/features/selectors/api/selector-queries'
 import { useDashboardCache } from '@/hooks'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalFooter,
+  ResponsiveModalScrollArea,
+} from '@/components/ui/responsive-modal'
 import {
   Form,
   FormControl,
@@ -33,6 +34,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { toast } from '@/hooks/useToast'
 import { MoneyInput } from '@/components/MoneyInput'
+import { ArrowDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 // Esquema de validación Zod
 const transferFormSchema = z.object({
@@ -65,6 +68,9 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
   // Mutation para realizar transferencia
   const transferenciaMutation = useTransferenciaCuentas()
 
+  // Ref para auto-focus en el campo monto
+  const montoInputRef = React.useRef<HTMLInputElement>(null)
+
   // Inicializar el formulario
   const form = useForm<TransferFormValues>({
     resolver: zodResolver(transferFormSchema),
@@ -83,6 +89,13 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
         cuentaDestino: '',
         monto: null as unknown as number,
       })
+    }
+    
+    // Auto-focus en el campo monto después de un breve delay
+    if (open) {
+      setTimeout(() => {
+        montoInputRef.current?.focus()
+      }, 100)
     }
   }, [open, form])
 
@@ -116,141 +129,178 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
   // MoneyInput maneja la validación de formato automáticamente
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader className="space-y-2">
-          <DialogTitle className="text-lg sm:text-xl">Movimiento entre cuentas</DialogTitle>
-          <DialogDescription className="text-sm">
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="max-w-lg">
+        <ResponsiveModalHeader className="space-y-2">
+          <ResponsiveModalTitle className="text-lg sm:text-xl">Movimiento entre cuentas</ResponsiveModalTitle>
+          <ResponsiveModalDescription className="text-sm">
             Anotar que realizaste un movimiento de dinero entre dos cuentas bancarias registradas en el sistema.
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
+        <ResponsiveModalScrollArea>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-3 sm:space-y-4">
-            {/* Cuenta de origen */}
-            <FormField
-              control={form.control}
-              name="cuentaOrigen"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cuenta de origen</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    value={field.value}
-                    disabled={loadingCuentas}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder={loadingCuentas ? "Cargando..." : "Seleccionar cuenta de origen"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {cuentas.length === 0 ? (
-                        <SelectItem value="empty" disabled>
-                          No hay cuentas disponibles - Crear una nueva
-                        </SelectItem>
-                      ) : (
-                        cuentas.map((c) => (
-                          <SelectItem 
-                            key={c.id} 
-                            value={c.id.toString()}
-                            disabled={c.id.toString() === form.watch('cuentaDestino')}
-                          >
-                            {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toNumber().toFixed(2)})
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Cuenta Destino */}
-            <FormField
-              control={form.control}
-              name="cuentaDestino"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cuenta de destino</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    value={field.value}
-                    disabled={loadingCuentas}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder={loadingCuentas ? "Cargando..." : "Seleccionar cuenta destino"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {cuentas.length === 0 ? (
-                        <SelectItem value="empty" disabled>
-                          No hay cuentas disponibles - Crear una nueva
-                        </SelectItem>
-                      ) : (
-                        cuentas.map((c) => (
-                          <SelectItem 
-                            key={c.id} 
-                            value={c.id.toString()}
-                            disabled={c.id.toString() === form.watch('cuentaOrigen')}
-                          >
-                            {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toNumber().toFixed(2)})
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Monto */}
+            {/* Monto - Premium Design */}
             <FormField
               control={form.control}
               name="monto"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Monto</FormLabel>
+                <FormItem className="my-2 mb-3">
                   <FormControl>
-                    <MoneyInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      min={0}
-                      maxDigits={12}
-                      maxDecimals={2}
-                      placeholder="0.00"
-                      className="h-9"
-                    />
+                    <div className="relative flex items-center justify-center py-2">
+                      {/* Símbolo de moneda fijo a la izquierda */}
+                      <span className="text-3xl sm:text-4xl font-medium transition-colors mr-1 text-muted-foreground/60">
+                        $
+                      </span>
+                      
+                      {/* Input sin bordes */}
+                      <div className="flex-1 max-w-md">
+                        <MoneyInput
+                          ref={montoInputRef}
+                          value={field.value}
+                          onChange={field.onChange}
+                          min={0}
+                          maxDigits={12}
+                          maxDecimals={2}
+                          placeholder="0.00"
+                          showPrefix={false}
+                          className="border-none bg-transparent text-left shadow-none text-3xl sm:text-4xl font-semibold h-auto py-2 px-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors duration-200 text-foreground placeholder:text-muted-foreground/30"
+                        />
+                      </div>
+                    </div>
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-center" />
                 </FormItem>
               )}
             />
+
+            {/* Agrupación de cuentas con icono de transferencia */}
+            <div className="relative space-y-3">
+              {/* Cuenta de origen */}
+              <FormField
+                control={form.control}
+                name="cuentaOrigen"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cuenta de origen</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value}
+                      disabled={loadingCuentas}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder={loadingCuentas ? "Cargando..." : "Seleccionar cuenta de origen"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {cuentas.length === 0 ? (
+                          <SelectItem value="empty" disabled>
+                            No hay cuentas disponibles - Crear una nueva
+                          </SelectItem>
+                        ) : (
+                          cuentas.map((c) => (
+                            <SelectItem 
+                              key={c.id} 
+                              value={c.id.toString()}
+                              disabled={c.id.toString() === form.watch('cuentaDestino')}
+                            >
+                              {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toNumber().toFixed(2)})
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Icono de flecha indicador de transferencia */}
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                <div className={cn(
+                  "rounded-full p-1.5 transition-colors duration-300",
+                  form.watch('cuentaOrigen') && form.watch('cuentaDestino') && 
+                  form.watch('cuentaOrigen') !== form.watch('cuentaDestino')
+                    ? "bg-emerald-500/10"
+                    : "bg-muted/50"
+                )}>
+                  <ArrowDown 
+                    className={cn(
+                      "h-4 w-4 transition-colors duration-300",
+                      form.watch('cuentaOrigen') && form.watch('cuentaDestino') && 
+                      form.watch('cuentaOrigen') !== form.watch('cuentaDestino')
+                        ? "text-emerald-500"
+                        : "text-muted-foreground"
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Cuenta Destino */}
+              <FormField
+                control={form.control}
+                name="cuentaDestino"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cuenta de destino</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value}
+                      disabled={loadingCuentas}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder={loadingCuentas ? "Cargando..." : "Seleccionar cuenta destino"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {cuentas.length === 0 ? (
+                          <SelectItem value="empty" disabled>
+                            No hay cuentas disponibles - Crear una nueva
+                          </SelectItem>
+                        ) : (
+                          cuentas.map((c) => (
+                            <SelectItem 
+                              key={c.id} 
+                              value={c.id.toString()}
+                              disabled={c.id.toString() === form.watch('cuentaOrigen')}
+                            >
+                              {c.nombre} - {c.entidadFinanciera} (${c.saldoActual.toNumber().toFixed(2)})
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </form>
         </Form>
+        </ResponsiveModalScrollArea>
 
-        <DialogFooter className="mt-3 sm:mt-4 flex-col sm:flex-row gap-2">
+        <ResponsiveModalFooter className="mt-3 sm:mt-4 flex-row gap-2">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto"
+            className="flex-1"
           >
             Cancelar
           </Button>
           <Button 
-            type="submit" 
+            type="button"
             onClick={form.handleSubmit(onSubmit, handleFormError)}
             disabled={form.formState.isSubmitting || transferenciaMutation.isPending}
-            className="w-full sm:w-auto"
+            className="flex-1"
           >
             {transferenciaMutation.isPending ? 'Realizando...' : 'Realizar movimiento'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   )
 }
