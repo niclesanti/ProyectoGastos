@@ -67,9 +67,16 @@ export function MobileActionsFAB() {
   }, [drawerOpen])
 
   const handleActionClick = (actionId: string) => {
+    // Remover el focus de cualquier elemento activo antes de cerrar el drawer
+    // Esto previene warnings de aria-hidden sobre elementos con focus
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+    
     setDrawerOpen(false)
     
-    // Pequeño delay para que el drawer se cierre suavemente antes de abrir el modal
+    // Delay más largo para que el drawer se cierre completamente antes de abrir el modal
+    // Esto evita conflictos de focus management entre dos drawers/modales
     setTimeout(() => {
       switch (actionId) {
         case 'transaction':
@@ -85,7 +92,7 @@ export function MobileActionsFAB() {
           setCardPaymentModalOpen(true)
           break
       }
-    }, 150)
+    }, 300)
   }
 
   if (!currentWorkspace) {

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -68,9 +68,6 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
   // Mutation para realizar transferencia
   const transferenciaMutation = useTransferenciaCuentas()
 
-  // Ref para auto-focus en el campo monto
-  const montoInputRef = React.useRef<HTMLInputElement>(null)
-
   // Inicializar el formulario
   const form = useForm<TransferFormValues>({
     resolver: zodResolver(transferFormSchema),
@@ -89,13 +86,6 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
         cuentaDestino: '',
         monto: null as unknown as number,
       })
-    }
-    
-    // Auto-focus en el campo monto después de un breve delay
-    if (open) {
-      setTimeout(() => {
-        montoInputRef.current?.focus()
-      }, 100)
     }
   }, [open, form])
 
@@ -157,7 +147,6 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
                       {/* Input sin bordes */}
                       <div className="flex-1 max-w-md">
                         <MoneyInput
-                          ref={montoInputRef}
                           value={field.value}
                           onChange={field.onChange}
                           min={0}

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -127,9 +127,6 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
   const [showNewMotivo, setShowNewMotivo] = useState(false)
   const [showNewComercio, setShowNewComercio] = useState(false)
 
-  // Ref para auto-focus en el campo monto
-  const montoInputRef = React.useRef<HTMLInputElement>(null)
-
   // Formularios para subfunciones
   const newMotivoForm = useForm<z.infer<typeof newMotivoSchema>>({
     resolver: zodResolver(newMotivoSchema),
@@ -171,13 +168,6 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
       setShowNewComercio(false)
       newMotivoForm.reset()
       newComercioForm.reset()
-    }
-    
-    // Auto-focus en el campo monto después de un breve delay
-    if (open) {
-      setTimeout(() => {
-        montoInputRef.current?.focus()
-      }, 100)
     }
   }, [open, form, newMotivoForm, newComercioForm])
 
@@ -379,7 +369,6 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
                         {/* Input sin bordes */}
                         <div className="flex-1 max-w-md">
                           <MoneyInput
-                            ref={montoInputRef}
                             value={field.value}
                             onChange={field.onChange}
                             min={0}
