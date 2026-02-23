@@ -32,6 +32,7 @@
 
 import * as React from "react"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useVirtualKeyboard } from "@/hooks/use-virtual-keyboard"
 import { cn } from "@/lib/utils"
 import {
   Dialog,
@@ -80,15 +81,28 @@ interface ResponsiveModalContentProps extends React.HTMLAttributes<HTMLDivElemen
 
 export function ResponsiveModalContent({ children, className, ...props }: ResponsiveModalContentProps) {
   const isMobile = useIsMobile()
+  const { isKeyboardOpen, viewportHeight } = useVirtualKeyboard()
 
   if (isMobile) {
     return (
-      <DrawerContent className={cn("max-h-[96vh] flex flex-col overflow-hidden", className)} {...props}>
+      <DrawerContent
+        className={cn("flex flex-col overflow-hidden", className)}
+        style={{
+          // Cuando el teclado está abierto usamos la altura del viewport visible
+          // (visualViewport.height), que ya descuenta el espacio del teclado.
+          // Cuando está cerrado, 96dvh es el valor por defecto.
+          // La transición suaviza la animación de apertura/cierre del teclado.
+          maxHeight: isKeyboardOpen ? `${viewportHeight}px` : '96dvh',
+          transition: 'max-height 0.15s ease-out',
+        }}
+        {...props}
+      >
         {children}
       </DrawerContent>
     )
   }
 
+  // Desktop: Dialog sin cambios
   return (
     <DialogContent className={cn("max-h-[90vh] flex flex-col overflow-hidden gap-4 p-6", className)} {...props}>
       {children}
