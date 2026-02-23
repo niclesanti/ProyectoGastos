@@ -81,18 +81,31 @@ interface ResponsiveModalContentProps extends React.HTMLAttributes<HTMLDivElemen
 
 export function ResponsiveModalContent({ children, className, ...props }: ResponsiveModalContentProps) {
   const isMobile = useIsMobile()
-  const { isKeyboardOpen, viewportHeight } = useVirtualKeyboard()
+  const { isKeyboardOpen, viewportHeight, viewportOffsetTop } = useVirtualKeyboard()
 
   if (isMobile) {
+    /**
+     * Cálculo de maxHeight para teclado virtual:
+     *
+     * Android (interactive-widget=resizes-visual soportado):
+     *   offsetTop = 0 siempre → viewportHeight - 0 = viewportHeight
+     *   El teclado se superpone, el modal no se mueve, solo ajustamos altura.
+     *
+     * iOS (interactive-widget ignorado, WKWebView en todos los browsers):
+     *   offsetTop > 0 cuando el sistema hace scroll hacia el campo enfocado.
+     *   viewportHeight - offsetTop = espacio real visible por encima del teclado.
+     *
+     * Sin teclado: 96dvh (comportamiento normal del Drawer).
+     */
+    const mobileMaxHeight = isKeyboardOpen
+      ? `${viewportHeight - viewportOffsetTop}px`
+      : '96dvh'
+
     return (
       <DrawerContent
         className={cn("flex flex-col overflow-hidden", className)}
         style={{
-          // Cuando el teclado está abierto usamos la altura del viewport visible
-          // (visualViewport.height), que ya descuenta el espacio del teclado.
-          // Cuando está cerrado, 96dvh es el valor por defecto.
-          // La transición suaviza la animación de apertura/cierre del teclado.
-          maxHeight: isKeyboardOpen ? `${viewportHeight}px` : '96dvh',
+          maxHeight: mobileMaxHeight,
           transition: 'max-height 0.15s ease-out',
         }}
         {...props}
@@ -102,7 +115,7 @@ export function ResponsiveModalContent({ children, className, ...props }: Respon
     )
   }
 
-  // Desktop: Dialog sin cambios
+  // Desktop: Dialog sin cambios — no se toca
   return (
     <DialogContent className={cn("max-h-[90vh] flex flex-col overflow-hidden gap-4 p-6", className)} {...props}>
       {children}
