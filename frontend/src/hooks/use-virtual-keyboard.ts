@@ -1,57 +1,87 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+
+interface VirtualKeyboardState {
+  isKeyboardOpen: boolean
+  /** Altura del viewport visible (por encima del teclado) */
+  viewportHeight: number
+  /**
+   * Offset top del visualViewport respecto al layout viewport.
+   * En Android siempre es 0. En iOS cambia cuando el sistema hace scroll
+   * automático hacia el campo enfocado, por lo que es crítico para calcular
+   * el espacio real disponible: maxHeight = viewportHeight - viewportOffsetTop
+   */
+  viewportOffsetTop: number
+}
 
 /**
- * Hook que detecta el teclado virtual en móviles y proporciona la altura
- * del viewport visible (por encima del teclado).
+ * Hook que detecta el teclado virtual en mobile de forma confiable
+ * en Android y iOS (incluyendo Chrome en iOS que usa WKWebView).
  *
  * Estrategia:
- *  - Usa `window.visualViewport` (iOS Safari 13+, Chrome 61+, Firefox 63+)
- *    que siempre refleja el área visible real: se reduce cuando el teclado abre.
- *  - Combinado con `interactive-widget=resizes-visual` en el viewport meta,
- *    el layout NO se desplaza cuando el teclado aparece; el teclado simplemente
- *    se superpone. El `visualViewport.height` aun así se reduce, lo que nos
- *    permite calcular el espacio disponible correctamente.
+ * - Usa window.visualViewport para detectar cambios de tamaño y offset
+ * - Captura la altura inicial en reposo como referencia estable
+ * - Escucha los eventos 'resize' y 'scroll' del visualViewport
+ *   ('scroll' es necesario en iOS donde offsetTop cambia al enfocar un input)
+ * - Umbral de 150px para evitar falsos positivos por la barra del navegador
  *
- * Uso típico:
- *  const { isKeyboardOpen, viewportHeight } = useVirtualKeyboard()
- *  // Aplicar viewportHeight como max-height del modal cuando el teclado está abierto
+ * PC: el hook corre pero isMobile=false en ResponsiveModal, resultado ignorado.
+ * Android: offsetTop siempre 0 → fórmula equivalente a la versión anterior.
+ * iOS: offsetTop varía → fórmula viewportHeight - offsetTop calcula el espacio real.
  */
-export function useVirtualKeyboard() {
-  const getViewportHeight = () =>
-    window.visualViewport?.height ?? window.innerHeight
+export function useVirtualKeyboard(): VirtualKeyboardState {
+  const restingHeightRef = useRef<number | null>(null)
 
-  const [viewportHeight, setViewportHeight] = useState(getViewportHeight)
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
+  const [state, setState] = useState<VirtualKeyboardState>(() => ({
+    isKeyboardOpen: false,
+    viewportHeight: window.visualViewport?.height ?? window.innerHeight,
+    viewportOffsetTop: window.visualViewport?.offsetTop ?? 0,
+  }))
 
   useEffect(() => {
     const viewport = window.visualViewport
     if (!viewport) return
 
-    // Guardamos la altura "en reposo" para calcular si el teclado está abierto.
-    // Se actualiza al cerrar el teclado para contemplar cambios de orientación.
-    let restHeight = viewport.height
+    // Delay para asegurar que el viewport esté completamente inicializado.
+    // Es especialmente importante en iOS donde el valor inicial puede ser incorrecto.
+    const initTimer = setTimeout(() => {
+      restingHeightRef.current = viewport.height
+    }, 300)
 
-    const handleResize = () => {
+    const handleChange = () => {
       const currentHeight = viewport.height
-      setViewportHeight(currentHeight)
+      const offsetTop = viewport.offsetTop
+      const resting = restingHeightRef.current ?? currentHeight
 
-      // Umbral de 150px: teclados en dispositivos pequeños pueden ser muy grandes.
-      // Consideramos que el teclado está abierto si el viewport se redujo > 150px.
-      const diff = restHeight - currentHeight
-      const keyboardOpen = diff > 150
+      const diff = resting - currentHeight
 
-      if (!keyboardOpen) {
-        // Al cerrar el teclado, actualizamos la altura de reposo
-        // (cubre cambios de orientación de pantalla)
-        restHeight = currentHeight
+      // Umbral de 150px: distingue el teclado de cambios menores
+      // (como la barra de URL del navegador que se oculta al hacer scroll)
+      const keyboardIsOpen = diff > 150
+
+      if (!keyboardIsOpen) {
+        // Al cerrar el teclado, actualizamos la referencia de reposo
+        // para cubrir cambios de orientación de pantalla
+        restingHeightRef.current = currentHeight
       }
 
-      setIsKeyboardOpen(keyboardOpen)
+      setState({
+        isKeyboardOpen: keyboardIsOpen,
+        viewportHeight: currentHeight,
+        viewportOffsetTop: offsetTop,
+      })
     }
 
-    viewport.addEventListener('resize', handleResize)
-    return () => viewport.removeEventListener('resize', handleResize)
+    // 'resize': se dispara al abrir/cerrar el teclado en todos los navegadores
+    // 'scroll': necesario en iOS donde offsetTop cambia al enfocar un input
+    viewport.addEventListener('resize', handleChange)
+    viewport.addEventListener('scroll', handleChange)
+
+    return () => {
+      clearTimeout(initTimer)
+      viewport.removeEventListener('resize', handleChange)
+      viewport.removeEventListener('scroll', handleChange)
+    }
   }, [])
 
-  return { isKeyboardOpen, viewportHeight }
+  return state
 }
