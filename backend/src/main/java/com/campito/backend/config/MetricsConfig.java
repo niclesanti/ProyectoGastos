@@ -54,6 +54,11 @@ public class MetricsConfig {
         // Espacios de Trabajo (Multi-tenancy)
         public static final String ESPACIOS_ACTIVOS = "negocio.espacios.activos";
         public static final String ESPACIOS_CREADOS = "negocio.espacios.creados";
+        
+        // Agente IA - Limpieza de historial (Scheduler)
+        public static final String AGENTE_HISTORIAL_ELIMINADOS = "negocio.agente.historial.eliminados";
+        public static final String AGENTE_HISTORIAL_ERRORES = "negocio.agente.historial.errores";
+        public static final String AGENTE_HISTORIAL_TIMER = "negocio.agente.historial.tiempo";
     }
 
     /**

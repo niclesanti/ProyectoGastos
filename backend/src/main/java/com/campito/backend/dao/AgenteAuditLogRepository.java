@@ -32,4 +32,13 @@ public interface AgenteAuditLogRepository extends JpaRepository<AgenteAuditLog, 
      * Cuenta requests de un usuario después de una fecha (para analytics)
      */
     Long countByUserIdAndTimestampAfter(UUID userId, LocalDateTime after);
+    
+    /**
+     * Elimina todos los registros de auditoría anteriores a una fecha dada.
+     * Utilizado por el scheduler de limpieza automática de historial.
+     *
+     * @param before fecha límite; se eliminan todos los registros con timestamp anterior a esta fecha
+     * @return cantidad de registros eliminados
+     */
+    int deleteByTimestampBefore(LocalDateTime before);
 }
