@@ -59,6 +59,14 @@ public class MetricsConfig {
         public static final String AGENTE_HISTORIAL_ELIMINADOS = "negocio.agente.historial.eliminados";
         public static final String AGENTE_HISTORIAL_ERRORES = "negocio.agente.historial.errores";
         public static final String AGENTE_HISTORIAL_TIMER = "negocio.agente.historial.tiempo";
+        
+        // Agente IA - Operaciones en tiempo real
+        /** Counter: requests al LLM. Tags: tipo=[chat|stream], resultado=[exitoso|error] */
+        public static final String AGENTE_REQUESTS = "negocio.agente.requests";
+        /** Counter: tokens consumidos en respuestas no-streaming del LLM. */
+        public static final String AGENTE_TOKENS_CONSUMIDOS = "negocio.agente.tokens.consumidos";
+        /** Timer: latencia de respuesta del LLM en modo chat (bloqueante). */
+        public static final String AGENTE_LATENCIA = "negocio.agente.latencia";
     }
 
     /**

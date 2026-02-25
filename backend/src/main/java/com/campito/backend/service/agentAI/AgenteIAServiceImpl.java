@@ -1,10 +1,14 @@
 package com.campito.backend.service.agentAI;
 
+import com.campito.backend.config.MetricsConfig;
 import com.campito.backend.dao.AgenteAuditLogRepository;
 import com.campito.backend.dto.AgenteChatRequestDTO;
 import com.campito.backend.dto.AgenteChatResponseDTO;
 import com.campito.backend.model.AgenteAuditLog;
 import com.campito.backend.service.SecurityService;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -44,6 +48,7 @@ public class AgenteIAServiceImpl implements AgenteIAService {
     private final ChatClient.Builder chatClientBuilder;
     private final SecurityService securityService;
     private final AgenteAuditLogRepository auditLogRepository;
+    private final MeterRegistry meterRegistry;
     private static final String SYSTEM_PROMPT = """
     # IDENTIDAD Y ROL
     Eres 'Finanzas Copilot', un consultor financiero senior y estratega de datos integrado en la "Finanzas App" (una aplicación de gestión de gastos personales). No eres un simple buscador de datos; eres un asesor que transforma números en estrategias accionables para mejorar la salud económica del usuario.
@@ -102,6 +107,9 @@ public class AgenteIAServiceImpl implements AgenteIAService {
         var messages = buildMessageHistory(request);
         var prompt = new Prompt(messages);
         
+        // 📊 MÉTRICA: Medir latencia de respuesta del LLM
+        var timerSample = Timer.start(meterRegistry);
+        
         try {
             // Crear chat client con funciones habilitadas
             ChatClient chatClient = chatClientBuilder.build();
@@ -132,10 +140,47 @@ public class AgenteIAServiceImpl implements AgenteIAService {
             
             log.info("Chat completado. Tokens: {}, Funciones: {}", tokensUsed, functionsCalled);
             
+            // 📊 MÉTRICA: Registrar latencia de la llamada exitosa al LLM
+            timerSample.stop(Timer.builder(MetricsConfig.MetricNames.AGENTE_LATENCIA)
+                    .description("Latencia de respuesta del LLM en modo chat bloqueante")
+                    .tag("tipo", "chat")
+                    .register(meterRegistry));
+            
+            // 📊 MÉTRICA: Contador de requests exitosos
+            Counter.builder(MetricsConfig.MetricNames.AGENTE_REQUESTS)
+                    .description("Total de requests al agente IA")
+                    .tag("tipo", "chat")
+                    .tag("resultado", "exitoso")
+                    .register(meterRegistry)
+                    .increment();
+            
+            // 📊 MÉTRICA: Contador de tokens consumidos (costo de API)
+            if (tokensUsed != null && tokensUsed > 0) {
+                Counter.builder(MetricsConfig.MetricNames.AGENTE_TOKENS_CONSUMIDOS)
+                        .description("Total de tokens consumidos en respuestas del LLM")
+                        .tag("tipo", "chat")
+                        .register(meterRegistry)
+                        .increment(tokensUsed);
+            }
+            
             return new AgenteChatResponseDTO(content, functionsCalled, tokensUsed);
             
         } catch (Exception e) {
             log.error("Error procesando chat del agente", e);
+            
+            // 📊 MÉTRICA: Registrar latencia incluso en error
+            timerSample.stop(Timer.builder(MetricsConfig.MetricNames.AGENTE_LATENCIA)
+                    .description("Latencia de respuesta del LLM en modo chat bloqueante")
+                    .tag("tipo", "chat")
+                    .register(meterRegistry));
+            
+            // 📊 MÉTRICA: Contador de requests con error
+            Counter.builder(MetricsConfig.MetricNames.AGENTE_REQUESTS)
+                    .description("Total de requests al agente IA")
+                    .tag("tipo", "chat")
+                    .tag("resultado", "error")
+                    .register(meterRegistry)
+                    .increment();
             
             // Auditar el error
             auditLogRepository.save(AgenteAuditLog.builder()
@@ -158,6 +203,14 @@ public class AgenteIAServiceImpl implements AgenteIAService {
         // Construir historial de mensajes
         var messages = buildMessageHistory(request);
         var prompt = new Prompt(messages);
+        
+        // 📊 MÉTRICA: Contador de requests de tipo stream (no bloqueante, sin timer)
+        Counter.builder(MetricsConfig.MetricNames.AGENTE_REQUESTS)
+                .description("Total de requests al agente IA")
+                .tag("tipo", "stream")
+                .tag("resultado", "iniciado")
+                .register(meterRegistry)
+                .increment();
         
         try {
             // Crear chat client con funciones habilitadas
