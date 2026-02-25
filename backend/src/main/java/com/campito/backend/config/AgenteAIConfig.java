@@ -26,13 +26,19 @@ public class AgenteAIConfig {
         String workspaceId,
         Integer mes,
         Integer anio,
-        String motivo
+        String motivo,
+        String contacto
     ) {}
     
     /**
      * Record para parámetros que solo requieren workspaceId
      */
     public record WorkspaceRequest(String workspaceId) {}
+
+    /**
+     * Record para parámetros que requieren el ID de una tarjeta de crédito
+     */
+    public record TarjetaIdRequest(Long tarjetaId) {}
     
     @Bean
     @Description("Obtiene el estado financiero completo de un espacio de trabajo: saldo total, " +
@@ -47,9 +53,12 @@ public class AgenteAIConfig {
     
     @Bean
     @Description("Busca transacciones (ingresos y gastos) dentro de un espacio de trabajo. " +
-                 "Permite filtrar por mes (1-12), año (2020-2026) y motivo/categoría " +
-                 "(ej: 'Supermercado', 'Salario', 'Alquiler'). Sin filtros devuelve las últimas 50 transacciones. " +
-                 "Útil para consultas como 'gastos de supermercado en enero' o 'transacciones de este año'")
+                 "Permite filtrar por mes (1-12), año (2020-2026), motivo/categoría " +
+                 "(ej: 'Supermercado', 'Salario', 'Alquiler') y por nombre de contacto/destinatario " +
+                 "(ej: 'Juan Pérez'). Los filtros son opcionales y combinables entre sí. " +
+                 "Sin filtros devuelve las últimas 20 transacciones. " +
+                 "Útil para consultas como 'gastos de supermercado en enero', " +
+                 "'transacciones de este año' o 'pagos a Juan Pérez'.")
     public Function<BuscarTransaccionesRequest, Object> buscarTransacciones(
         AgenteToolsService toolsService
     ) {
@@ -57,7 +66,8 @@ public class AgenteAIConfig {
             request.workspaceId(),
             request.mes(),
             request.anio(),
-            request.motivo()
+            request.motivo(),
+            request.contacto()
         );
     }
     
@@ -101,4 +111,55 @@ public class AgenteAIConfig {
     ) {
         return request -> toolsService.listarMotivosTransacciones(request.workspaceId());
     }
+
+    @Bean
+    @Description("Lista todas las compras realizadas con tarjetas de crédito en el espacio de trabajo, " +
+                 "incluyendo las completamente pagadas. Muestra descripción, monto total, número de cuotas " +
+                 "pagadas/totales y tarjeta asociada. Útil para ver el historial completo de compras en cuotas.")
+    public Function<WorkspaceRequest, Object> buscarTodasComprasCredito(
+        AgenteToolsService toolsService
+    ) {
+        return request -> toolsService.buscarTodasComprasCredito(request.workspaceId());
+    }
+
+    @Bean
+    @Description("Lista únicamente las compras a crédito que aún tienen cuotas pendientes de pago " +
+                 "en el espacio de trabajo. Útil para responder '¿qué compras en cuotas me faltan pagar?' " +
+                 "o calcular la deuda total en cuotas activas.")
+    public Function<WorkspaceRequest, Object> listarComprasCreditoPendientes(
+        AgenteToolsService toolsService
+    ) {
+        return request -> toolsService.listarComprasCreditoPendientes(request.workspaceId());
+    }
+
+    @Bean
+    @Description("Lista las cuotas del período actual de una tarjeta de crédito específica, incluyendo " +
+                 "monto, número de cuota, estado (pagada/pendiente) y fecha. " +
+                 "IMPORTANTE: Primero llamar a listarTarjetasCredito para obtener el ID (tarjetaId) de la tarjeta.")
+    public Function<TarjetaIdRequest, Object> listarCuotasPorTarjeta(
+        AgenteToolsService toolsService
+    ) {
+        return request -> toolsService.listarCuotasPorTarjeta(request.tarjetaId());
+    }
+
+    @Bean
+    @Description("Lista el historial completo de resúmenes mensuales de una tarjeta de crédito específica, " +
+                 "ordenados del más reciente al más antiguo. Útil para ver la evolución de gastos de una tarjeta " +
+                 "en particular. IMPORTANTE: Primero llamar a listarTarjetasCredito para obtener el ID (tarjetaId).")
+    public Function<TarjetaIdRequest, Object> listarResumenesPorTarjeta(
+        AgenteToolsService toolsService
+    ) {
+        return request -> toolsService.listarResumenesPorTarjeta(request.tarjetaId());
+    }
+
+    @Bean
+    @Description("Lista los contactos de transferencia registrados en el espacio de trabajo " +
+                 "(personas o entidades a las que se les transfiere dinero), con nombre, alias o CBU/CVU. " +
+                 "Útil para identificar destinatarios frecuentes de transferencias.")
+    public Function<WorkspaceRequest, Object> listarContactosTransaccion(
+        AgenteToolsService toolsService
+    ) {
+        return request -> toolsService.listarContactosTransaccion(request.workspaceId());
+    }
+
 }

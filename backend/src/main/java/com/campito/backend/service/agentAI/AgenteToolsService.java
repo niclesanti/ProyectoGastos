@@ -55,34 +55,37 @@ public class AgenteToolsService {
     
     /**
      * Busca transacciones con filtros opcionales.
-     * Sin filtros, devuelve las últimas 50 transacciones.
+     * Sin filtros, devuelve las últimas 20 transacciones.
      * 
      * @param workspaceId ID del espacio de trabajo (UUID como String)
      * @param mes Mes a filtrar (1-12, opcional)
      * @param anio Año a filtrar (2020-2026, opcional)
      * @param motivo Nombre del motivo/categoría (ej: "Supermercado", opcional)
+     * @param contacto Nombre del contacto/destinatario (ej: "Juan Pérez", opcional)
      * @return Lista de transacciones que cumplen los criterios
      */
     public List<TransaccionDTOResponse> buscarTransacciones(
-        String workspaceId, 
-        Integer mes, 
-        Integer anio, 
-        String motivo
+        String workspaceId,
+        Integer mes,
+        Integer anio,
+        String motivo,
+        String contacto
     ) {
-        log.info("Agente llamando tool: buscarTransacciones({}, mes={}, anio={}, motivo={})", 
-            workspaceId, mes, anio, motivo);
+        log.info("Agente llamando tool: buscarTransacciones({}, mes={}, anio={}, motivo={}, contacto={})",
+            workspaceId, mes, anio, motivo, contacto);
         
         UUID workspaceUuid = UUID.fromString(workspaceId);
         securityService.validateWorkspaceAccess(workspaceUuid);
         
+        // Limitado a 20 items para no exceder el TPM de Groq en la llamada de síntesis
         var busqueda = new TransaccionBusquedaDTO(
             mes,
             anio,
             motivo,
-            null,          // contacto (nombre, no ID)
+            contacto,      // filtro por nombre de contacto
             workspaceUuid, // idEspacioTrabajo
             0,             // page
-            50             // size máximo
+            20             // size máximo – reducido para control de tokens
         );
         
         return transaccionService.buscarTransaccion(busqueda).getContent();
@@ -152,4 +155,92 @@ public class AgenteToolsService {
         
         return transaccionService.listarMotivos(workspaceUuid);
     }
+
+    /**
+     * Lista todas las compras a crédito del espacio de trabajo (incluyendo las totalmente pagadas).
+     * Incluye: descripción, monto total, cuotas totales/pagas, tarjeta asociada y fecha.
+     * 
+     * @param workspaceId ID del espacio de trabajo (UUID como String)
+     * @return Lista completa de compras a crédito
+     */
+    public List<CompraCreditoDTOResponse> buscarTodasComprasCredito(String workspaceId) {
+        log.info("Agente llamando tool: buscarTodasComprasCredito({})", workspaceId);
+
+        UUID workspaceUuid = UUID.fromString(workspaceId);
+        securityService.validateWorkspaceAccess(workspaceUuid);
+
+        // Limitado a 20 items para no exceder el TPM de Groq
+        return compraCreditoService.BuscarComprasCredito(workspaceUuid)
+                .stream().limit(20).toList();
+    }
+
+    /**
+     * Lista las compras a crédito que aún tienen cuotas pendientes de pago.
+     * Útil para conocer las deudas en cuotas activas del espacio de trabajo.
+     * 
+     * @param workspaceId ID del espacio de trabajo (UUID como String)
+     * @return Lista de compras con cuotas pendientes
+     */
+    public List<CompraCreditoDTOResponse> listarComprasCreditoPendientes(String workspaceId) {
+        log.info("Agente llamando tool: listarComprasCreditoPendientes({})", workspaceId);
+
+        UUID workspaceUuid = UUID.fromString(workspaceId);
+        securityService.validateWorkspaceAccess(workspaceUuid);
+
+        // Limitado a 20 items para no exceder el TPM de Groq
+        return compraCreditoService.listarComprasCreditoDebeCuotas(workspaceUuid, 0, 20).getContent();
+    }
+
+    /**
+     * Lista las cuotas del período actual de una tarjeta de crédito específica.
+     * Incluye: monto de la cuota, número de cuota, estado (pagada/pendiente) y fecha.
+     * Llamar primero a listarTarjetasCredito para obtener los IDs disponibles.
+     * 
+     * @param idTarjeta ID numérico de la tarjeta de crédito
+     * @return Lista de cuotas de la tarjeta en el período actual
+     */
+    public List<CuotaCreditoDTOResponse> listarCuotasPorTarjeta(Long idTarjeta) {
+        log.info("Agente llamando tool: listarCuotasPorTarjeta({})", idTarjeta);
+
+        securityService.validateTarjetaOwnership(idTarjeta);
+
+        // Limitado a 24 cuotas para no exceder el TPM de Groq
+        return compraCreditoService.listarCuotasPorTarjeta(idTarjeta)
+                .stream().limit(24).toList();
+    }
+
+    /**
+     * Lista el historial de resúmenes de una tarjeta de crédito específica ordenados por fecha descendente.
+     * Útil para ver la evolución mensual de gastos de una tarjeta en particular.
+     * Llamar primero a listarTarjetasCredito para obtener los IDs disponibles.
+     * 
+     * @param idTarjeta ID numérico de la tarjeta de crédito
+     * @return Lista de resúmenes históricos de la tarjeta
+     */
+    public List<ResumenDTOResponse> listarResumenesPorTarjeta(Long idTarjeta) {
+        log.info("Agente llamando tool: listarResumenesPorTarjeta({})", idTarjeta);
+
+        securityService.validateTarjetaOwnership(idTarjeta);
+
+        // Limitado a 6 resúmenes (últimos 6 meses) para no exceder el TPM de Groq
+        return compraCreditoService.listarResumenesPorTarjeta(idTarjeta)
+                .stream().limit(6).toList();
+    }
+
+    /**
+     * Lista los contactos de transferencia registrados en el espacio de trabajo.
+     * Incluye: nombre completo, alias o CBU/CVU. Útil para identificar destinatarios frecuentes.
+     * 
+     * @param workspaceId ID del espacio de trabajo (UUID como String)
+     * @return Lista de contactos de transferencia
+     */
+    public List<ContactoDTOResponse> listarContactosTransaccion(String workspaceId) {
+        log.info("Agente llamando tool: listarContactosTransaccion({})", workspaceId);
+
+        UUID workspaceUuid = UUID.fromString(workspaceId);
+        securityService.validateWorkspaceAccess(workspaceUuid);
+
+        return transaccionService.listarContactos(workspaceUuid);
+    }
+
 }

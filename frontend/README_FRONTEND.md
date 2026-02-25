@@ -38,6 +38,7 @@ Aplicación web moderna y responsiva desarrollada con React 18 y TypeScript que 
 - ✅ **Gestión de Estado**: Zustand con caché inteligente
 - ✅ **Componentes Accesibles**: Basados en Radix UI con ARIA completo
 - ✅ **Visualización de Datos**: Gráficos interactivos con Recharts
+- ✅ **Agente IA Conversacional**: Chat financiero con streaming SSE, Markdown enriquecido y UX estilo Gemini
 
 ---
 
@@ -89,8 +90,17 @@ Aplicación web moderna y responsiva desarrollada con React 18 y TypeScript que 
 - Modales y diálogos accesibles
 - Drag & drop para reorganización
 - Modo oscuro nativo
-- FAB (Floating Action Button) en móviles
+- FAB (Floating Action Button) en móviles (oculto en la página del Agente IA)
 - Animaciones suaves y transiciones
+
+### Agente IA Conversacional (Finanzas Copilot)
+- **Interfaz estilo Gemini**: Pantalla de bienvenida con chips de sugerencias rápidas y layout de chat limpio sin burbujas en las respuestas del agente
+- **Streaming SSE en tiempo real**: Las respuestas del LLM se renderizan token por token via Server-Sent Events
+- **Markdown enriquecido**: Respuestas con tablas GFM, negritas, código, títulos y blockquotes renderizados correctamente (`react-markdown` + `remark-gfm`)
+- **Indicador de pensamiento (`thinking`)**: Avatar pulsante violeta con tres puntos rebotando, alineado idénticamente al layout del mensaje del agente
+- **Contador de tokens en el input**: Aparece cuando quedan ≤ 50 caracteres del límite máximo (400 chars)
+- **Historial por workspace**: La conversación se guarda en el store de Zustand por `idEspacio` y se limpia al cambiar de workspace o presionar "Nueva conversación"
+- **Acceso rápido desde el Header**: Botón `BrainCircuit` junto a la campana de notificaciones; se deshabilita cuando ya se está en `/agente-ia`
 
 ---
 
@@ -144,6 +154,16 @@ Aplicación web moderna y responsiva desarrollada con React 18 y TypeScript que 
 ### Notificaciones y Tiempo Real
 - **Sonner 2.0.7**: Toast notifications elegantes
 - **EventSource API (Nativo)**: SSE para notificaciones en tiempo real.
+- **EventSource API (Nativo)**: SSE para streaming de respuestas del Agente IA token por token.
+
+### Renderizado de Contenido Enriquecido
+- **react-markdown 10.1.0**: Renderizado de Markdown en respuestas del Agente IA
+- **remark-gfm 4.0.1**: Extensión GFM para tablas, listas de tareas, tachado y más
+
+### Animaciones
+- **framer-motion 12.34.1**: Animaciones declarativas para mensajes del chat y componentes
+- **tailwindcss-animate**: Animaciones predefinidas para el resto de la UI
+- **`animate-avatar-pulse`**: Animación CSS personalizada (ripple violeta) para el indicador de “pensando” del Agente IA
 
 ### Dev Tools
 - **ESLint**: Linting con reglas TypeScript y React
@@ -490,6 +510,13 @@ frontend/
 │   ├── contexts/                   # React Contexts
 │   │   └── AuthContext.tsx         # Contexto de autenticación
 │   ├── features/                   # Lógica por módulo
+│   │   ├── agente-ia/              # Feature del Agente IA conversacional
+│   │   │   └── components/
+│   │   │       ├── AgenteIAPlaceholder.tsx  # Placeholder si no hay workspace
+│   │   │       ├── ChatInput.tsx            # Input flotante tipo pill con contador
+│   │   │       ├── ChatMessages.tsx         # Lista de mensajes + thinking indicator
+│   │   │       ├── ChatWelcome.tsx          # Pantalla de bienvenida con chips
+│   │   │       └── MessageBubble.tsx        # Burbuja usuario / mensaje plano agente
 │   │   ├── dashboard/              # Componentes del Dashboard
 │   │   │   ├── BankAccounts.tsx
 │   │   │   ├── DashboardStats.tsx
@@ -503,6 +530,7 @@ frontend/
 │   ├── hooks/                      # Custom hooks
 │   │   ├── index.ts
 │   │   ├── use-mobile.tsx          # Detección de móvil
+│   │   ├── useAgenteIA.ts          # Orquestación del Agente IA (SSE, estado, historial)
 │   │   ├── useDashboardCache.ts    # Caché del dashboard
 │   │   ├── useDashboardStats.ts    # Hook para stats
 │   │   └── useNotificaciones.ts    # Hook SSE de notificaciones
@@ -512,12 +540,14 @@ frontend/
 │   │   ├── api-client.ts           # Cliente Axios configurado
 │   │   └── utils.ts                # Funciones helper (cn, etc.)
 │   ├── pages/                      # Páginas/Vistas
+│   │   ├── AgenteIAPage.tsx        # Agente IA / Finanzas Copilot
 │   │   ├── ConfiguracionPage.tsx   # Configuración y ajustes
 │   │   ├── CreditosPage.tsx        # Tarjetas y créditos
 │   │   ├── DashboardPage.tsx       # Dashboard principal
 │   │   ├── LoginPage.tsx           # Página de login OAuth2
 │   │   └── MovimientosPage.tsx     # Transacciones
 │   ├── services/                   # Servicios de API
+│   │   ├── agente-ia.service.ts    # Servicio del Agente IA (chat + SSE stream)
 │   │   ├── api.ts                  # Tipos y configuración
 │   │   ├── authService.ts          # Autenticación
 │   │   ├── compra-credito.service.ts
@@ -766,12 +796,36 @@ El proyecto utiliza **shadcn/ui**, un sistema de componentes basado en:
 - Indicador de días hasta cierre
 
 
-### 5. Configuración Page (`/configuracion`)
+### 6. Agente IA Page (`/agente-ia`)
 
-**Archivo**: `src/pages/ConfiguracionPage.tsx`
+**Archivo**: `src/pages/AgenteIAPage.tsx`
 
-**Features**:
-- **Tabs**: Espacio de Trabajo, Preferencias (próximamente), Notificaciones (próximamente), Cuenta (próximamente)
+**Descripción**: Chat conversacional con el asistente financiero “Finanzas Copilot”, potenciado por Llama 3.3 70B vía Groq.
+
+**Dos estados de la página**:
+- **Welcome screen** (sin mensajes): `ChatWelcome` con chips de sugerencias rápidas. Sin header superior — el saludo es el título.
+- **Conversation screen** (con mensajes): Header compacto “Finanzas Copilot” + botón “Nueva conversación” + `ChatMessages` + `ChatInput`.
+
+**Altura**: `h-[calc(100dvh-4rem)]` — usa `dvh` (dynamic viewport height) para que el chat no quede cortado cuando aparece el teclado virtual en móvil.
+
+**Componentes**:
+
+| Componente | Descripción |
+|---|---|
+| `ChatWelcome` | Hero con `BrainCircuit` violeta, saludo con nombre del usuario y 5 chips de acción rápida |
+| `ChatInput` | Input tipo pill flotante. Máx 400 caracteres con contador cuando quedan ≤ 50. Autoredimensionable hasta 160px |
+| `ChatMessages` | Scroll area con lista de `MessageBubble`. Indicator de `thinking` con avatar pulsante |
+| `MessageBubble` | **Usuario**: burbuja `bg-zinc-800` alineada a la derecha. **Agente**: layout plano con avatar violeta + nombre + contenido Markdown indentado (`pl-10`) |
+| `AgenteIAPlaceholder` | Pantalla mostrada si no hay ningún workspace activo |
+
+**Detalles de `MessageBubble` — renderizado Markdown**:
+- Usa `react-markdown` con plugin `remark-gfm` para soporte de tablas GFM, tachado, listas de tareas
+- Componentes personalizados: `h1/h2/h3`, `table/thead/tbody/tr/th/td` (scrollable wrapper), código inline (`bg-zinc-800 text-violet-300`), `pre`, `blockquote`, `hr`
+- Cursor de streaming: barra pulsante `bg-violet-400` al final de la respuesta mientras llegan tokens
+
+**Hook**: `useAgenteIA` (ver sección Gestión de Estado)
+
+### 7. Configuración Page (`/configuracion`), Notificaciones (próximamente), Cuenta (próximamente)
 - **Gestión de Espacios de Trabajo**:
   - Crear nuevos espacios con validación de nombre
   - Invitar miembros por correo electrónico (genera solicitud pendiente)
@@ -807,6 +861,10 @@ interface AppState {
   bankAccounts: Map<number, CuentasCache>
   comprasPendientes: Map<number, ComprasPendientesCache>
   dashboardStats: Map<number, DashboardStatsCache>
+
+  // Agente IA
+  agenteEstado: AgenteIAEstado          // 'idle' | 'thinking' | 'streaming' | 'error'
+  conversacionesAgente: Map<string, AgenteIAMensaje[]>  // keyed by workspaceId
 }
 ```
 
@@ -846,6 +904,15 @@ invalidateBankAccounts(idEspacio)
 invalidateComprasPendientes(idEspacio)
 invalidateDashboardStats(idEspacio)
 invalidateDashboardCache(idEspacio) // Invalida todo
+
+// Agente IA
+loadConversacionAgente(idEspacio)        // Retorna mensajes del workspace
+agregarMensajeUsuario(idEspacio, texto)  // Agrega mensaje del usuario
+iniciarRespuestaAgente(idEspacio)        // Crea mensaje agente vacío, retorna su ID
+appendTokenRespuesta(idEspacio, id, tok) // Agrega token (streaming)
+finalizarRespuestaAgente(idEspacio, id, meta) // Cierra el mensaje con metadata
+setAgenteEstado(estado)                  // Cambia estado del agente
+limpiarConversacionAgente(idEspacio)     // Borra el historial del workspace
 ```
 
 #### Ventajas del Sistema
@@ -884,7 +951,7 @@ authService.logout()
 transaccionService.registrarTransaccion(data)
 transaccionService.removerTransaccion(id)
 transaccionService.buscarTransacciones(filters)
-transaccionService.buscarTransaccionesRecientes(idEspacio)
+transaccionService.buscarTransaccionesRecientes(idEspacio)  // Dashboard (no agente IA)
 ```
 
 #### Dashboard Service
@@ -935,6 +1002,19 @@ notificacionService.marcarTodasComoLeidas()
 notificacionService.eliminarNotificacion(id)
 notificacionService.crearConexionSSE()  // EventSource nativo
 ```
+
+#### Agente IA Service
+```typescript
+// Archivo: src/services/agente-ia.service.ts
+agenteIAService.enviarMensaje(request)           // Respuesta completa (fallback sin SSE)
+agenteIAService.crearConexionSSE(msg, wid)       // EventSource para streaming token a token
+agenteIAService.consultarRateLimit()             // Tokens restantes en la ventana actual
+```
+
+**Eventos SSE del stream del Agente IA**:
+- `token` — chunk de texto JSON-encoded (necesario para preservar espacios iniciales de cada token)
+- `done` — metadata final con `functionsCalled` y `tokensUsed`
+- `error` — error durante el procesamiento
 
 ---
 

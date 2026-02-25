@@ -17,11 +17,17 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
+import reactor.util.retry.Retry;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -38,43 +44,52 @@ public class AgenteIAServiceImpl implements AgenteIAService {
     private final ChatClient.Builder chatClientBuilder;
     private final SecurityService securityService;
     private final AgenteAuditLogRepository auditLogRepository;
-    
     private static final String SYSTEM_PROMPT = """
-        Eres 'FinanceAgent AI', un asistente financiero experto integrado en la aplicación "Finanzas App" (Aplicación de Gestión de Gastos Personales).
-        
-        **TU MISIÓN**: Ayudar a los usuarios a gestionar y analizar sus finanzas personales y familiares.
-        
-        **CAPACIDADES**:
-        - Consultar saldos, transacciones, compras con crédito, cuotas, resúmenes, contactos, motivos, cuentas bancarias y tarjetas de crédito
-        - Analizar patrones de gastos e ingresos
-        - Generar reportes financieros mensuales
-        - Responder preguntas sobre el estado financiero del espacio de trabajo
-        
-        **RESTRICCIONES CRÍTICAS**:
-        1. SOLO respondes sobre datos financieros del usuario actual y su espacio de trabajo
-        2. NO puedes hacer operaciones de escritura (crear transacciones, compras con crédito, cuotas, resúmenes, contactos, motivos, etc.) - solo lectura
-        3. Si te preguntan algo fuera del dominio financiero, responde amablemente que no estás capacitado
-        4. NUNCA inventes datos. Si no tienes información, dilo claramente y ofrece al usuario si necesita otra cosa
-        5. Usa las funciones (tools) SIEMPRE que necesites datos actualizados
-        
-        **ESTILO DE COMUNICACIÓN**:
-        - Formal pero cercano (tutea al usuario si el contexto es familiar)
-        - Respuestas concisas pero completas
-        - USA EMOJIS para mejorar la lectura: 💰 (dinero), 📊 (análisis), 💳 (tarjetas), 🏦 (cuentas), ⚠️ (alertas)
-        - Si hay deuda alta o gastos excesivos, menciona preocupación profesional sin alarmar
-        - Formatea montos con separadores de miles: $1,234.56
-        
-        **CONTEXTO ARGENTINO**:
-        - Los usuarios son argentinos, usa formato de moneda ARS cuando sea relevante
-        - Las tarjetas de crédito siguen el modelo argentino (día de cierre y vencimiento)
-        
-        **EJEMPLO DE RESPUESTA BUENA**:
-        "📊 Tu balance total es de $45,320.50. Este mes gastaste $12,400 (principalmente en Supermercado: $4,500). 
-        
-        💳 Tienes una deuda pendiente de $8,200 en tu Visa que vence el 15 de marzo. Te recomiendo priorizar ese pago."
-        
-        **IMPORTANTE**: Antes de responder, evalúa si necesitas llamar a alguna función para obtener datos actualizados.
-        """;
+    # IDENTIDAD Y ROL
+    Eres 'Finanzas Copilot', un consultor financiero senior y estratega de datos integrado en la "Finanzas App" (una aplicación de gestión de gastos personales). No eres un simple buscador de datos; eres un asesor que transforma números en estrategias accionables para mejorar la salud económica del usuario.
+
+    # TU MISIÓN
+    Proporcionar un análisis profundo, estructurado y visualmente impecable sobre las finanzas del usuario, ayudándolo a tomar decisiones inteligentes basadas en datos reales.
+
+    # NORMAS DE RESPUESTA Y FORMATO (CRÍTICO)
+    Para garantizar legibilidad y profesionalismo, aplica estrictamente:
+    1. **Estructura Visual**: Usa `#` para títulos, `##` para secciones y `---` para separar bloques temáticos extensos.
+    2. **Doble Salto de Línea (`\n\n`)**: **Obligatorio** entre párrafos, tablas y encabezados para evitar muros de texto.
+    3. **Tablas Markdown**: Úsalas **siempre** para listar $+3$ elementos (transacciones, cuotas, cuentas). Incluye alineación clara (`| :--- | :---: |`).
+    4. **Enriquecimiento de Texto**:
+     * **Negrita**: Montos en ARS (`**$1.234,56**`), fechas límite y categorías clave.
+     * *Cursiva*: Consejos, tips de ahorro o recomendaciones financieras
+     * `> Citas`: Úsalas para advertencias críticas o "Insights" destacados.
+    1. **Emojis e Iconografía**: Úsalos como prefijos de sección o para resaltar KPIs. Máximo $1$ o $2$ por bloque de texto para mantener la sobriedad.
+    2. **Restricción de Vocabulario**: Habla de "tus registros" o "tu historial". **Prohibido** mencionar "tools", "backend", "funciones" o "base de datos".
+    3. **Tono**: Experto financiero senior. Directo, analítico y cercano, pero nunca excesivamente técnico.
+
+    # CAPACIDADES Y DOMINIO
+    - Análisis de saldos, movimientos, cuotas y resúmenes de tarjetas.
+    - Educación financiera (inflación, interés compuesto, CFT, etc.).
+    - **Restricción**: NUNCA menciones nombres de funciones, tools, backend o base de datos.
+    - **Restricción**: NUNCA menciones IDs, UUIDs ni nada con formato `[SYS_META:...]`. Ese tag es metadato interno que JAMÁS debe aparecer en tu respuesta.
+    - **Restricción**: NUNCA menciones IDs de entidades. Habla de "tu tarjeta Visa", "tu cuenta bancaria", "tu espacio de trabajo", etc.
+    - **Solo lectura**: Si piden crear datos, indicar que use el botón 'Nuevo Registro'.
+
+    # REGLAS DE COMPORTAMIENTO
+    - **Contexto Argentino**: Moneda ARS ($). Comprende Cierre vs. Vencimiento de tarjetas.
+    - **Veracidad CRÍTICA**: SIEMPRE llama las herramientas disponibles antes de responder. JAMÁS inventes, estimes ni asumas datos financieros. Si una herramienta no devuelve datos, indicá que no hay registros — nunca generes datos ficticios.
+    - **Privacidad**: NUNCA menciones IDs técnicos (UUIDs, IDs numéricos). Solo hablá de "tu tarjeta Visa", "tu cuenta", etc.
+    - **Filtro**: Solo finanzas y economía.
+    - **Formato de respuesta**: Si la request es simple RESPONDE SOLO lo que te pregunten. No agregues información adicional no solicitada. Evita divagar o agregar análisis no solicitado.
+    - **Cálculos**: Tener en cuenta que las transacciones pueden ser de tipo **gasto** o **ingreso**. Para cálculos de totales, saldos o proyecciones, sumar los ingresos y restar los gastos según corresponda.
+
+    # ESTÁNDAR DE RECOMENDACIONES (CRÍTICO)
+    Usa recomendaciones SOLO cuando el usuario pregunte explícitamente por consejos o recomendaciones.
+    Las recomendaciones son el mayor valor que aportás. Deben cumplir TODAS estas condiciones:
+    1. **Basadas en datos reales**: Citá el número concreto. Mal: "gastás mucho en alimentos". Bien: "Alimentos representa $102k (38% de tus egresos este mes)".
+    2. **Accionables y específicas**: Proponé una acción concreta con impacto estimado. Mal: "reducí gastos en restaurantes". Bien: "Si reducís Restaurantes de 4 salidas a 2 por semana, liberás ~$28k/mes para amortizar tu cuota de Ropa más rápido".
+    3. **Priorizadas por impacto**: Ordená de mayor a menor impacto financiero. La más importante primero.
+    4. **Contextualizadas en el modelo argentino**: Considerá el ciclo de cierre/vencimiento de tarjetas, el efecto de las cuotas en el flujo mensual y la pérdida de valor por inflación del dinero ocioso.
+    5. **Sin perogrulladas**: Prohibido decir "es importante ahorrar", "manejá tus finanzas responsablemente", "considerá crear un presupuesto" sin datos que la justifiquen. Cada consejo debe ser una conclusión derivada de los datos reales del usuario.
+    6. **Con proyección temporal**: Cuando sea posible, indicá en cuántos meses se liquida una deuda al ritmo actual, o cuánto se acumularía en X meses si se mantiene el patrón.
+    """;
     
     @Override
     @Transactional
@@ -91,11 +106,11 @@ public class AgenteIAServiceImpl implements AgenteIAService {
             // Crear chat client con funciones habilitadas
             ChatClient chatClient = chatClientBuilder.build();
             
-            // Llamar al LLM con function calling
+            // Llamar al LLM con selección dinámica de funciones
+            String[] functions = selectFunctions(request.message());
+            log.info("Funciones seleccionadas para chat: {}", Arrays.toString(functions));
             ChatResponse response = chatClient.prompt(prompt)
-                .functions("obtenerDashboardFinanciero", "buscarTransacciones", 
-                          "listarTarjetasCredito", "listarResumenesTarjetas", 
-                          "listarCuentasBancarias", "listarMotivosTransacciones")
+                .functions(functions)
                 .call()
                 .chatResponse();
             
@@ -148,13 +163,21 @@ public class AgenteIAServiceImpl implements AgenteIAService {
             // Crear chat client con funciones habilitadas
             ChatClient chatClient = chatClientBuilder.build();
             
-            // Stream la respuesta
+            // Stream la respuesta con selección dinámica de funciones
+            String[] functions = selectFunctions(request.message());
+            log.info("Funciones seleccionadas para stream: {}", Arrays.toString(functions));
             return chatClient.prompt(prompt)
-                .functions("obtenerDashboardFinanciero", "buscarTransacciones", 
-                          "listarTarjetasCredito", "listarResumenesTarjetas", 
-                          "listarCuentasBancarias", "listarMotivosTransacciones")
+                .functions(functions)
                 .stream()
-                .content();
+                .content()
+                // Retry automático: hasta 2 intentos con backoff exponencial (2s, 4s)
+                // para absorber el 429 transitorio de Groq (límite TPM/RPM)
+                .retryWhen(Retry.backoff(2, Duration.ofSeconds(2))
+                    .filter(e -> e instanceof WebClientResponseException.TooManyRequests)
+                    .doBeforeRetry(rs -> log.warn("Groq 429 – reintento {} de 2 en {}s...",
+                        rs.totalRetries() + 1, (int) Math.pow(2, rs.totalRetries() + 1))))
+                .onErrorMap(WebClientResponseException.TooManyRequests.class,
+                    e -> new RuntimeException("Límite de tasa de Groq alcanzado. Intentá en unos segundos.", e));
                 
         } catch (Exception e) {
             log.error("Error en streaming del agente", e);
@@ -184,8 +207,10 @@ public class AgenteIAServiceImpl implements AgenteIAService {
         }
         
         // Agregar mensaje actual con contexto del workspace
+        // NOTA: El workspace ID se inyecta como metadato de sistema para que el modelo
+        // lo use SOLO al invocar tools, nunca para mostrarlo al usuario.
         String enrichedMessage = String.format(
-            "%s\n\n[CONTEXTO: Workspace ID = %s]",
+            "%s\n\n[SYS_META:workspace=%s]",
             request.message(),
             request.workspaceId()
         );
@@ -194,6 +219,54 @@ public class AgenteIAServiceImpl implements AgenteIAService {
         return messages;
     }
     
+    /**
+     * Estrategia 3: Selección dinámica de funciones según el contenido del mensaje.
+     * Reduce drásticamente los tokens enviados a Groq por request al no incluir
+     * los schemas de funciones irrelevantes para la pregunta.
+     *
+     * Default (pregunta genérica): 4 funciones core en lugar de 12.
+     */
+    private String[] selectFunctions(String message) {
+        String msg = message.toLowerCase();
+        Set<String> fns = new HashSet<>();
+
+        // Saldos / situación general
+        if (msg.matches(".*\\b(balance|saldo|situaci[oó]n|resumen|general|actual|cu[aá]nto tengo|overview|dinero)\\b.*")) {
+            fns.addAll(List.of("obtenerDashboardFinanciero", "listarCuentasBancarias"));
+        }
+
+        // Transacciones / gastos / ingresos / categorías
+        if (msg.matches(".*\\b(transacci[oó]n|gast[oe]|ingres[oe]|movimiento|pago|mes|categor[ií]a|gast[eé]|gastando|cuanto gast|cuanto ingres|compra)\\b.*")) {
+            fns.addAll(List.of("buscarTransacciones", "listarMotivosTransacciones"));
+        }
+
+        // Tarjetas de crédito / resúmenes / cuotas
+        if (msg.matches(".*\\b(tarjeta|cr[eé]dito|resumen|cuota|visa|mastercard|amex|debo pagar|vencimiento|cierre|deuda)\\b.*")) {
+            fns.addAll(List.of("listarTarjetasCredito", "listarResumenesTarjetas",
+                    "listarResumenesPorTarjeta", "listarCuotasPorTarjeta",
+                    "buscarTodasComprasCredito", "listarComprasCreditoPendientes"));
+        }
+
+        // Cuentas bancarias
+        if (msg.matches(".*\\b(cuenta|banco|bancaria|transferencia|ahorro)\\b.*")) {
+            fns.add("listarCuentasBancarias");
+        }
+
+        // Contactos / personas
+        if (msg.matches(".*\\b(contacto|persona|qui[eé]n|pagaste|pagado|enviaste)\\b.*")) {
+            fns.add("listarContactosTransaccion");
+        }
+
+        // Si la pregunta es demasiado genérica o no matcheó nada, usar el set mínimo core
+        if (fns.isEmpty()) {
+            fns.addAll(List.of("obtenerDashboardFinanciero", "buscarTransacciones",
+                    "listarCuentasBancarias", "listarTarjetasCredito"));
+        }
+
+        log.debug("selectFunctions: mensaje='{}' → funciones={}", message.substring(0, Math.min(60, message.length())), fns);
+        return fns.toArray(new String[0]);
+    }
+
     /**
      * Extrae nombres de funciones llamadas del metadata de la respuesta.
      */

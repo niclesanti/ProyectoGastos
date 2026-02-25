@@ -3,6 +3,8 @@ import { Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
+const MAX_CHARS = 400
+
 interface ChatInputProps {
   onSend: (mensaje: string) => void
   disabled?: boolean
@@ -12,6 +14,10 @@ interface ChatInputProps {
 export function ChatInput({ onSend, disabled = false, className }: ChatInputProps) {
   const [mensaje, setMensaje] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const charsLeft = MAX_CHARS - mensaje.length
+  const isNearLimit = charsLeft <= 50
+  const isOverLimit = charsLeft < 0
 
   const handleSend = () => {
     const mensajeTrimmed = mensaje.trim()
@@ -77,6 +83,7 @@ export function ChatInput({ onSend, disabled = false, className }: ChatInputProp
             onKeyDown={handleKeyDown}
             placeholder="Pregunta sobre tus finanzas..."
             disabled={disabled}
+            maxLength={MAX_CHARS}
             rows={1}
             className={cn(
               'flex-1 bg-transparent border-none outline-none resize-none',
@@ -91,7 +98,7 @@ export function ChatInput({ onSend, disabled = false, className }: ChatInputProp
           <Button
             size="icon"
             onClick={handleSend}
-            disabled={!mensaje.trim() || disabled}
+            disabled={!mensaje.trim() || disabled || isOverLimit}
             className={cn(
               'shrink-0 ml-2 self-end',
               'h-8 w-8 rounded-xl',
@@ -105,12 +112,22 @@ export function ChatInput({ onSend, disabled = false, className }: ChatInputProp
           </Button>
         </div>
 
-        {/* Hint sutil */}
-        <p className="text-xs text-muted-foreground/50 mt-2 text-center">
-          {disabled
-            ? 'Esperando respuesta del agente...'
-            : 'Enter para enviar, Shift + Enter para nueva línea'}
-        </p>
+        {/* Hint sutil + contador de caracteres */}
+        <div className="flex items-center justify-between mt-2 px-1">
+          <p className="text-xs text-muted-foreground/50">
+            {disabled
+              ? 'Esperando respuesta del agente...'
+              : 'Enter para enviar, Shift + Enter para nueva línea'}
+          </p>
+          {isNearLimit && (
+            <span className={cn(
+              'text-xs tabular-nums transition-colors',
+              isOverLimit ? 'text-destructive font-medium' : 'text-muted-foreground/70'
+            )}>
+              {charsLeft}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )
