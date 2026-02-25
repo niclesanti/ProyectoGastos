@@ -18,8 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
@@ -95,7 +97,7 @@ public class AgenteIAController {
         description = "Recibe la respuesta del agente token por token en tiempo real. " +
                      "Útil para mejorar la percepción de velocidad en la UI."
     )
-    public Flux<String> chatStream(
+    public Flux<ServerSentEvent<String>> chatStream(
         @NotBlank(message = "El mensaje no puede estar vacío")
         @RequestParam String message,
         @NotNull(message = "El workspace ID es obligatorio")
@@ -119,7 +121,47 @@ public class AgenteIAController {
         // Crear request y procesar con streaming
         AgenteChatRequestDTO request = new AgenteChatRequestDTO(message, workspaceId, null);
         
-        return agenteIAService.chatStream(request);
+        return agenteIAService.chatStream(request)
+            // Cada token se envía como evento nombrado 'token' con el texto JSON-encoded.
+            // JSON encoding es necesario porque la spec SSE descarta el espacio inicial
+            // de la línea 'data: <token>', y los tokens del LLM suelen empezar con espacio.
+            .map(token -> ServerSentEvent.<String>builder()
+                .event("token")
+                .data(jsonEscape(token))
+                .build())
+            // Al completar el Flux, enviar evento 'done' para que el frontend finalice
+            // el streaming y muestre el estado idle. Sin este evento, el frontend queda
+            // esperando indefinidamente o maneja el cierre de conexión como un error.
+            .concatWith(Mono.just(
+                ServerSentEvent.<String>builder()
+                    .event("done")
+                    .data("{\"status\":\"complete\"}")
+                    .build()
+            ))
+            .onErrorResume(e -> {
+                log.error("Error durante stream del agente", e);
+                return Flux.just(
+                    ServerSentEvent.<String>builder()
+                        .event("error-message")
+                        .data(e.getMessage() != null ? e.getMessage() : "Error interno del servidor")
+                        .build()
+                );
+            });
+    }
+    
+    /**
+     * Serializa un String como valor JSON (con comillas y escapes necesarios).
+     * Preserva los espacios iniciales que la spec SSE descartaría en el campo data:.
+     */
+    private String jsonEscape(String s) {
+        if (s == null) return "\"\"";
+        return "\"" + s
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t")
+            + "\"";
     }
     
     /**

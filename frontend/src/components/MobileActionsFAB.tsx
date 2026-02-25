@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Plus, TrendingDown, ArrowRightLeft, CreditCard, Receipt } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -52,6 +53,7 @@ const actions = [
 
 export function MobileActionsFAB() {
   const currentWorkspace = useAppStore((state) => state.currentWorkspace)
+  const { pathname } = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [transactionModalOpen, setTransactionModalOpen] = useState(false)
   const [accountTransferModalOpen, setAccountTransferModalOpen] = useState(false)
@@ -65,6 +67,9 @@ export function MobileActionsFAB() {
       triggerButtonRef.current.blur()
     }
   }, [drawerOpen])
+
+  // Hide the FAB on the AI Agent page — user is in chat mode, not quick-entry mode
+  if (pathname === '/agente-ia') return null
 
   const handleActionClick = (actionId: string) => {
     // Remover el focus de cualquier elemento activo antes de cerrar el drawer

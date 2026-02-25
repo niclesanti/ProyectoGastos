@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import jakarta.servlet.DispatcherType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -14,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -102,6 +104,10 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
+                // Los dispatches ASYNC internos de Tomcat (al completar una respuesta SSE)
+                // no tienen SecurityContext. Sin esta regla, Spring Security los bloquea con
+                // AuthorizationDeniedException, causando ERR_INCOMPLETE_CHUNKED_ENCODING.
+                .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                 .requestMatchers(publicEndpoints.toArray(new String[0])).permitAll()
                 .anyRequest().authenticated()
             )
@@ -120,7 +126,20 @@ public class SecurityConfig {
                 .permitAll()
             )
             // Agregar el filtro JWT antes del filtro de autenticación de Spring
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            // Para endpoints /api/** retornar 401 en vez de redirigir a OAuth2.
+            // Esto evita que EventSource (SSE) reciba un redirect a Google cuando
+            // el JWT no es reconocido, lo que causaría un error de CORS.
+            .exceptionHandling(exceptions -> exceptions
+                .defaultAuthenticationEntryPointFor(
+                    (request, response, authException) ->
+                        response.sendError(
+                            jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED,
+                            "No autenticado: " + authException.getMessage()
+                        ),
+                    new AntPathRequestMatcher("/api/**")
+                )
+            );
         
         return http.build();
     }

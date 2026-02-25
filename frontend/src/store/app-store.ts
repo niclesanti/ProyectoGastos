@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Usuario, EspacioTrabajo, CuentaBancaria, TransaccionDTOResponse, CompraCreditoDTOResponse, DashboardStatsDTO, NotificacionDTOResponse } from '@/types'
+import type { Usuario, EspacioTrabajo, CuentaBancaria, TransaccionDTOResponse, CompraCreditoDTOResponse, DashboardStatsDTO, NotificacionDTOResponse, AgenteIAMensaje, AgenteIAEstado, AgenteIAConversacion } from '@/types'
 import { transaccionService } from '@/services/transaccion.service'
 import { cuentaBancariaService } from '@/services/cuenta-bancaria.service'
 import { compraCreditoService } from '@/services/compra-credito.service'
@@ -47,6 +47,11 @@ interface AppState {
   unreadCount: number
   notificacionesCache: NotificacionesCache | null
   
+  // Agente IA
+  conversacionesAgente: Map<string, AgenteIAConversacion>
+  agenteEstado: AgenteIAEstado
+  mensajeStreamingActual: string
+  
   // Actions
   setUser: (user: Usuario | null) => void
   setCurrentWorkspace: (workspace: EspacioTrabajo | null) => void
@@ -71,6 +76,16 @@ interface AppState {
   eliminarNotificacion: (id: number) => Promise<void>
   agregarNotificacion: (notificacion: NotificacionDTOResponse) => void
   invalidateNotificaciones: () => void
+  
+  // Agente IA actions
+  loadConversacionAgente: (workspaceId: string) => AgenteIAMensaje[]
+  agregarMensajeUsuario: (workspaceId: string, mensaje: string) => string
+  iniciarRespuestaAgente: (workspaceId: string) => string
+  appendTokenRespuesta: (workspaceId: string, mensajeId: string, token: string) => void
+  finalizarRespuestaAgente: (workspaceId: string, mensajeId: string, functionsCalled?: string[], tokensUsed?: number) => void
+  setAgenteEstado: (estado: AgenteIAEstado) => void
+  limpiarConversacionAgente: (workspaceId: string) => void
+  invalidarConversacionAgente: (workspaceId: string) => void
 }
 
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
@@ -90,6 +105,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   notificaciones: [],
   unreadCount: 0,
   notificacionesCache: null,
+  conversacionesAgente: new Map(),
+  agenteEstado: 'idle',
+  mensajeStreamingActual: '',
   
   setUser: (user) => set({ user }),
   setCurrentWorkspace: (workspace) => set({ currentWorkspace: workspace }),
@@ -360,5 +378,128 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   invalidateNotificaciones: () => {
     set({ notificacionesCache: null })
+  },
+  
+  // Agente IA actions
+  loadConversacionAgente: (workspaceId: string) => {
+    const conversacion = get().conversacionesAgente.get(workspaceId)
+    return conversacion?.mensajes || []
+  },
+  
+  agregarMensajeUsuario: (workspaceId: string, mensaje: string) => {
+    const mensajeId = crypto.randomUUID()
+    const nuevoMensaje: AgenteIAMensaje = {
+      id: mensajeId,
+      role: 'user',
+      content: mensaje,
+      timestamp: new Date().toISOString(),
+    }
+    
+    set((state) => {
+      const conversacion = state.conversacionesAgente.get(workspaceId)
+      const mensajes = conversacion ? [...conversacion.mensajes, nuevoMensaje] : [nuevoMensaje]
+      
+      const nuevaConversacion: AgenteIAConversacion = {
+        workspaceId,
+        mensajes,
+        ultimaActualizacion: Date.now(),
+      }
+      
+      return {
+        conversacionesAgente: new Map(state.conversacionesAgente).set(workspaceId, nuevaConversacion),
+      }
+    })
+    
+    return mensajeId
+  },
+  
+  iniciarRespuestaAgente: (workspaceId: string) => {
+    const mensajeId = crypto.randomUUID()
+    const nuevoMensaje: AgenteIAMensaje = {
+      id: mensajeId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+    }
+    
+    set((state) => {
+      const conversacion = state.conversacionesAgente.get(workspaceId)
+      const mensajes = conversacion ? [...conversacion.mensajes, nuevoMensaje] : [nuevoMensaje]
+      
+      const nuevaConversacion: AgenteIAConversacion = {
+        workspaceId,
+        mensajes,
+        ultimaActualizacion: Date.now(),
+      }
+      
+      return {
+        conversacionesAgente: new Map(state.conversacionesAgente).set(workspaceId, nuevaConversacion),
+        mensajeStreamingActual: '',
+      }
+    })
+    
+    return mensajeId
+  },
+  
+  appendTokenRespuesta: (workspaceId: string, mensajeId: string, token: string) => {
+    set((state) => {
+      const conversacion = state.conversacionesAgente.get(workspaceId)
+      if (!conversacion) return state
+      
+      const mensajes = conversacion.mensajes.map(m =>
+        m.id === mensajeId ? { ...m, content: m.content + token } : m
+      )
+      
+      const nuevaConversacion: AgenteIAConversacion = {
+        ...conversacion,
+        mensajes,
+        ultimaActualizacion: Date.now(),
+      }
+      
+      return {
+        conversacionesAgente: new Map(state.conversacionesAgente).set(workspaceId, nuevaConversacion),
+        mensajeStreamingActual: state.mensajeStreamingActual + token,
+      }
+    })
+  },
+  
+  finalizarRespuestaAgente: (workspaceId: string, mensajeId: string, functionsCalled?: string[], tokensUsed?: number) => {
+    set((state) => {
+      const conversacion = state.conversacionesAgente.get(workspaceId)
+      if (!conversacion) return state
+      
+      const mensajes = conversacion.mensajes.map(m =>
+        m.id === mensajeId ? { ...m, functionsCalled, tokensUsed } : m
+      )
+      
+      const nuevaConversacion: AgenteIAConversacion = {
+        ...conversacion,
+        mensajes,
+        ultimaActualizacion: Date.now(),
+      }
+      
+      return {
+        conversacionesAgente: new Map(state.conversacionesAgente).set(workspaceId, nuevaConversacion),
+        agenteEstado: 'idle',
+        mensajeStreamingActual: '',
+      }
+    })
+  },
+  
+  setAgenteEstado: (estado: AgenteIAEstado) => {
+    set({ agenteEstado: estado })
+  },
+  
+  limpiarConversacionAgente: (workspaceId: string) => {
+    set((state) => {
+      const newMap = new Map(state.conversacionesAgente)
+      newMap.delete(workspaceId)
+      return { conversacionesAgente: newMap }
+    })
+  },
+  
+  invalidarConversacionAgente: (workspaceId: string) => {
+    // Similar a limpiar, pero podríamos tener lógica diferente en el futuro
+    get().limpiarConversacionAgente(workspaceId)
   },
 }))

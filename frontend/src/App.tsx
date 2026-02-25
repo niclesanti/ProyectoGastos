@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/layouts/DashboardLayout'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { MovimientosPage } from '@/pages/MovimientosPage'
 import { CreditosPage } from '@/pages/CreditosPage'
+import AgenteIAPage from '@/pages/AgenteIAPage'
 import { ConfiguracionPage } from '@/pages/ConfiguracionPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { OAuthCallback } from '@/pages/OAuthCallback'
@@ -25,6 +26,7 @@ const router = createBrowserRouter(
         { index: true, element: <DashboardPage /> },
         { path: 'movimientos', element: <MovimientosPage /> },
         { path: 'creditos', element: <CreditosPage /> },
+        { path: 'agente-ia', element: <AgenteIAPage /> },
         { path: 'configuracion', element: <ConfiguracionPage /> },
       ],
     },
