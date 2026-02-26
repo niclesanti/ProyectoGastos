@@ -84,6 +84,7 @@ public class AgenteIAServiceImpl implements AgenteIAService {
     - **Filtro**: Solo finanzas y economía.
     - **Formato de respuesta**: Si la request es simple RESPONDE SOLO lo que te pregunten. No agregues información adicional no solicitada. Evita divagar o agregar análisis no solicitado.
     - **Cálculos**: Tener en cuenta que las transacciones pueden ser de tipo **gasto** o **ingreso**. Para cálculos de totales, saldos o proyecciones, sumar los ingresos y restar los gastos según corresponda.
+    - **Request genérica**: Si la pregunta es muy genérica (ej: "Hola, ¿como estás?"), responde con un mensaje de bienvenida y guía sobre qué tipo de preguntas puedes responder, sin incluir datos específicos del usuario.
 
     # ESTÁNDAR DE RECOMENDACIONES (CRÍTICO)
     Usa recomendaciones SOLO cuando el usuario pregunte explícitamente por consejos o recomendaciones.
@@ -278,10 +279,30 @@ public class AgenteIAServiceImpl implements AgenteIAService {
      * los schemas de funciones irrelevantes para la pregunta.
      *
      * Default (pregunta genérica): 4 funciones core en lugar de 12.
+     * Saludos / mensajes fuera de dominio: array vacío → el LLM responde solo desde el system prompt.
      */
     private String[] selectFunctions(String message) {
-        String msg = message.toLowerCase();
+        String msg = message.toLowerCase().trim();
         Set<String> fns = new HashSet<>();
+
+        // ── EARLY RETURN: saludos, despedidas y mensajes sin intención financiera ──
+        // Si no hay tools, el LLM responde únicamente desde el system prompt,
+        // evitando llamadas innecesarias a la API y el consumo de tokens de datos financieros.
+        boolean esSaludo = msg.matches(
+            "(hola|buenas|buen[oa]s (d[ií]as?|tardes?|noches?)|hey|hi|hello|dale|ok|okey|gracias|" +
+            "chau|adi[oó]s|hasta luego|nos vemos|c[oó]mo est[aá]s?|qu[eé] tal|qu[eé] onda|" +
+            "c[oó]mo and[aá]s?|todo bien|necesito ayuda|pod[eé]s ayudarme|ayuda|ayud[aá]me)[?!. ]*"
+        );
+        boolean esMuyCorto = msg.length() <= 15 && !msg.matches(".*\\d.*");
+        boolean esOffTopic = msg.matches(
+            ".*(qu[eé] eres|qui[eé]n eres|qu[eé] pod[eé]s hacer|para qu[eé] sirv[eé]s?|" +
+            "c[oó]mo funcionas?|qu[eé] sab[eé]s hacer|qu[eé] funciones? ten[eé]s?).*"
+        );
+
+        if (esSaludo || (esMuyCorto && fns.isEmpty()) || esOffTopic) {
+            log.debug("selectFunctions: mensaje genérico/saludo detectado – sin tools");
+            return new String[0];
+        }
 
         // Saldos / situación general
         if (msg.matches(".*\\b(balance|saldo|situaci[oó]n|resumen|general|actual|cu[aá]nto tengo|overview|dinero)\\b.*")) {
