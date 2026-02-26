@@ -1,28 +1,29 @@
 /**
  * ResponsiveModal Component
- * 
- * Modal adaptativo que usa Dialog en desktop y Drawer en mobile.
- * Maneja correctamente el scroll interno para mantener header y footer fijos.
- * 
+ *
+ * Modal universal centrado (Dialog) para PC, tablets y móviles.
+ * Usa Dialog de shadcn/Radix en todos los dispositivos, eliminando los
+ * problemas del teclado virtual que afectaban al Drawer en iOS/Android.
+ *
  * USO CORRECTO:
- * 
+ *
  * <ResponsiveModal open={open} onOpenChange={setOpen}>
  *   <ResponsiveModalContent className="max-w-lg">
  *     <ResponsiveModalHeader>
  *       <ResponsiveModalTitle>Título</ResponsiveModalTitle>
  *       <ResponsiveModalDescription>Descripción</ResponsiveModalDescription>
  *     </ResponsiveModalHeader>
- * 
+ *
  *     <ResponsiveModalScrollArea>
  *       Contenido scrolleable aquí
  *     </ResponsiveModalScrollArea>
- * 
+ *
  *     <ResponsiveModalFooter>
  *       Botones aquí
  *     </ResponsiveModalFooter>
  *   </ResponsiveModalContent>
  * </ResponsiveModal>
- * 
+ *
  * IMPORTANTE:
  * - Solo agrega max-w-* al ResponsiveModalContent para controlar el ancho
  * - NO agregues overflow, padding, ni max-h al ResponsiveModalContent
@@ -31,8 +32,6 @@
  */
 
 import * as React from "react"
-import { useIsMobile } from "@/hooks/use-mobile"
-import { useVirtualKeyboard } from "@/hooks/use-virtual-keyboard"
 import { cn } from "@/lib/utils"
 import {
   Dialog,
@@ -42,14 +41,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerFooter,
-} from "@/components/ui/drawer"
 
 interface ResponsiveModalProps {
   open: boolean
@@ -58,16 +49,6 @@ interface ResponsiveModalProps {
 }
 
 export function ResponsiveModal({ open, onOpenChange, children }: ResponsiveModalProps) {
-  const isMobile = useIsMobile()
-
-  if (isMobile) {
-    return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        {children}
-      </Drawer>
-    )
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children}
@@ -80,103 +61,55 @@ interface ResponsiveModalContentProps extends React.HTMLAttributes<HTMLDivElemen
 }
 
 export function ResponsiveModalContent({ children, className, ...props }: ResponsiveModalContentProps) {
-  const isMobile = useIsMobile()
-  const { isKeyboardOpen, viewportHeight, viewportOffsetTop } = useVirtualKeyboard()
-
-  if (isMobile) {
-    /**
-     * Cálculo de maxHeight para teclado virtual:
-     *
-     * Android (interactive-widget=resizes-visual soportado):
-     *   offsetTop = 0 siempre → viewportHeight - 0 = viewportHeight
-     *   El teclado se superpone, el modal no se mueve, solo ajustamos altura.
-     *
-     * iOS (interactive-widget ignorado, WKWebView en todos los browsers):
-     *   offsetTop > 0 cuando el sistema hace scroll hacia el campo enfocado.
-     *   viewportHeight - offsetTop = espacio real visible por encima del teclado.
-     *
-     * Sin teclado: 96dvh (comportamiento normal del Drawer).
-     */
-    const mobileMaxHeight = isKeyboardOpen
-      ? `${viewportHeight - viewportOffsetTop}px`
-      : '96dvh'
-
-    return (
-      <DrawerContent
-        className={cn("flex flex-col overflow-hidden", className)}
-        style={{
-          maxHeight: mobileMaxHeight,
-          transition: 'max-height 0.15s ease-out',
-        }}
-        {...props}
-      >
-        {children}
-      </DrawerContent>
-    )
-  }
-
-  // Desktop: Dialog sin cambios — no se toca
   return (
-    <DialogContent className={cn("max-h-[90vh] flex flex-col overflow-hidden gap-4 p-6", className)} {...props}>
+    <DialogContent
+      className={cn(
+        "max-h-[90dvh] !flex flex-col overflow-hidden gap-4 p-4 sm:p-6",
+        className
+      )}
+      {...props}
+    >
       {children}
     </DialogContent>
   )
 }
 
-export function ResponsiveModalHeader({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  const isMobile = useIsMobile()
-
-  if (isMobile) {
-    return <DrawerHeader className="flex-shrink-0" {...props}>{children}</DrawerHeader>
-  }
-
-  return <DialogHeader className="flex-shrink-0" {...props}>{children}</DialogHeader>
+export function ResponsiveModalHeader({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <DialogHeader className={cn("flex-shrink-0", className)} {...props}>
+      {children}
+    </DialogHeader>
+  )
 }
 
 export function ResponsiveModalTitle({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  const isMobile = useIsMobile()
-
-  if (isMobile) {
-    return <DrawerTitle {...props}>{children}</DrawerTitle>
-  }
-
   return <DialogTitle {...props}>{children}</DialogTitle>
 }
 
 export function ResponsiveModalDescription({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  const isMobile = useIsMobile()
-
-  if (isMobile) {
-    return <DrawerDescription {...props}>{children}</DrawerDescription>
-  }
-
   return <DialogDescription {...props}>{children}</DialogDescription>
 }
 
-export function ResponsiveModalFooter({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  const isMobile = useIsMobile()
-
-  if (isMobile) {
-    return <DrawerFooter className="flex-shrink-0" {...props}>{children}</DrawerFooter>
-  }
-
-  return <DialogFooter className="flex-shrink-0" {...props}>{children}</DialogFooter>
+export function ResponsiveModalFooter({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <DialogFooter className={cn("flex-shrink-0", className)} {...props}>
+      {children}
+    </DialogFooter>
+  )
 }
 
-export function ResponsiveModalScrollArea({ children, className }: { children: React.ReactNode; className?: string }) {
-  const isMobile = useIsMobile()
-
-  // Tanto en móvil como en desktop, usamos flex-1 con overflow-y-auto
-  // para permitir scroll SOLO en el contenido, manteniendo header y footer fijos
-  if (isMobile) {
-    return <div className={cn("flex-1 overflow-y-auto px-4", className)}>{children}</div>
-  }
-
-  // En desktop, usamos modal-scroll para un scrollbar sutil que se muestra solo al hover
-  // Agregamos pr-3 para dar espacio entre el contenido y el scrollbar
+export function ResponsiveModalScrollArea({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
   return (
-    <div className={cn("flex-1 overflow-y-auto modal-scroll pr-3", className)}>
-      {children}
+    <div className={cn("flex-1 min-h-0 overflow-y-auto pr-1", className)}>
+      <div className="pr-2">
+        {children}
+      </div>
     </div>
   )
 }
