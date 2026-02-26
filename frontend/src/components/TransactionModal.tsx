@@ -892,7 +892,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
             disabled={form.formState.isSubmitting || createTransaccionMutation.isPending}
             className="flex-1"
           >
-            {createTransaccionMutation.isPending ? 'Guardando...' : 'Guardar transacción'}
+            {createTransaccionMutation.isPending ? 'Guardando...' : 'Registrar'}
           </Button>
         </ResponsiveModalFooter>
       </ResponsiveModalContent>

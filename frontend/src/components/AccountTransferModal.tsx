@@ -286,7 +286,7 @@ export function AccountTransferModal({ open, onOpenChange }: AccountTransferModa
             disabled={form.formState.isSubmitting || transferenciaMutation.isPending}
             className="flex-1"
           >
-            {transferenciaMutation.isPending ? 'Realizando...' : 'Realizar movimiento'}
+            {transferenciaMutation.isPending ? 'Realizando...' : 'Registrar'}
           </Button>
         </ResponsiveModalFooter>
       </ResponsiveModalContent>

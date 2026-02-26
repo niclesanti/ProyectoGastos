@@ -720,7 +720,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
             disabled={pagarResumenMutation.isPending || !selectedTarjetaId || !resumenSeleccionado}
             className="flex-1"
           >
-            {pagarResumenMutation.isPending ? 'Procesando pago...' : 'Pagar resumen'}
+            {pagarResumenMutation.isPending ? 'Procesando pago...' : 'Registrar'}
           </Button>
         </ResponsiveModalFooter>
       </ResponsiveModalContent>

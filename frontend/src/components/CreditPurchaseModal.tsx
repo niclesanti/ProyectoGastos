@@ -685,7 +685,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
             disabled={form.formState.isSubmitting || createCompraMutation.isPending}
             className="flex-1"
           >
-            {createCompraMutation.isPending ? 'Guardando...' : 'Guardar compra'}
+            {createCompraMutation.isPending ? 'Guardando...' : 'Registrar'}
           </Button>
         </ResponsiveModalFooter>
       </ResponsiveModalContent>

@@ -41,6 +41,9 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3100}
+      # Configuración del Agente IA (Groq - Llama 3.3)
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      AGENTE_IA_ENABLED: ${AGENTE_IA_ENABLED:-false}
     networks:
       - campito-net
 
