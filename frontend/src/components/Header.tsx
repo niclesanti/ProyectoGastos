@@ -1,7 +1,9 @@
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { NotificationBell } from '@/components/notifications'
+import { Button } from '@/components/ui/button'
+import { BrainCircuit } from 'lucide-react'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,12 +17,15 @@ const routeTitles: Record<string, string> = {
   '/': 'Panel de datos',
   '/movimientos': 'Movimientos',
   '/creditos': 'Tarjetas de Crédito',
+  '/agente-ia': 'Agente IA',
   '/configuracion': 'Configuración',
 }
 
 export function Header() {
   const location = useLocation()
+  const navigate = useNavigate()
   const title = routeTitles[location.pathname] || 'Panel de datos'
+  const isOnAgente = location.pathname === '/agente-ia'
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
@@ -39,7 +44,18 @@ export function Header() {
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          {/* Acceso rápido al Agente IA */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/agente-ia')}
+            disabled={isOnAgente}
+            className="text-muted-foreground hover:text-violet-400 disabled:text-violet-400 disabled:opacity-100"
+            title="Finanzas Copilot"
+          >
+            <BrainCircuit className="h-5 w-5" />
+          </Button>
           {/* Sistema de Notificaciones en Tiempo Real */}
           <NotificationBell />
         </div>

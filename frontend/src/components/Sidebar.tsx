@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   CreditCard,
+  BrainCircuit,
   Settings,
   ChevronsUpDown,
   LogOut,
@@ -48,6 +49,7 @@ const navigation = [
   { name: 'Panel de datos', href: '/', icon: LayoutDashboard },
   { name: 'Movimientos', href: '/movimientos', icon: ArrowLeftRight },
   { name: 'Tarjetas de Crédito', href: '/creditos', icon: CreditCard },
+  { name: 'Agente IA', href: '/agente-ia', icon: BrainCircuit },
   { name: 'Configuración', href: '/configuracion', icon: Settings },
 ]
 
