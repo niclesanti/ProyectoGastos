@@ -15,6 +15,9 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: dev
       FRONTEND_URL: http://localhost:3100
+      # Agente IA - Requiere GROQ_API_KEY en el entorno o en un archivo .env
+      AGENTE_IA_ENABLED: "true"
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
 
   frontend:
     build:

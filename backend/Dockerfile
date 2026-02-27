@@ -28,7 +28,7 @@ COPY src ./src
 RUN ./mvnw package -Dmaven.test.skip=true
 
 # --- Etapa 2: Ejecución (Runner) ---
-# Esta etapa no cambia. Sigue siendo igual de ligera y eficiente.
+# Imagen Alpine: más ligera y segura
 FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app

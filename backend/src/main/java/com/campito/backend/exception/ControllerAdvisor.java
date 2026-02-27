@@ -154,4 +154,17 @@ public class ControllerAdvisor {
         );
         return new ResponseEntity<>(exceptionInfo, HttpStatus.FORBIDDEN);
     }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ExceptionInfo> handleRateLimitExceededException(RateLimitExceededException ex, WebRequest request) {
+        logger.warn("Rate limit excedido: {} - Request: {}", ex.getMessage(), request.getDescription(false));
+        ExceptionInfo exceptionInfo = new ExceptionInfo(
+                ex.getMessage(),
+                request.getDescription(false),
+                String.valueOf(System.currentTimeMillis()),
+                HttpStatus.TOO_MANY_REQUESTS.value()
+        );
+        return new ResponseEntity<>(exceptionInfo, HttpStatus.TOO_MANY_REQUESTS);
+    }
 }
+

@@ -359,3 +359,46 @@ export interface PaginatedResponse<T> {
   hasPrevious: boolean
   hasNext: boolean
 }
+
+// ========================================
+// AGENTE IA - Chat Types
+// ========================================
+
+// Mensaje individual en el chat
+export interface AgenteIAMensaje {
+  id: string  // UUID generado en frontend
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string  // ISO datetime
+  functionsCalled?: string[]  // Tools que usó el agente
+  tokensUsed?: number
+}
+
+// Estado de la conversación
+export type AgenteIAEstado = 'idle' | 'thinking' | 'streaming' | 'error'
+
+// Conversación completa por workspace
+export interface AgenteIAConversacion {
+  workspaceId: string
+  mensajes: AgenteIAMensaje[]
+  ultimaActualizacion: number  // timestamp
+}
+
+// DTO para enviar al backend (matches AgenteChatRequestDTO)
+export interface AgenteIAChatRequest {
+  message: string
+  workspaceId: string  // UUID
+  conversationHistory?: Array<{ role: string; content: string }>
+}
+
+// DTO respuesta completa sin streaming (matches AgenteChatResponseDTO)
+export interface AgenteIAChatResponse {
+  response: string
+  functionsCalled: string[]
+  tokensUsed: number
+}
+
+// Rate limit status
+export interface AgenteIARateLimitStatus {
+  tokensRemaining: number
+}

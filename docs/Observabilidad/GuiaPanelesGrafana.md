@@ -44,6 +44,26 @@ Esta guía te muestra cómo crear paneles personalizados en Grafana Cloud para v
 | `negocio_notificaciones_leidas_total` | Counter | Notificaciones marcadas como leídas | `tipo_notificacion` |
 | `negocio_sse_conexiones_activas` | Gauge | Conexiones SSE activas en tiempo real | - |
 
+### Categoría 5: Agente IA — Limpieza de Historial (Scheduler)
+
+Ejecutado diariamente a las 01:00 AM. Elimina todos los registros de `agente_audit_log` anteriores al inicio del día actual.
+
+| Nombre de Métrica | Tipo | Descripción | Tags |
+|-------------------|------|-------------|------|
+| `negocio_agente_historial_eliminados_total` | Counter | Total de registros de historial eliminados por el scheduler | - |
+| `negocio_agente_historial_errores_total` | Counter | Errores durante la limpieza del historial | - |
+| `negocio_agente_historial_tiempo_seconds` | Timer | Tiempo de ejecución del scheduler de limpieza | `resultado=[exitoso\|error]` |
+
+### Categoría 6: Agente IA — Operaciones en Tiempo Real
+
+Métricas registradas en `AgenteIAServiceImpl` por cada interacción con el LLM (Groq).
+
+| Nombre de Métrica | Tipo | Descripción | Tags |
+|-------------------|------|-------------|------|
+| `negocio_agente_requests_total` | Counter | Total de requests al agente IA | `tipo=[chat\|stream]`, `resultado=[exitoso\|error\|iniciado]` |
+| `negocio_agente_tokens_consumidos_total` | Counter | Tokens consumidos en respuestas del LLM (correlaciona con costo de API Groq) | `tipo=[chat]` |
+| `negocio_agente_latencia_seconds` | Timer | Latencia de respuesta del LLM en modo chat bloqueante | `tipo=[chat]` |
+
 ---
 
 ## 📊 Queries de Prometheus por Categoría
