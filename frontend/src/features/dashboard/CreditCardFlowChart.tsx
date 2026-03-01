@@ -139,7 +139,7 @@ export function CreditCardFlowChart() {
           />
         ) : (
           <ChartContainer config={chartConfig} className="h-[200px] sm:h-[280px] lg:h-[350px] w-full">
-            <AreaChart data={chartData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
+            <AreaChart data={chartData} margin={{ left: 5, right: 10, top: 10, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorCompras" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(var(--chart-4))" stopOpacity={0.3} />
@@ -164,6 +164,7 @@ export function CreditCardFlowChart() {
                 tickMargin={8}
                 tickFormatter={formatYAxis}
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                width={52}
               />
               <ChartTooltip content={<CustomTooltip />} />
               <ChartLegend content={<ChartLegendContent />} />

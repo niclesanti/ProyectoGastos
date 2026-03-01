@@ -156,7 +156,7 @@ export function MonthlyCashflow() {
           />
         ) : (
           <ChartContainer config={chartConfig} className="h-[200px] sm:h-[280px] lg:h-[350px] w-full">
-            <BarChart accessibilityLayer data={chartData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
+            <BarChart accessibilityLayer data={chartData} margin={{ left: 5, right: 10, top: 10, bottom: 0 }}>
               <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
               <XAxis
                 dataKey="month"
@@ -171,6 +171,7 @@ export function MonthlyCashflow() {
                 tickMargin={8}
                 tickFormatter={formatYAxis}
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                width={52}
               />
               <ChartTooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.1)' }} />
               <ChartLegend content={<ChartLegendContent />} />
