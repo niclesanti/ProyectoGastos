@@ -100,6 +100,7 @@ class DashboardServiceTest {
 
         when(cuotaCreditoRepository.calcularDeudaTotalPendiente(espacio.getId())).thenReturn(new BigDecimal("500.00"));
         when(dashboardRepository.findDistribucionGastos(eq(espacio.getId()), any(LocalDate.class))).thenReturn(new ArrayList<>());
+        when(dashboardRepository.findDistribucionComprasCredito(eq(espacio.getId()), any(LocalDate.class))).thenReturn(new ArrayList<>());
         when(tarjetaRepository.findByEspacioTrabajo_Id(espacio.getId())).thenReturn(new ArrayList<>());
         when(gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(eq(espacio.getId()), anyList())).thenReturn(new ArrayList<>());
 
@@ -111,6 +112,7 @@ class DashboardServiceTest {
         assertEquals(new BigDecimal("500.00"), stats.deudaTotalPendiente());
         assertEquals(0, new BigDecimal("0.00").compareTo(stats.resumenMensual()));
         assertEquals(12, stats.flujoMensual().size(), "Debe devolver 12 meses en flujo mensual");
+        assertEquals(12, stats.flujoTarjetaMensual().size(), "Debe devolver 12 meses en flujo tarjeta mensual");
 
         for (var mes : stats.flujoMensual()) {
             assertEquals(0, new BigDecimal("0.00").compareTo(mes.getIngresos()));
@@ -162,6 +164,7 @@ class DashboardServiceTest {
         // Distribucion de gastos
         DistribucionGastoDTO distribMock = mock(DistribucionGastoDTO.class);
         when(dashboardRepository.findDistribucionGastos(eq(espacio.getId()), any(LocalDate.class))).thenReturn(List.of(distribMock));
+        when(dashboardRepository.findDistribucionComprasCredito(eq(espacio.getId()), any(LocalDate.class))).thenReturn(new ArrayList<>());
 
         // Tarjeta y cuotas pendientes -> resumen mensual
         Tarjeta tarjeta = new Tarjeta();
@@ -207,6 +210,7 @@ class DashboardServiceTest {
 
         when(cuotaCreditoRepository.calcularDeudaTotalPendiente(espacio.getId())).thenReturn(BigDecimal.ZERO);
         when(dashboardRepository.findDistribucionGastos(eq(espacio.getId()), any(LocalDate.class))).thenReturn(List.of());
+        when(dashboardRepository.findDistribucionComprasCredito(eq(espacio.getId()), any(LocalDate.class))).thenReturn(List.of());
         when(tarjetaRepository.findByEspacioTrabajo_Id(espacio.getId())).thenReturn(List.of());
         when(gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(eq(espacio.getId()), anyList())).thenReturn(new ArrayList<>());
 

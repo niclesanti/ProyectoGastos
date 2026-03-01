@@ -49,6 +49,8 @@ Aplicación web moderna y responsiva desarrollada con React 18 y TypeScript que 
 - **Gráficos Dinámicos**: 
   - Flujo de caja mensual (ingresos vs gastos)
   - Distribución de gastos por categoría (donut chart)
+  - **Flujo mensual de tarjeta de crédito** (area chart con filtro 3/6/12 meses: compras con crédito vs pagos de resúmenes)
+  - **Distribución de compras con crédito por categoría** (donut chart con totales del mes actual)
 - **Actividad Reciente**: Lista de transacciones más recientes
 - **Cuentas Bancarias**: Resumen de saldos actuales
 - **Compras Pendientes**: Seguimiento de compras con cuotas pendientes de pago.
@@ -519,6 +521,8 @@ frontend/
 │   │   │       └── MessageBubble.tsx        # Burbuja usuario / mensaje plano agente
 │   │   ├── dashboard/              # Componentes del Dashboard
 │   │   │   ├── BankAccounts.tsx
+│   │   │   ├── CreditCardFlowChart.tsx  # Area chart: flujo tarjeta (3/6/12m)
+│   │   │   ├── CreditSpendingByCategory.tsx  # Donut chart: compras crédito por categoría
 │   │   │   ├── DashboardStats.tsx
 │   │   │   ├── MonthlyCashflow.tsx
 │   │   │   ├── RecentTransactions.tsx

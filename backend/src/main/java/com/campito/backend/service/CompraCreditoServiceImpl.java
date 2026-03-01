@@ -24,6 +24,7 @@ import com.campito.backend.dao.ContactoTransferenciaRepository;
 import com.campito.backend.dao.CuentaBancariaRepository;
 import com.campito.backend.dao.CuotaCreditoRepository;
 import com.campito.backend.dao.EspacioTrabajoRepository;
+import com.campito.backend.dao.GastosIngresosMensualesRepository;
 import com.campito.backend.dao.MotivoTransaccionRepository;
 import com.campito.backend.dao.ResumenRepository;
 import com.campito.backend.dao.TarjetaRepository;
@@ -53,6 +54,7 @@ import com.campito.backend.model.CuentaBancaria;
 import com.campito.backend.model.CuotaCredito;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.EstadoResumen;
+import com.campito.backend.model.GastosIngresosMensuales;
 import com.campito.backend.model.MotivoTransaccion;
 import com.campito.backend.model.Resumen;
 import com.campito.backend.model.Tarjeta;
@@ -87,6 +89,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     private final TarjetaRepository tarjetaRepository;
     private final TransaccionRepository transaccionRepository;
     private final ResumenRepository resumenRepository;
+    private final GastosIngresosMensualesRepository gastosIngresosMensualesRepository;
 
     private final CompraCreditoMapper compraCreditoMapper;
     private final TarjetaMapper tarjetaMapper;
@@ -167,6 +170,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
 
         CompraCredito compraCreditoGuardada = compraCreditoRepository.save(compraCredito);
         crearCuotas(compraCreditoGuardada);
+        compraCreditoMesAnotar(compraCreditoGuardada.getMontoTotal(), compraCreditoGuardada.getEspacioTrabajo().getId(), compraCreditoGuardada.getFechaCompra());
         logger.info("Compra credito ID {} registrada exitosamente en espacio ID {}.", compraCreditoGuardada.getId(), espacio.getId());
         
         // 📊 MÉTRICA: Incrementar contador de compras a crédito registradas
@@ -250,11 +254,11 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         }
         logger.info("Iniciando remoción de compra crédito ID {}", id);
 
-        if (!compraCreditoRepository.existsById(id)) {
+        CompraCredito compraCredito = compraCreditoRepository.findById(id).orElseThrow(() -> {
             String msg = "Compra crédito con ID " + id + " no encontrada";
             logger.warn(msg);
-            throw new EntityNotFoundException(msg);
-        }
+            return new EntityNotFoundException(msg);
+        });
 
         // Verificar si alguna cuota ya fue pagada
         List<CuotaCredito> cuotasPagadas = cuotaCreditoRepository.findByCompraCredito_IdAndPagada(id, true);
@@ -267,6 +271,9 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         // Eliminar todas las cuotas asociadas
         cuotaCreditoRepository.deleteByCompraCredito_Id(id);
         logger.info("Cuotas de la compra crédito ID {} eliminadas", id);
+
+        // Revertir el impacto en GastosIngresosMensuales
+        compraCreditoMesDelete(compraCredito.getMontoTotal(), compraCredito.getEspacioTrabajo().getId(), compraCredito.getFechaCompra());
 
         // Eliminar la compra crédito
         compraCreditoRepository.deleteById(id);
@@ -584,6 +591,9 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         
         cuotaCreditoRepository.saveAll(cuotasDelResumen);
         
+        // Anotar el pago del resumen en GastosIngresosMensuales del mes del resumen
+        pagoResumenMesAnotar(resumen.getMontoTotal(), request.idEspacioTrabajo(), LocalDate.of(resumen.getAnio(), resumen.getMes(), 1));
+
         // 📊 MÉTRICA: Incrementar contador de resúmenes pagados
         Counter.builder(MetricsConfig.MetricNames.RESUMENES_PAGADOS)
                 .description("Total de resúmenes de tarjetas pagados exitosamente")
@@ -789,6 +799,115 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      */
     private boolean tieneComprasAsociadas(Long idTarjeta) {
         return compraCreditoRepository.existsByTarjeta_Id(idTarjeta);
+    }
+
+    /**
+     * Anota el monto de una compra con crédito en el registro mensual del espacio de trabajo.
+     * Usa la fecha real de la compra para determinar el anio/mes del registro.
+     */
+    @Transactional
+    private void compraCreditoMesAnotar(BigDecimal monto, UUID idEspacioTrabajo, LocalDate fecha) {
+        if (monto == null || idEspacioTrabajo == null || fecha == null) {
+            logger.warn("Argumentos inválidos para anotar compra crédito mensual: monto={}, espacioId={}, fecha={}", monto, idEspacioTrabajo, fecha);
+            throw new IllegalArgumentException("Monto, idEspacioTrabajo y fecha no pueden ser nulos");
+        }
+
+        Integer anio = fecha.getYear();
+        Integer mes = fecha.getMonthValue();
+
+        Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository
+                .findByEspacioTrabajo_IdAndAnioAndMes(idEspacioTrabajo, anio, mes);
+
+        GastosIngresosMensuales registro = opt.orElseGet(() -> {
+            EspacioTrabajo espacio = espacioRepository.findById(idEspacioTrabajo).orElseThrow(() -> {
+                String msg = "Espacio de trabajo con ID " + idEspacioTrabajo + " no encontrado";
+                logger.warn(msg);
+                return new EntityNotFoundException(msg);
+            });
+            return GastosIngresosMensuales.builder()
+                    .anio(anio)
+                    .mes(mes)
+                    .gastos(BigDecimal.ZERO)
+                    .ingresos(BigDecimal.ZERO)
+                    .comprasCredito(BigDecimal.ZERO)
+                    .pagoResumen(BigDecimal.ZERO)
+                    .espacioTrabajo(espacio)
+                    .build();
+        });
+
+        registro.actualizarComprasCredito(monto);
+        gastosIngresosMensualesRepository.save(registro);
+        logger.info("Compras crédito mensuales anotadas: espacioId={}, anio={}, mes={}, comprasCredito={}",
+                idEspacioTrabajo, anio, mes, registro.getComprasCredito());
+    }
+
+    /**
+     * Elimina el monto de una compra con crédito del registro mensual (usada al remover una compra).
+     * Usa la fecha real de la compra para determinar el anio/mes del registro.
+     */
+    @Transactional
+    private void compraCreditoMesDelete(BigDecimal monto, UUID idEspacioTrabajo, LocalDate fecha) {
+        if (monto == null || idEspacioTrabajo == null || fecha == null) {
+            logger.warn("Argumentos inválidos para eliminar compra crédito mensual: monto={}, espacioId={}, fecha={}", monto, idEspacioTrabajo, fecha);
+            throw new IllegalArgumentException("Monto, idEspacioTrabajo y fecha no pueden ser nulos");
+        }
+
+        Integer anio = fecha.getYear();
+        Integer mes = fecha.getMonthValue();
+
+        Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository
+                .findByEspacioTrabajo_IdAndAnioAndMes(idEspacioTrabajo, anio, mes);
+
+        GastosIngresosMensuales registro = opt.orElseThrow(() -> {
+            String msg = "Registro de GastosIngresosMensuales no encontrado para espacioId=" + idEspacioTrabajo + ", anio=" + anio + ", mes=" + mes;
+            logger.warn(msg);
+            return new EntityNotFoundException(msg);
+        });
+
+        registro.eliminarComprasCredito(monto);
+        gastosIngresosMensualesRepository.save(registro);
+        logger.info("Compras crédito mensuales eliminadas: espacioId={}, anio={}, mes={}, comprasCredito={}",
+                idEspacioTrabajo, anio, mes, registro.getComprasCredito());
+    }
+
+    /**
+     * Anota el pago de un resumen en el registro del mes al que corresponde dicho resumen.
+     * Usa la fecha del resumen (anio/mes del ciclo) para determinar el registro a actualizar.
+     */
+    @Transactional
+    private void pagoResumenMesAnotar(BigDecimal monto, UUID idEspacioTrabajo, LocalDate fecha) {
+        if (monto == null || idEspacioTrabajo == null || fecha == null) {
+            logger.warn("Argumentos inválidos para anotar pago de resumen mensual: monto={}, espacioId={}, fecha={}", monto, idEspacioTrabajo, fecha);
+            throw new IllegalArgumentException("Monto, idEspacioTrabajo y fecha no pueden ser nulos");
+        }
+
+        Integer anio = fecha.getYear();
+        Integer mes = fecha.getMonthValue();
+
+        Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository
+                .findByEspacioTrabajo_IdAndAnioAndMes(idEspacioTrabajo, anio, mes);
+
+        GastosIngresosMensuales registro = opt.orElseGet(() -> {
+            EspacioTrabajo espacio = espacioRepository.findById(idEspacioTrabajo).orElseThrow(() -> {
+                String msg = "Espacio de trabajo con ID " + idEspacioTrabajo + " no encontrado";
+                logger.warn(msg);
+                return new EntityNotFoundException(msg);
+            });
+            return GastosIngresosMensuales.builder()
+                    .anio(anio)
+                    .mes(mes)
+                    .gastos(BigDecimal.ZERO)
+                    .ingresos(BigDecimal.ZERO)
+                    .comprasCredito(BigDecimal.ZERO)
+                    .pagoResumen(BigDecimal.ZERO)
+                    .espacioTrabajo(espacio)
+                    .build();
+        });
+
+        registro.actualizarPagoResumen(monto);
+        gastosIngresosMensualesRepository.save(registro);
+        logger.info("Pago de resumen mensual anotado: espacioId={}, anio={}, mes={}, pagoResumen={}",
+                idEspacioTrabajo, anio, mes, registro.getPagoResumen());
     }
 
     /**

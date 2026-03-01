@@ -1,6 +1,7 @@
 package com.campito.backend.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -106,7 +107,7 @@ public class TransaccionServiceImpl implements TransaccionService {
 
         Transaccion transaccion = transaccionMapper.toEntity(transaccionDTO);
 
-        gastosIgresosMesAnotar(transaccion.getTipo(), transaccion.getMonto(), espacio.getId());
+        gastosIgresosMesAnotar(transaccion.getTipo(), transaccion.getMonto(), espacio.getId(), transaccion.getFecha());
 
         if (transaccionDTO.idContacto() != null) {
             ContactoTransferencia contacto = contactoRepository.findById(transaccionDTO.idContacto()).orElseThrow(() -> {
@@ -193,7 +194,7 @@ public class TransaccionServiceImpl implements TransaccionService {
             logger.info("Saldo de cuenta bancaria ID {} actualizado a {} tras remocion de transaccion ID {}", cuenta.getId(), cuenta.getSaldoActual(), id);
         }
 
-        gastosIngresosMesDelete(transaccion.getTipo(), transaccion.getMonto(), espacio.getId());
+        gastosIngresosMesDelete(transaccion.getTipo(), transaccion.getMonto(), espacio.getId(), transaccion.getFecha());
 
         transaccionRepository.delete(transaccion);
         espacioRepository.save(espacio);
@@ -439,20 +440,19 @@ public class TransaccionServiceImpl implements TransaccionService {
     */
 
     /**
-     * Método auxiliar para anotar gastos e ingresos por mes
+     * Método auxiliar para anotar gastos e ingresos por mes.
+     * Usa la fecha real de la transacción para determinar el anio/mes del registro.
      */
     @Transactional
-    private void gastosIgresosMesAnotar(TipoTransaccion tipo, BigDecimal monto, UUID idEspacioTrabajo) {
+    private void gastosIgresosMesAnotar(TipoTransaccion tipo, BigDecimal monto, UUID idEspacioTrabajo, LocalDate fecha) {
 
-        if (tipo == null || monto == null || idEspacioTrabajo == null) {
-            logger.warn("Argumentos inválidos para anotar gastos/ingresos: tipo={}, monto={}, espacioId={}", tipo, monto, idEspacioTrabajo);
-            throw new IllegalArgumentException("Tipo, monto y idEspacioTrabajo no pueden ser nulos");
+        if (tipo == null || monto == null || idEspacioTrabajo == null || fecha == null) {
+            logger.warn("Argumentos inválidos para anotar gastos/ingresos: tipo={}, monto={}, espacioId={}, fecha={}", tipo, monto, idEspacioTrabajo, fecha);
+            throw new IllegalArgumentException("Tipo, monto, idEspacioTrabajo y fecha no pueden ser nulos");
         }
 
-        ZoneId buenosAiresZone = ZoneId.of("America/Argentina/Buenos_Aires");
-        ZonedDateTime nowInBuenosAires = ZonedDateTime.now(buenosAiresZone);
-        Integer anio = nowInBuenosAires.getYear();
-        Integer mes = nowInBuenosAires.getMonthValue();
+        Integer anio = fecha.getYear();
+        Integer mes = fecha.getMonthValue();
 
         Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(idEspacioTrabajo, anio, mes);
 
@@ -467,6 +467,8 @@ public class TransaccionServiceImpl implements TransaccionService {
                     .mes(mes)
                     .gastos(BigDecimal.ZERO)
                     .ingresos(BigDecimal.ZERO)
+                    .comprasCredito(BigDecimal.ZERO)
+                    .pagoResumen(BigDecimal.ZERO)
                     .espacioTrabajo(espacio)
                     .build();
         });
@@ -483,20 +485,19 @@ public class TransaccionServiceImpl implements TransaccionService {
     }
 
     /**
-     * Método auxiliar para eliminar gastos e ingresos por mes porque se eliminó una transacción
+     * Método auxiliar para eliminar gastos e ingresos por mes porque se eliminó una transacción.
+     * Usa la fecha real de la transacción para determinar el anio/mes del registro.
      */
     @Transactional
-    private void gastosIngresosMesDelete(TipoTransaccion tipo, BigDecimal monto, UUID idEspacioTrabajo) {
+    private void gastosIngresosMesDelete(TipoTransaccion tipo, BigDecimal monto, UUID idEspacioTrabajo, LocalDate fecha) {
         
-        if (tipo == null || monto == null || idEspacioTrabajo == null) {
-            logger.warn("Argumentos inválidos para anotar gastos/ingresos: tipo={}, monto={}, espacioId={}", tipo, monto, idEspacioTrabajo);
-            throw new IllegalArgumentException("Tipo, monto y idEspacioTrabajo no pueden ser nulos");
+        if (tipo == null || monto == null || idEspacioTrabajo == null || fecha == null) {
+            logger.warn("Argumentos inválidos para eliminar gastos/ingresos: tipo={}, monto={}, espacioId={}, fecha={}", tipo, monto, idEspacioTrabajo, fecha);
+            throw new IllegalArgumentException("Tipo, monto, idEspacioTrabajo y fecha no pueden ser nulos");
         }
 
-        ZoneId buenosAiresZone = ZoneId.of("America/Argentina/Buenos_Aires");
-        ZonedDateTime nowInBuenosAires = ZonedDateTime.now(buenosAiresZone);
-        Integer anio = nowInBuenosAires.getYear();
-        Integer mes = nowInBuenosAires.getMonthValue();
+        Integer anio = fecha.getYear();
+        Integer mes = fecha.getMonthValue();
 
         Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(idEspacioTrabajo, anio, mes);
 
