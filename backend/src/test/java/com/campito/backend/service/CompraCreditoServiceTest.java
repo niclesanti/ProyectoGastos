@@ -33,6 +33,7 @@ import com.campito.backend.dao.ContactoTransferenciaRepository;
 import com.campito.backend.dao.CuentaBancariaRepository;
 import com.campito.backend.dao.CuotaCreditoRepository;
 import com.campito.backend.dao.EspacioTrabajoRepository;
+import com.campito.backend.dao.GastosIngresosMensualesRepository;
 import com.campito.backend.dao.MotivoTransaccionRepository;
 import com.campito.backend.dao.ResumenRepository;
 import com.campito.backend.dao.TarjetaRepository;
@@ -93,6 +94,9 @@ public class CompraCreditoServiceTest {
     private ResumenRepository resumenRepository;
 
     @Mock
+    private GastosIngresosMensualesRepository gastosIngresosMensualesRepository;
+
+    @Mock
     private CompraCreditoMapper compraCreditoMapper;
 
     @Mock
@@ -128,6 +132,7 @@ public class CompraCreditoServiceTest {
             tarjetaRepository,
             transaccionRepository,
             resumenRepository,
+            gastosIngresosMensualesRepository,
             compraCreditoMapper,
             tarjetaMapper,
             cuotaCreditoMapper,
@@ -414,21 +419,34 @@ public class CompraCreditoServiceTest {
 
     @Test
     void removerCompraCredito_noExiste_lanzaEntityNotFound() {
-        when(compraCreditoRepository.existsById(99L)).thenReturn(false);
+        when(compraCreditoRepository.findById(99L)).thenReturn(Optional.empty());
         assertThrows(EntityNotFoundException.class, () -> compraCreditoService.removerCompraCredito(99L));
     }
 
     @Test
     void removerCompraCredito_tieneCuotasPagadas_lanzaIllegalState() {
-        when(compraCreditoRepository.existsById(100L)).thenReturn(true);
+        when(compraCreditoRepository.findById(100L)).thenReturn(Optional.of(compraCreditoEntity));
         when(cuotaCreditoRepository.findByCompraCredito_IdAndPagada(100L, true)).thenReturn(List.of(new CuotaCredito()));
         assertThrows(com.campito.backend.exception.OperacionNoPermitidaException.class, () -> compraCreditoService.removerCompraCredito(100L));
     }
 
     @Test
     void removerCompraCredito_sinCuotasPagadas_eliminaCompraYCuotas() {
-        when(compraCreditoRepository.existsById(100L)).thenReturn(true);
+        when(compraCreditoRepository.findById(100L)).thenReturn(Optional.of(compraCreditoEntity));
         when(cuotaCreditoRepository.findByCompraCredito_IdAndPagada(100L, true)).thenReturn(List.of());
+        // Mock para compraCreditoMesDelete: registros existentes del mes
+        com.campito.backend.model.GastosIngresosMensuales regMes = com.campito.backend.model.GastosIngresosMensuales.builder()
+            .anio(java.time.LocalDate.now().getYear())
+            .mes(java.time.LocalDate.now().getMonthValue())
+            .gastos(java.math.BigDecimal.ZERO)
+            .ingresos(java.math.BigDecimal.ZERO)
+            .comprasCredito(new java.math.BigDecimal("1000.00"))
+            .pagoResumen(java.math.BigDecimal.ZERO)
+            .espacioTrabajo(espacio)
+            .build();
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(
+            eq(espacio.getId()), any(Integer.class), any(Integer.class)))
+            .thenReturn(Optional.of(regMes));
 
         compraCreditoService.removerCompraCredito(100L);
 
@@ -576,6 +594,8 @@ public class CompraCreditoServiceTest {
         resumen.setEstado(EstadoResumen.CERRADO);
         resumen.setTarjeta(tarjeta);
         resumen.setMontoTotal(new BigDecimal("300.00"));
+        resumen.setAnio(2026);
+        resumen.setMes(2); // Febrero 2026 — mes del ciclo del resumen
 
         when(resumenRepository.findById(60L)).thenReturn(Optional.of(resumen));
 
@@ -592,6 +612,20 @@ public class CompraCreditoServiceTest {
         CuotaCredito cuota1 = new CuotaCredito(); cuota1.setId(1L); cuota1.setPagada(false); CompraCredito compra1 = new CompraCredito(); compra1.setCantidadCuotas(2); compra1.setCuotasPagadas(0); cuota1.setCompraCredito(compra1);
         CuotaCredito cuota2 = new CuotaCredito(); cuota2.setId(2L); cuota2.setPagada(false); CompraCredito compra2 = new CompraCredito(); compra2.setCantidadCuotas(2); compra2.setCuotasPagadas(0); cuota2.setCompraCredito(compra2);
         when(cuotaCreditoRepository.findByResumenAsociado_Id(60L)).thenReturn(List.of(cuota1, cuota2));
+
+        // Mock para pagoResumenMesAnotar: registros del mes anterior
+        com.campito.backend.model.GastosIngresosMensuales regMesAnterior = com.campito.backend.model.GastosIngresosMensuales.builder()
+            .anio(java.time.YearMonth.now().minusMonths(1).getYear())
+            .mes(java.time.YearMonth.now().minusMonths(1).getMonthValue())
+            .gastos(java.math.BigDecimal.ZERO)
+            .ingresos(java.math.BigDecimal.ZERO)
+            .comprasCredito(java.math.BigDecimal.ZERO)
+            .pagoResumen(java.math.BigDecimal.ZERO)
+            .espacioTrabajo(espacio)
+            .build();
+        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(
+            eq(espacio.getId()), any(Integer.class), any(Integer.class)))
+            .thenReturn(Optional.of(regMesAnterior));
 
         // Ejecutar
         PagarResumenTarjetaRequest req = new PagarResumenTarjetaRequest(60L, LocalDate.now(), new BigDecimal("300.00"), "Aud", espacio.getId(), null);

@@ -30,4 +30,18 @@ public interface DashboardRepository extends JpaRepository<Transaccion, Long> {
     List<DistribucionGastoDTO> findDistribucionGastos(@Param("idEspacio") UUID idEspacio,
             @Param("fechaLimite") LocalDate fechaLimite);
 
+    @Query(value = """
+            SELECT
+                mt.motivo,
+                ROUND(SUM(cc.monto_total) * 100.0 / SUM(SUM(cc.monto_total)) OVER (), 2) AS porcentaje
+            FROM compras_credito cc
+            JOIN motivos_transaccion mt ON cc.motivo_transaccion_id = mt.id
+            WHERE cc.espacio_trabajo_id = :idEspacio
+              AND cc.fecha_compra >= :fechaLimite
+            GROUP BY mt.motivo
+            ORDER BY SUM(cc.monto_total) DESC
+            """, nativeQuery = true)
+    List<DistribucionGastoDTO> findDistribucionComprasCredito(@Param("idEspacio") UUID idEspacio,
+            @Param("fechaLimite") LocalDate fechaLimite);
+
 }

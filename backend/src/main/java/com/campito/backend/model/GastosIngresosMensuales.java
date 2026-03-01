@@ -44,6 +44,12 @@ public class GastosIngresosMensuales {
     @Column(name = "ingresos", nullable = false, columnDefinition = "NUMERIC(15,2)")
     private BigDecimal ingresos;
 
+    @Column(name = "compras_credito", nullable = false, columnDefinition = "NUMERIC(15,2)")
+    private BigDecimal comprasCredito;
+
+    @Column(name = "pago_resumen", nullable = false, columnDefinition = "NUMERIC(15,2)")
+    private BigDecimal pagoResumen;
+
     @ManyToOne
     @JoinColumn(name = "espacio_trabajo_id", nullable = false)
     private EspacioTrabajo espacioTrabajo;
@@ -62,5 +68,17 @@ public class GastosIngresosMensuales {
 
     public void eliminarIngresos(BigDecimal nuevoIngreso) {
         this.ingresos = this.ingresos.subtract(nuevoIngreso);
+    }
+
+    public void actualizarComprasCredito(BigDecimal monto) {
+        this.comprasCredito = this.comprasCredito.add(monto);
+    }
+
+    public void eliminarComprasCredito(BigDecimal monto) {
+        this.comprasCredito = this.comprasCredito.subtract(monto);
+    }
+
+    public void actualizarPagoResumen(BigDecimal monto) {
+        this.pagoResumen = this.pagoResumen.add(monto);
     }
 }

@@ -203,6 +203,12 @@ export interface IngresosGastosMesDTO {
   gastos: MoneyDecimal
 }
 
+export interface FlujoCreditoMesDTO {
+  mes: string
+  comprasCredito: MoneyDecimal
+  pagoResumen: MoneyDecimal
+}
+
 export interface SaldoAcumuladoMesDTO {
   mes: string
   saldo: MoneyDecimal
@@ -222,6 +228,8 @@ export interface DashboardStatsDTO {
   deudaTotalPendiente: MoneyDecimal
   flujoMensual: IngresosGastosMesDTO[]
   distribucionGastos: DistribucionGastoDTO[]
+  flujoTarjetaMensual: FlujoCreditoMesDTO[]
+  distribucionComprasCredito: DistribucionGastoDTO[]
 }
 
 // Estadísticas del Dashboard
