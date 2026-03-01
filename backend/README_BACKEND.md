@@ -111,7 +111,10 @@ Este backend proporciona una API REST completa que permite:
 - Deuda total pendiente
 - Flujo mensual (ingresos vs gastos)
 - Distribución de gastos por categoría
+- **Flujo mensual de tarjeta de crédito** (compras con crédito vs pagos de resúmenes — últimos 3/6/12 meses)
+- **Distribución de compras con crédito por categoría** (participación porcentual por motivo)
 - Optimización mediante tabla agregada para evitar recálculos
+- Los registros mensuales se actualizan usando la **fecha real de la operación**, garantizando que transacciones backdated afecten el período correcto
 
 ### 7. Notificaciones en Tiempo Real
 - **SSE (Server-Sent Events)**: Conexión persistente para notificaciones instantáneas
@@ -405,7 +408,8 @@ backend/
 │   │       │   ├── V13__convert_real_to_numeric.sql
 │   │       │   ├── V14__create_notificaciones_table.sql # Sistema de notificaciones
 │   │       │   ├── V15__add_indexes_notificaciones.sql  # Índices optimizados
-│   │       │   └── V16__create_agente_audit_log.sql     # Auditoría Agente IA
+│   │       │   ├── V16__create_agente_audit_log.sql     # Auditoría Agente IA
+│   │       │   └── V17__add_credito_columns_gastos_ingresos_mensuales.sql # Tracking crédito dashboard
 │   │       ├── application.properties      # Configuración común
 │   │       ├── application-dev.properties  # Perfil desarrollo
 │   │       ├── application-prod.properties # Perfil producción
@@ -488,8 +492,9 @@ Resumen mensual de tarjeta generado automáticamente.
 
 #### GastosIngresosMensuales
 Tabla agregada para optimización de consultas de dashboard.
-- **Atributos**: id, anio, mes, gastos, ingresos, espacioTrabajo
-- **Métodos**: actualizarGastos(), actualizarIngresos(), eliminarGastos(), eliminarIngresos()
+- **Atributos**: id, anio, mes, gastos, ingresos, **comprasCredito**, **pagoResumen**, espacioTrabajo
+- **Métodos**: actualizarGastos(), actualizarIngresos(), eliminarGastos(), eliminarIngresos(), actualizarComprasCredito(), eliminarComprasCredito(), actualizarPagoResumen()
+- **Actualización**: Cada método auxiliar recibe la fecha real de la transacción/compra para calcular el anio/mes correcto, evitando registros incorrectos con operaciones backdated
 
 #### Notificacion
 Notificaciones en tiempo real para eventos del sistema.

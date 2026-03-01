@@ -10,9 +10,10 @@ public record DashboardStatsDTO(
     BigDecimal resumenMensual,
     BigDecimal deudaTotalPendiente,
     
-    // Gráficos
+    // Charts
     List<IngresosGastosMesDTO> flujoMensual,
-    List<DistribucionGastoDTO> distribucionGastos
-) {
+    List<DistribucionGastoDTO> distribucionGastos,
+    List<FlujoCreditoMesDTO> flujoTarjetaMensual,
+    List<DistribucionGastoDTO> distribucionComprasCredito) {
 
-} 
+}

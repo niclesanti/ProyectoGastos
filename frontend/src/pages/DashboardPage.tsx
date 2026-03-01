@@ -1,6 +1,8 @@
 import { DashboardStats } from '@/features/dashboard/DashboardStats'
 import { MonthlyCashflow } from '@/features/dashboard/MonthlyCashflow'
 import { SpendingByCategory } from '@/features/dashboard/SpendingByCategory'
+import { CreditCardFlowChart } from '@/features/dashboard/CreditCardFlowChart'
+import { CreditSpendingByCategory } from '@/features/dashboard/CreditSpendingByCategory'
 import { BankAccounts } from '@/features/dashboard/BankAccounts'
 import { UpcomingPayments } from '@/features/dashboard/UpcomingPayments'
 import { RecentTransactions } from '@/features/dashboard/RecentTransactions'
@@ -24,6 +26,11 @@ export function DashboardPage() {
         <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
           <MonthlyCashflow />
           <SpendingByCategory />
+        </div>
+
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
+          <CreditSpendingByCategory />
+          <CreditCardFlowChart />
         </div>
 
         <div className="grid gap-4 md:gap-6 lg:grid-cols-2">

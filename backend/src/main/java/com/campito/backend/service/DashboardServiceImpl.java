@@ -24,6 +24,8 @@ import com.campito.backend.dao.GastosIngresosMensualesRepository;
 import com.campito.backend.dao.TarjetaRepository;
 import com.campito.backend.dto.DashboardStatsDTO;
 import com.campito.backend.dto.DistribucionGastoDTO;
+import com.campito.backend.dto.FlujoCreditoMesDTO;
+import com.campito.backend.dto.FlujoCreditoMesDTOImpl;
 import com.campito.backend.dto.IngresosGastosMesDTO;
 import com.campito.backend.dto.IngresosGastosMesDTOImpl;
 import com.campito.backend.model.CuotaCredito;
@@ -148,6 +150,29 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDate fechaLimite = now.minusMonths(12);
         List<DistribucionGastoDTO> distribucionGastos = dashboardRepository.findDistribucionGastos(idEspacio, fechaLimite);
 
+        // 7. Flujo de tarjeta mensual (últimos 12 meses) - construido desde registrosMensuales ya cargados
+        List<FlujoCreditoMesDTO> flujoTarjetaMensualCompleto = new ArrayList<>();
+        for (String mes : ultimosMeses) {
+            GastosIngresosMensuales reg = mapRegistros.get(mes);
+            if (reg != null) {
+                flujoTarjetaMensualCompleto.add(new FlujoCreditoMesDTOImpl(
+                    mes,
+                    reg.getComprasCredito() != null ? reg.getComprasCredito() : BigDecimal.ZERO,
+                    reg.getPagoResumen() != null ? reg.getPagoResumen() : BigDecimal.ZERO
+                ));
+            } else {
+                flujoTarjetaMensualCompleto.add(new FlujoCreditoMesDTOImpl(
+                    mes,
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO
+                ));
+            }
+        }
+
+        // 8. Distribución de compras con crédito por motivo (mes actual)
+        LocalDate inicioMesActual = now.withDayOfMonth(1);
+        List<DistribucionGastoDTO> distribucionComprasCredito = dashboardRepository.findDistribucionComprasCredito(idEspacio, inicioMesActual);
+
         // 6. Resumen mensual (suma de las cuotas que entrarán en los próximos resúmenes por tarjeta)
         BigDecimal resumenMensual = BigDecimal.ZERO;
         List<Tarjeta> tarjetas = tarjetaRepository.findByEspacioTrabajo_Id(idEspacio);
@@ -178,7 +203,9 @@ public class DashboardServiceImpl implements DashboardService {
             resumenMensual,
             deudaTotalPendiente,
             flujoMensualCompleto,
-            distribucionGastos
+            distribucionGastos,
+            flujoTarjetaMensualCompleto,
+            distribucionComprasCredito
         );
 
         logger.info("Estadisticas del dashboard para el espacio ID {} generadas exitosamente.", idEspacio);
