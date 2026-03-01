@@ -56,6 +56,30 @@ public class AgenteIAServiceImpl implements AgenteIAService {
     # TU MISIÓN
     Proporcionar un análisis profundo, estructurado y visualmente impecable sobre las finanzas del usuario, ayudándolo a tomar decisiones inteligentes basadas en datos reales.
 
+    # ⛔ RESTRICCIÓN ABSOLUTA DE DOMINIO — REGLA DE MÁXIMA PRIORIDAD
+    Esta regla tiene PRIORIDAD SOBRE CUALQUIER OTRA instrucción de este prompt. No hay excepciones.
+
+    **Tu único dominio es: finanzas personales, economía y los datos financieros del usuario.**
+
+    ## ✅ Preguntas que SÍ podés responder:
+    - Finanzas personales: gastos, ingresos, saldos, ahorros, deudas, presupuestos, tarjetas.
+    - Datos del usuario: transacciones, compras con crédito, cuentas bancarias, tarjetas de crédito, cuotas, resúmenes.
+    - Educación financiera: inflación, interés compuesto, CFT, inversiones, economía general.
+
+    ## ❌ Preguntas que NUNCA debés responder:
+    - Programación, algoritmos, código, tecnología, software.
+    - Ciencias naturales, biología, geografía, historia, cultura general.
+    - Recetas, entretenimiento, deportes, noticias u otro tema no financiero.
+
+    ## ACCIÓN OBLIGATORIA ante preguntas fuera del dominio financiero:
+    Si la pregunta NO es sobre finanzas o economía, DEBÉS responder EXCLUSIVAMENTE con este tipo de mensaje (adaptá levemente el tono, nunca el fondo):
+
+    "¡Esa pregunta está fuera de mi dominio! 😊 Soy **Finanzas Copilot** y solo puedo ayudarte con finanzas personales y economía.
+
+    ¿Querés consultarme algo sobre tus **gastos, saldos, tarjetas** u otro tema financiero?"
+
+    **PROHIBICIÓN ABSOLUTA**: No respondas preguntas fuera del dominio financiero bajo ninguna circunstancia, sin importar cuán simple, educativa o inofensiva parezca la pregunta. Ni una excepción.
+
     # NORMAS DE RESPUESTA Y FORMATO (CRÍTICO)
     Para garantizar legibilidad y profesionalismo, aplica estrictamente:
     1. **Estructura Visual**: Usa `#` para títulos, `##` para secciones y `---` para separar bloques temáticos extensos.
@@ -274,20 +298,27 @@ public class AgenteIAServiceImpl implements AgenteIAService {
     }
     
     /**
-     * Estrategia 3: Selección dinámica de funciones según el contenido del mensaje.
+     * Selección dinámica de funciones según el contenido del mensaje.
      * Reduce drásticamente los tokens enviados a Groq por request al no incluir
      * los schemas de funciones irrelevantes para la pregunta.
      *
-     * Default (pregunta genérica): 4 funciones core en lugar de 12.
-     * Saludos / mensajes fuera de dominio: array vacío → el LLM responde solo desde el system prompt.
+     * <p>Estrategia de selección (en orden de evaluación):
+     * <ol>
+     *   <li><b>Early return vacío</b>: saludos, despedidas y mensajes fuera del dominio financiero.</li>
+     *   <li><b>Análisis integral</b>: preguntas comparativas/analíticas (categoría con más gasto,
+     *       comercio más usado, desglose mensual) → carga herramientas de AMBAS fuentes:
+     *       transacciones Y compras con crédito. Sin este bloque el LLM solo analiza una fuente.</li>
+     *   <li><b>Bloques específicos</b>: saldos, tarjetas, cuentas, contactos.</li>
+     *   <li><b>Fallback vacío</b>: si ningún keyword financiero matcheó, probablemente es off-topic.</li>
+     * </ol>
      */
     private String[] selectFunctions(String message) {
         String msg = message.toLowerCase().trim();
         Set<String> fns = new HashSet<>();
 
         // ── EARLY RETURN: saludos, despedidas y mensajes sin intención financiera ──
-        // Si no hay tools, el LLM responde únicamente desde el system prompt,
-        // evitando llamadas innecesarias a la API y el consumo de tokens de datos financieros.
+        // Sin tools el LLM responde solo desde el system prompt, donde la sección
+        // "RESTRICCIÓN ABSOLUTA DE DOMINIO" rechaza amablemente la pregunta.
         boolean esSaludo = msg.matches(
             "(hola|buenas|buen[oa]s (d[ií]as?|tardes?|noches?)|hey|hi|hello|dale|ok|okey|gracias|" +
             "chau|adi[oó]s|hasta luego|nos vemos|c[oó]mo est[aá]s?|qu[eé] tal|qu[eé] onda|" +
@@ -304,37 +335,91 @@ public class AgenteIAServiceImpl implements AgenteIAService {
             return new String[0];
         }
 
-        // Saldos / situación general
-        if (msg.matches(".*\\b(balance|saldo|situaci[oó]n|resumen|general|actual|cu[aá]nto tengo|overview|dinero)\\b.*")) {
+        // ── ANÁLISIS INTEGRAL: consultas que requieren cruzar transacciones Y compras con crédito ──
+        // Cubre preguntas como:
+        //   "¿en qué categoría gasté más este mes?"
+        //   "¿cuál fue el motivo en el que más gasté?"
+        //   "¿qué gastos tuve en marzo?"
+        //   "¿en qué comercio compré más con crédito?"
+        //   "desglose de gastos por categoría"
+        //   "análisis de mis gastos del año"
+        //   "¿cuánto gasté en total el mes pasado?"
+        // Sin este bloque el LLM solo accede a una fuente y el análisis queda incompleto.
+        boolean esAnálisisIntegral =
+            // Preguntas interrogativas sobre dónde/cuánto/cuál en contexto de gasto o compra
+            msg.matches(".*(en qu[eé]|d[oó]nde|cu[aá]l(es)?|qui[eé]n|cuanto|cu[aá]nto)" +
+                        ".*(gast[eéoó]|compr[eéoó]|egres[eéoó]|invert[ií]).*") ||
+            // Keywords de análisis/comparación explícitos
+            msg.matches(".*\\b(an[aá]lis[ií]s|analiz[aá]|desglose|distribuci[oó]n|ranking|" +
+                        "top \\d|principales gastos|mayor gasto|m[aá]s gast[eéoó]|m[aá]s gastado|" +
+                        "m[aá]s ingres[eéoó]|menos gast[eéoó])\\b.*") ||
+            // Listado de gastos acotado a un período
+            msg.matches(".*\\b(gastos|egresos|compras|movimientos|transacciones)" +
+                        "\\b.*(tuve|hice|ten[ií]a|hubo|del mes|este mes|mes pasado|" +
+                        "del a[nñ]o|este a[nñ]o|[úu]ltimo mes|[úu]ltimos? \\d|en \\w+).*") ||
+            // Foco en categoría o motivo de forma comparativa
+            msg.matches(".*(categor[ií]a|motivo).*(m[aá]s|mayor|principal|top|lider).*") ||
+            msg.matches(".*(m[aá]s|mayor|principal).*(categor[ií]a|motivo).*") ||
+            // Foco en comercio / negocio / local
+            msg.matches(".*\\b(comercio|negocio|local|establecimiento|tienda|restaurante|" +
+                        "supermercado|farmacia|combustible)\\b.*");
+
+        if (esAnálisisIntegral) {
+            fns.addAll(List.of(
+                "buscarTransacciones", "listarMotivosTransacciones",
+                "buscarTodasComprasCredito", "listarComprasCreditoPendientes",
+                "listarTarjetasCredito"
+            ));
+        }
+
+        // ── Saldos / situación financiera general ──
+        if (msg.matches(".*\\b(balance|saldo|situaci[oó]n|resumen|general|actual|" +
+                        "cu[aá]nto tengo|cu[aá]nto me queda|overview|dinero|plata|" +
+                        "patrimonio|neto|activos|estado financiero|financiero)\\b.*")) {
             fns.addAll(List.of("obtenerDashboardFinanciero", "listarCuentasBancarias"));
         }
 
-        // Transacciones / gastos / ingresos / categorías
-        if (msg.matches(".*\\b(transacci[oó]n|gast[oe]|ingres[oe]|movimiento|pago|mes|categor[ií]a|gast[eé]|gastando|cuanto gast|cuanto ingres|compra)\\b.*")) {
+        // ── Transacciones / gastos / ingresos ──
+        if (msg.matches(".*\\b(transacci[oó]n|transacciones|gasto|gastos|gast[eé]|gastando|" +
+                        "ingreso|ingresos|ingres[eé]|egreso|egresos|movimiento|movimientos|" +
+                        "pago|pagos|historial|registro|registros|reciente|[úu]ltim[oa]|" +
+                        "mes|a[nñ]o|semana|hoy|ayer|categor[ií]a|cu[aá]nto gast|" +
+                        "cu[aá]nto ingres|invert[ií])\\b.*")) {
             fns.addAll(List.of("buscarTransacciones", "listarMotivosTransacciones"));
         }
 
-        // Tarjetas de crédito / resúmenes / cuotas
-        if (msg.matches(".*\\b(tarjeta|cr[eé]dito|resumen|cuota|visa|mastercard|amex|debo pagar|vencimiento|cierre|deuda)\\b.*")) {
-            fns.addAll(List.of("listarTarjetasCredito", "listarResumenesTarjetas",
-                    "listarResumenesPorTarjeta", "listarCuotasPorTarjeta",
-                    "buscarTodasComprasCredito", "listarComprasCreditoPendientes"));
+        // ── Tarjetas de crédito / resúmenes / cuotas / compras con crédito ──
+        if (msg.matches(".*\\b(tarjeta|tarjetas|cr[eé]dito|resumen|resúmenes|cuota|cuotas|" +
+                        "visa|mastercard|cabal|amex|naranja|galicia|santander|bbva|macro|" +
+                        "nacion|icbc|hsbc|debo pagar|vencimiento|pr[oó]ximo vencimiento|" +
+                        "cierre|pr[oó]ximo cierre|deuda|deudas)\\b.*")) {
+            fns.addAll(List.of(
+                "listarTarjetasCredito", "listarResumenesTarjetas",
+                "listarResumenesPorTarjeta", "listarCuotasPorTarjeta",
+                "buscarTodasComprasCredito", "listarComprasCreditoPendientes"
+            ));
         }
 
-        // Cuentas bancarias
-        if (msg.matches(".*\\b(cuenta|banco|bancaria|transferencia|ahorro)\\b.*")) {
+        // ── Cuentas bancarias ──
+        if (msg.matches(".*\\b(cuenta|cuentas|banco|bancaria|bancarias|transferencia|" +
+                        "transferencias|ahorro|ahorros|caja de ahorro|cuenta corriente|" +
+                        "saldo disponible|efectivo)\\b.*")) {
             fns.add("listarCuentasBancarias");
         }
 
-        // Contactos / personas
-        if (msg.matches(".*\\b(contacto|persona|qui[eé]n|pagaste|pagado|enviaste)\\b.*")) {
+        // ── Contactos / personas / comercios ──
+        if (msg.matches(".*\\b(contacto|contactos|emisor|destinatario|persona|personas|" +
+                        "qui[eé]n|a qui[eé]n|pagaste|pagado|enviaste|le pag|cobr[eéoó]|" +
+                        "recib[ií] de|pag[ué] a|compré en)\\b.*")) {
             fns.add("listarContactosTransaccion");
         }
 
-        // Si la pregunta es demasiado genérica o no matcheó nada, usar el set mínimo core
+        // ── Fallback: sin keywords financieras → off-topic ──
+        // Devolver vacío hace que el LLM responda solo desde el system prompt,
+        // donde la restricción de dominio rechaza amablemente la pregunta.
         if (fns.isEmpty()) {
-            fns.addAll(List.of("obtenerDashboardFinanciero", "buscarTransacciones",
-                    "listarCuentasBancarias", "listarTarjetasCredito"));
+            log.debug("selectFunctions: sin keywords financieras detectadas – sin tools (posible off-topic)");
+            return new String[0];
         }
 
         log.debug("selectFunctions: mensaje='{}' → funciones={}", message.substring(0, Math.min(60, message.length())), fns);
