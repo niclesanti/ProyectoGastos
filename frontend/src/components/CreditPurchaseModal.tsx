@@ -152,6 +152,53 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
     },
   })
 
+  // Tarjeta seleccionada para calcular fecha mínima
+  const selectedTarjetaId = form.watch('tarjeta')
+  const selectedTarjeta = tarjetas.find((t) => t.id.toString() === selectedTarjetaId)
+
+  // Calcula la fecha mínima seleccionable según el diaCierre de la tarjeta.
+  // La fecha mínima es el día siguiente al último cierre ocurrido.
+  // Si hoy ES el día de cierre, el día de cierre pertenece al ciclo actual → el cierre
+  // de referencia es el del mes anterior.
+  const getMinDate = (diaCierre: number): Date => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayDay = today.getDate()
+
+    let cierreDate: Date
+
+    if (todayDay > diaCierre) {
+      // El cierre ya ocurrió este mes: el ciclo actual arrancó después de ese cierre
+      const lastDayOfCurrentMonth = new Date(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        0
+      ).getDate()
+      const actualDay = Math.min(diaCierre, lastDayOfCurrentMonth)
+      cierreDate = new Date(today.getFullYear(), today.getMonth(), actualDay)
+    } else {
+      // Hoy es el día de cierre o todavía no llegó: el último cierre fue el mes pasado
+      const lastDayOfPrevMonth = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        0
+      ).getDate()
+      const actualDay = Math.min(diaCierre, lastDayOfPrevMonth)
+      cierreDate = new Date(today.getFullYear(), today.getMonth() - 1, actualDay)
+    }
+
+    const minDate = new Date(cierreDate)
+    minDate.setDate(minDate.getDate() + 1)
+    return minDate
+  }
+
+  const minSelectableDate = selectedTarjeta ? getMinDate(selectedTarjeta.diaCierre) : undefined
+
+  // Resetear la fecha a hoy cuando cambia la tarjeta (evita fechas fuera del nuevo rango)
+  useEffect(() => {
+    form.setValue('fecha', new Date())
+  }, [selectedTarjetaId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Reiniciar formularios cuando se abre el modal
   useEffect(() => {
     if (open) {
@@ -326,9 +373,11 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
                             <Button
                               variant="ghost"
                               size="sm"
+                              disabled={!selectedTarjeta}
                               className={cn(
                                 'h-7 px-2 text-xs font-normal text-muted-foreground hover:text-foreground transition-colors',
-                                !field.value && 'text-muted-foreground'
+                                !field.value && 'text-muted-foreground',
+                                !selectedTarjeta && 'cursor-not-allowed opacity-50'
                               )}
                             >
                               <CalendarIcon className="mr-1.5 h-3 w-3" />
@@ -341,7 +390,17 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date) => date > new Date()}
+                            disabled={(date) => {
+                              const today = new Date()
+                              today.setHours(23, 59, 59, 999)
+                              if (date > today) return true
+                              if (minSelectableDate) {
+                                const min = new Date(minSelectableDate)
+                                min.setHours(0, 0, 0, 0)
+                                if (date < min) return true
+                              }
+                              return false
+                            }}
                             initialFocus
                             locale={es}
                           />
