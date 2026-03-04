@@ -146,8 +146,8 @@ public class DashboardServiceImpl implements DashboardService {
         logger.debug("Flujo mensual calculado con {} registros encontrados de {} meses solicitados", 
             registrosMensuales.size(), ultimosMeses.size());
 
-        // 5. Distribución de gastos por motivo (últimos 12 meses)
-        LocalDate fechaLimite = now.minusMonths(12);
+        // 5. Distribución de gastos por motivo (último mes)
+        LocalDate fechaLimite = now.minusMonths(1);
         List<DistribucionGastoDTO> distribucionGastos = dashboardRepository.findDistribucionGastos(idEspacio, fechaLimite);
 
         // 7. Flujo de tarjeta mensual (últimos 12 meses) - construido desde registrosMensuales ya cargados
@@ -169,9 +169,8 @@ public class DashboardServiceImpl implements DashboardService {
             }
         }
 
-        // 8. Distribución de compras con crédito por motivo (mes actual)
-        LocalDate inicioMesActual = now.withDayOfMonth(1);
-        List<DistribucionGastoDTO> distribucionComprasCredito = dashboardRepository.findDistribucionComprasCredito(idEspacio, inicioMesActual);
+        // 8. Distribución de compras con crédito por motivo (último mes)
+        List<DistribucionGastoDTO> distribucionComprasCredito = dashboardRepository.findDistribucionComprasCredito(idEspacio, fechaLimite);
 
         // 6. Resumen mensual (suma de las cuotas que entrarán en los próximos resúmenes por tarjeta)
         BigDecimal resumenMensual = BigDecimal.ZERO;
