@@ -1,9 +1,10 @@
-import { X, Check, 
-  CreditCard, 
-  CalendarClock, 
-  UserPlus, 
-  Users, 
-  Bell 
+import {
+  X, Check,
+  CreditCard,
+  CalendarClock,
+  UserPlus,
+  Users,
+  Bell
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -26,8 +27,9 @@ const getNotificationIcon = (tipo: TipoNotificacion) => {
     INVITACION_ESPACIO: UserPlus,
     MIEMBRO_AGREGADO: Users,
     SISTEMA: Bell,
+    RECORDATORIO_PROXIMO_CIERRE: CalendarClock,
   }
-  
+
   return iconMap[tipo] || Bell
 }
 
@@ -41,8 +43,9 @@ const getNotificationColor = (tipo: TipoNotificacion): string => {
     INVITACION_ESPACIO: 'text-green-500',
     MIEMBRO_AGREGADO: 'text-purple-500',
     SISTEMA: 'text-gray-500',
+    RECORDATORIO_PROXIMO_CIERRE: 'text-yellow-500',
   }
-  
+
   return colorMap[tipo] || 'text-gray-500'
 }
 
@@ -84,7 +87,7 @@ export const NotificationItem = ({
         <div className={cn("flex-shrink-0 mt-0.5", iconColor)}>
           <Icon className="h-5 w-5" />
         </div>
-        
+
         {/* Contenido */}
         <div className="flex-1 min-w-0">
           <p className={cn(
@@ -94,7 +97,7 @@ export const NotificationItem = ({
             {notificacion.mensaje}
           </p>
         </div>
-        
+
         {/* Indicador de no leída */}
         {!notificacion.leida && (
           <div className="flex-shrink-0">
@@ -102,7 +105,7 @@ export const NotificationItem = ({
           </div>
         )}
       </div>
-      
+
       {/* Acciones (se muestran al hacer hover) */}
       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         {!notificacion.leida && (

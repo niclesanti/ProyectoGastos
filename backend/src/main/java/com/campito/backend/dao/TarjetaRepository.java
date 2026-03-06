@@ -11,12 +11,16 @@ import com.campito.backend.model.Tarjeta;
 
 @Repository
 public interface TarjetaRepository extends JpaRepository<Tarjeta, Long> {
-    
+
     List<Tarjeta> findByEspacioTrabajo_Id(UUID idEspacioTrabajo);
-    
-    // Método para obtener tarjetas ordenadas por última modificación (más recientes primero)
+
+    // Método para obtener tarjetas ordenadas por última modificación (más recientes
+    // primero)
     List<Tarjeta> findByEspacioTrabajo_IdOrderByFechaModificacionDesc(UUID idEspacioTrabajo);
-    
+
     Optional<Tarjeta> findFirstByNumeroTarjetaAndEntidadFinancieraAndRedDePagoAndEspacioTrabajo_Id(
-        String numeroTarjeta, String entidadFinanciera, String redDePago, UUID idEspacioTrabajo);
+            String numeroTarjeta, String entidadFinanciera, String redDePago, UUID idEspacioTrabajo);
+
+    // Método para obtener tarjetas que cierran en un día específico
+    List<Tarjeta> findByDiaCierre(Integer diaCierre);
 }

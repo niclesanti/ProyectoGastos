@@ -21,15 +21,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @RequiredArgsConstructor
 public class NotificacionScheduler {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(NotificacionScheduler.class);
-    
+
     private final NotificacionService notificacionService;
-    
+
     /**
      * Limpia notificaciones LEÍDAS antiguas (>3 días) todos los días a las 3:00 AM.
      * 
-     * Esto evita acumulación de notificaciones que el usuario ya vio y no necesita más.
+     * Esto evita acumulación de notificaciones que el usuario ya vio y no necesita
+     * más.
      * Se ejecuta a las 3:00 AM (hora de menor actividad del sistema).
      */
     @Scheduled(cron = "0 0 3 * * *", zone = "America/Argentina/Buenos_Aires")
@@ -42,12 +43,14 @@ public class NotificacionScheduler {
             logger.error("Error al limpiar notificaciones leídas antiguas: {}", e.getMessage(), e);
         }
     }
-    
+
     /**
-     * Limpia notificaciones NO LEÍDAS muy antiguas (>15 días) el primer día de cada mes a las 4:00 AM.
+     * Limpia notificaciones NO LEÍDAS muy antiguas (>15 días) el primer día de cada
+     * mes a las 4:00 AM.
      * 
      * Asume que si después de 15 días no fueron leídas, ya no son relevantes.
-     * Se ejecuta mensualmente para no ser tan agresivo con notificaciones no leídas.
+     * Se ejecuta mensualmente para no ser tan agresivo con notificaciones no
+     * leídas.
      */
     @Scheduled(cron = "0 0 4 1 * *", zone = "America/Argentina/Buenos_Aires")
     @Transactional
