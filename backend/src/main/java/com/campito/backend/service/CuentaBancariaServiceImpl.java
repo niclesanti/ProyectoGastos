@@ -11,11 +11,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.campito.backend.dao.CuentaBancariaRepository;
+import com.campito.backend.dao.DescuentoRepository;
 import com.campito.backend.dao.EspacioTrabajoRepository;
 import com.campito.backend.dto.CuentaBancariaDTORequest;
 import com.campito.backend.dto.CuentaBancariaDTOResponse;
+import com.campito.backend.dto.DescuentoDTORequest;
+import com.campito.backend.dto.DescuentoDTOResponse;
 import com.campito.backend.mapper.CuentaBancariaMapper;
+import com.campito.backend.mapper.DescuentoMapper;
 import com.campito.backend.model.CuentaBancaria;
+import com.campito.backend.model.Descuento;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.TipoTransaccion;
 
@@ -39,6 +44,8 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
     private final CuentaBancariaRepository cuentaBancariaRepository;
     private final EspacioTrabajoRepository espacioTrabajoRepository;
     private final CuentaBancariaMapper cuentaBancariaMapper;
+    private final DescuentoRepository descuentoRepository;
+    private final DescuentoMapper descuentoMapper;
 
     /**
      * Crea una nueva cuenta bancaria.
@@ -191,6 +198,77 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
         cuentaBancariaRepository.save(cuentaDestino);
 
         logger.info("Transacción de {} realizada exitosamente entre cuentas ID: {} y ID: {}.", monto, idCuentaOrigen, idCuentaDestino);
+    }
+
+    // =========================================================
+    // Operaciones de Descuentos
+    // =========================================================
+
+    /**
+     * Crea un nuevo descuento para el espacio de trabajo indicado.
+     *
+     * @param dto Datos del descuento a crear.
+     * @throws EntityNotFoundException si el espacio de trabajo no existe.
+     */
+    @Override
+    @Transactional
+    public DescuentoDTOResponse crearDescuento(DescuentoDTORequest dto) {
+        logger.info("Creando descuento '{}' para banco '{}' en espacio de trabajo ID: {}", dto.comercio(), dto.banco(), dto.idEspacioTrabajo());
+
+        EspacioTrabajo espacioTrabajo = espacioTrabajoRepository.findById(dto.idEspacioTrabajo())
+            .orElseThrow(() -> {
+                String mensaje = "Espacio de trabajo con ID " + dto.idEspacioTrabajo() + " no encontrado";
+                logger.warn(mensaje);
+                return new EntityNotFoundException(mensaje);
+            });
+
+        Descuento descuento = descuentoMapper.toEntity(dto);
+        descuento.setEspacioTrabajo(espacioTrabajo);
+        Descuento descuentoGuardado = descuentoRepository.save(descuento);
+        logger.info("Descuento '{}' creado exitosamente.", dto.comercio());
+        return descuentoMapper.toResponse(descuentoGuardado);
+    }
+
+    /**
+     * Lista todos los descuentos de un espacio de trabajo.
+     *
+     * @param idEspacioTrabajo UUID del espacio de trabajo.
+     * @return Lista de descuentos del espacio de trabajo.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<DescuentoDTOResponse> listarDescuentos(UUID idEspacioTrabajo) {
+        logger.info("Listando descuentos para el espacio de trabajo ID: {}", idEspacioTrabajo);
+
+        List<DescuentoDTOResponse> descuentos = descuentoRepository
+            .findByEspacioTrabajo_IdOrderByDiaAsc(idEspacioTrabajo)
+            .stream()
+            .map(descuentoMapper::toResponse)
+            .toList();
+
+        logger.info("Encontrados {} descuentos para el espacio de trabajo ID: {}", descuentos.size(), idEspacioTrabajo);
+        return descuentos;
+    }
+
+    /**
+     * Elimina un descuento por su ID.
+     *
+     * @param id ID del descuento a eliminar.
+     * @throws EntityNotFoundException si el descuento no existe.
+     */
+    @Override
+    @Transactional
+    public void eliminarDescuento(Long id) {
+        logger.info("Eliminando descuento ID: {}", id);
+
+        if (!descuentoRepository.existsById(id)) {
+            String mensaje = "Descuento con ID " + id + " no encontrado";
+            logger.warn(mensaje);
+            throw new EntityNotFoundException(mensaje);
+        }
+
+        descuentoRepository.deleteById(id);
+        logger.info("Descuento ID: {} eliminado exitosamente.", id);
     }
 
 }

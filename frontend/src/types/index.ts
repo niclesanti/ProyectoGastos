@@ -411,3 +411,36 @@ export interface AgenteIAChatResponse {
 export interface AgenteIARateLimitStatus {
   tokensRemaining: number
 }
+
+// ========================================
+// DESCUENTOS
+// ========================================
+
+export interface DescuentoDTORequest {
+  dia: string
+  localidad?: string
+  banco: string
+  modo: boolean
+  porcentaje: string
+  comercio: string
+  modoPago: string
+  topeReintegro?: string
+  esSemanal: boolean
+  comentario?: string
+  idEspacioTrabajo: string  // UUID
+}
+
+export interface DescuentoDTOResponse {
+  id: number
+  dia: string
+  localidad?: string
+  banco: string
+  modo: boolean
+  porcentaje: string
+  comercio: string
+  modoPago: string
+  topeReintegro?: string
+  esSemanal: boolean
+  comentario?: string
+  idEspacioTrabajo: string  // UUID
+}

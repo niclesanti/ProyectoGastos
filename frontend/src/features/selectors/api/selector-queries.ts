@@ -5,6 +5,7 @@ import { cuentaBancariaService } from '@/services/cuenta-bancaria.service'
 import { tarjetaService } from '@/services/tarjeta.service'
 import { transaccionService } from '@/services/transaccion.service'
 import { compraCreditoService } from '@/services/compra-credito.service'
+import { descuentoService } from '@/services/descuento.service'
 import { useAppStore } from '@/store/app-store'
 import type { 
   MotivoDTORequest, 
@@ -13,7 +14,8 @@ import type {
   TarjetaDTORequest,
   TransaccionDTORequest,
   CompraCreditoDTORequest,
-  TransaccionBusquedaDTO
+  TransaccionBusquedaDTO,
+  DescuentoDTORequest
 } from '@/types'
 
 // ============ TRANSACCIONES ============
@@ -275,6 +277,42 @@ export const useRemoverCompraCredito = () => {
       // Invalidar el caché de Zustand para el dashboard
       if (currentWorkspace?.id) {
         invalidateDashboardCache(currentWorkspace.id)
+      }
+    },
+  })
+}
+
+// ============ DESCUENTOS ============
+
+export const useDescuentos = (idEspacioTrabajo: string | undefined) => {
+  return useQuery({
+    queryKey: ['descuentos', idEspacioTrabajo],
+    queryFn: () => descuentoService.listarDescuentos(idEspacioTrabajo!),
+    enabled: !!idEspacioTrabajo,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  })
+}
+
+export const useCreateDescuento = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (descuento: DescuentoDTORequest) => descuentoService.crearDescuento(descuento),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['descuentos', variables.idEspacioTrabajo] })
+    },
+  })
+}
+
+export const useDeleteDescuento = () => {
+  const queryClient = useQueryClient()
+  const currentWorkspace = useAppStore((state) => state.currentWorkspace)
+
+  return useMutation({
+    mutationFn: (id: number) => descuentoService.eliminarDescuento(id),
+    onSuccess: () => {
+      if (currentWorkspace?.id) {
+        queryClient.invalidateQueries({ queryKey: ['descuentos', currentWorkspace.id] })
       }
     },
   })

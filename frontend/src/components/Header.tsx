@@ -17,6 +17,7 @@ const routeTitles: Record<string, string> = {
   '/': 'Panel de datos',
   '/movimientos': 'Movimientos',
   '/creditos': 'Tarjetas de Crédito',
+  '/descuentos': 'Descuentos',
   '/agente-ia': 'Agente IA',
   '/configuracion': 'Configuración',
 }
