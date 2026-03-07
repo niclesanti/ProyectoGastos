@@ -43,6 +43,7 @@ Sistema Full-Stack profesional para la gestión integral de finanzas personales 
 - **Cuentas Bancarias**: Gestión de múltiples cuentas con actualización de saldos
 - **Tarjetas de Crédito**: Control de tarjetas con ciclos de facturación configurables
 - **Compras en Cuotas**: Seguimiento automático de cuotas y generación de resúmenes mensuales
+- **Descuentos**: Registro de descuentos bancarios/comerciales organizados por día de la semana (Kanban 7 columnas)
 - **Precisión Decimal**: Cálculos financieros con máxima exactitud
 
 ### 📊 Dashboard y Analytics

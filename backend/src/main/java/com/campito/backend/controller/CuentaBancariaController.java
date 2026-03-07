@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.campito.backend.dto.CuentaBancariaDTORequest;
 import com.campito.backend.dto.CuentaBancariaDTOResponse;
+import com.campito.backend.dto.DescuentoDTORequest;
+import com.campito.backend.dto.DescuentoDTOResponse;
 import com.campito.backend.service.CuentaBancariaService;
 import com.campito.backend.service.SecurityService;
 import com.campito.backend.validation.ValidMonto;
@@ -93,6 +95,59 @@ public class CuentaBancariaController {
         securityService.validateCuentaBancariaOwnership(idCuentaDestino);
         cuentaBancariaService.transaccionEntreCuentas(idCuentaOrigen, idCuentaDestino, monto);
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    // =========================================================
+    // Endpoints de Descuentos
+    // =========================================================
+
+    @Operation(
+        summary = "Crear un nuevo descuento",
+        description = "Permite registrar un descuento disponible asociado a un espacio de trabajo."
+    )
+    @ApiResponse(responseCode = "201", description = "Descuento creado correctamente")
+    @ApiResponse(responseCode = "400", description = "Error de validación en los datos del descuento")
+    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    @PostMapping("/descuento/crear")
+    public ResponseEntity<Void> crearDescuento(
+        @Valid
+        @NotNull(message = "El descuento es obligatorio")
+        @RequestBody DescuentoDTORequest descuentoDTO) {
+
+        securityService.validateWorkspaceAccess(descuentoDTO.idEspacioTrabajo());
+        cuentaBancariaService.crearDescuento(descuentoDTO);
+        return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @Operation(
+        summary = "Listar descuentos por espacio de trabajo",
+        description = "Retorna todos los descuentos registrados para un espacio de trabajo."
+    )
+    @ApiResponse(responseCode = "200", description = "Descuentos listados correctamente")
+    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    @GetMapping("/descuento/listar/{idEspacioTrabajo}")
+    public ResponseEntity<List<DescuentoDTOResponse>> listarDescuentos(
+        @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
+
+        securityService.validateWorkspaceAccess(idEspacioTrabajo);
+        List<DescuentoDTOResponse> descuentos = cuentaBancariaService.listarDescuentos(idEspacioTrabajo);
+        return new ResponseEntity<>(descuentos, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Eliminar un descuento",
+        description = "Elimina un descuento por su ID."
+    )
+    @ApiResponse(responseCode = "204", description = "Descuento eliminado correctamente")
+    @ApiResponse(responseCode = "404", description = "Descuento no encontrado")
+    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    @org.springframework.web.bind.annotation.DeleteMapping("/descuento/eliminar/{id}")
+    public ResponseEntity<Void> eliminarDescuento(
+        @PathVariable @NotNull(message = "El id del descuento es obligatorio") Long id) {
+        
+        securityService.validateDescuentoOwnership(id);
+        cuentaBancariaService.eliminarDescuento(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
 }

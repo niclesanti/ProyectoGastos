@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   CreditCard,
+  BadgePercent,
   BrainCircuit,
   Settings,
   ChevronsUpDown,
@@ -49,6 +50,7 @@ const navigation = [
   { name: 'Panel de datos', href: '/', icon: LayoutDashboard },
   { name: 'Movimientos', href: '/movimientos', icon: ArrowLeftRight },
   { name: 'Tarjetas de Crédito', href: '/creditos', icon: CreditCard },
+  { name: 'Descuentos', href: '/descuentos', icon: BadgePercent },
   { name: 'Agente IA', href: '/agente-ia', icon: BrainCircuit },
   { name: 'Configuración', href: '/configuracion', icon: Settings },
 ]

@@ -34,6 +34,7 @@ Sistema backend RESTful desarrollado con Spring Boot que proporciona una soluci�
 - ✅ **Gestión Multi-Tenant**: Espacios de trabajo compartidos para gestión familiar o grupal
 - ✅ **Procesamiento Automático**: Cierre automático de resúmenes de tarjetas mediante schedulers
 - ✅ **Notificaciones en Tiempo Real**: SSE (Server-Sent Events) y arquitectura dirigida por eventos
+- ✅ **Gestión de Descuentos**: Registro de descuentos bancarios y comerciales por día de la semana
 - ✅ **Observabilidad y Métricas**: Instrumentación completa con Micrometer y Prometheus para monitoreo en producción
 - ✅ **CI/CD Automatizado**: Pipeline completo de integración y despliegue continuo con GitHub Actions
 - **Agente IA Financiero**: Asistente conversacional con LLM (Llama 3.3 70B via Groq), function calling, selección dinámica de tools y retry automático ante rate limits
@@ -128,7 +129,14 @@ Este backend proporciona una API REST completa que permite:
 - **Limpieza Automática**: Schedulers para eliminar notificaciones antiguas
 - **Autenticación SSE**: Query parameter con token JWT (compatible con EventSource nativo)
 
-### 8. Automatización
+### 8. Gestión de Descuentos
+- Registro de descuentos disponibles organizados por día de la semana (Lunes a Domingo)
+- Campos: banco, comercio, porcentaje, modo de pago, tope de reintegro, localidad, app MODO y recurrencia (semanal/mensual)
+- CRUD completo vía API en `/api/cuentabancaria/descuento/*`
+- Validación con `@ValidDescripcion` en el campo comentario
+- Validación con `@ValidNombre` en el campo comercio
+
+### 9. Automatización
 - Cierre automático diario de resúmenes de tarjetas (scheduler)
 - Actualización automática de saldos
 - Cálculo incremental de estadísticas
@@ -935,6 +943,14 @@ docker-compose down -v
 | POST | `/api/compraCredito/pagar-resumen` | Pagar resumen de tarjeta | ✅ |
 | GET | `/api/compraCredito/resumenes/tarjeta/{idTarjeta}` | Listar resúmenes por tarjeta | ✅ |
 | GET | `/api/compraCredito/resumenes/espacio/{idEspacioTrabajo}` | Listar resúmenes por espacio | ✅ |
+
+### Descuentos
+
+| Método | Endpoint | Descripción | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/cuentabancaria/descuento/crear` | Crear nuevo descuento | ✅ |
+| GET | `/api/cuentabancaria/descuento/listar/{idEspacioTrabajo}` | Listar descuentos del espacio | ✅ |
+| DELETE | `/api/cuentabancaria/descuento/eliminar/{id}` | Eliminar descuento | ✅ |
 
 ### Dashboard
 

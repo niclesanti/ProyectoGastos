@@ -6,6 +6,8 @@ import java.util.UUID;
 
 import com.campito.backend.dto.CuentaBancariaDTORequest;
 import com.campito.backend.dto.CuentaBancariaDTOResponse;
+import com.campito.backend.dto.DescuentoDTORequest;
+import com.campito.backend.dto.DescuentoDTOResponse;
 import com.campito.backend.model.CuentaBancaria;
 import com.campito.backend.model.TipoTransaccion;
 
@@ -14,4 +16,9 @@ public interface CuentaBancariaService {
     public CuentaBancaria actualizarCuentaBancaria(Long id, TipoTransaccion tipo, BigDecimal monto);
     public List<CuentaBancariaDTOResponse> listarCuentasBancarias(UUID idEspacioTrabajo);
     public void transaccionEntreCuentas(Long idCuentaOrigen, Long idCuentaDestino, BigDecimal monto);
+
+    // --- Descuentos ---
+    public DescuentoDTOResponse crearDescuento(DescuentoDTORequest dto);
+    public List<DescuentoDTOResponse> listarDescuentos(UUID idEspacioTrabajo);
+    public void eliminarDescuento(Long id);
 }
