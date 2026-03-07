@@ -122,6 +122,20 @@ class SolicitudPendienteEspacioTrabajo {
   - fechaCreacion: LocalDateTime
 }
 
+class Descuento {
+  - id: Long
+  - dia: String
+  - localidad: String
+  - banco: String
+  - modo: Boolean
+  - porcentaje: String
+  - comercio: String
+  - modoPago: String
+  - topeReintegro: String
+  - esSemanal: Boolean
+  - comentario: String
+}
+
 class CustomOAuth2User {
   - usuario: Usuario
 }
@@ -169,6 +183,7 @@ EspacioTrabajo "1" -- "0..*" Tarjeta : "registra"
 EspacioTrabajo "1" -- "0..*" CompraCredito : "tiene"
 EspacioTrabajo "1" -- "0..*" GastosIngresosMensuales : "posee"
 EspacioTrabajo "1" -- "0..*" SolicitudPendienteEspacioTrabajo : "genera"
+EspacioTrabajo "1" -- "0..*" Descuento : "registra"
 
 Transaccion "0..*" -- "1" MotivoTransaccion : "tiene un"
 Transaccion "0..*" -- "0..1" ContactoTransferencia : "asociada a un"
@@ -229,6 +244,35 @@ class CuentaBancariaDTOResponse {
   - nombre: String
   - entidadFinanciera: String
   - saldoActual: BigDecimal
+}
+
+class DescuentoDTORequest {
+  - dia: String
+  - localidad: String
+  - banco: String
+  - modo: Boolean
+  - porcentaje: String
+  - comercio: String
+  - modoPago: String
+  - topeReintegro: String
+  - esSemanal: Boolean
+  - comentario: String
+  - idEspacioTrabajo: UUID
+}
+
+class DescuentoDTOResponse {
+  - id: Long
+  - dia: String
+  - localidad: String
+  - banco: String
+  - modo: Boolean
+  - porcentaje: String
+  - comercio: String
+  - modoPago: String
+  - topeReintegro: String
+  - esSemanal: Boolean
+  - comentario: String
+  - idEspacioTrabajo: UUID
 }
 
 class TransaccionDTORequest {
@@ -446,6 +490,7 @@ interface ResumenRepository <<repository>>
 interface GastosIngresosMensualesRepository <<repository>>
 interface NotificacionRepository <<repository>>
 interface SolicitudPendienteEspacioTrabajoRepository <<repository>>
+interface DescuentoRepository <<repository>>
 
 ' ====================================================================
 ' DEFINICION DE MAPPERS
@@ -463,6 +508,7 @@ interface UsuarioMapper <<mapper>>
 interface ResumenMapper <<mapper>>
 interface NotificacionMapper <<mapper>>
 interface SolicitudPendienteEspacioTrabajoMapper <<mapper>>
+interface DescuentoMapper <<mapper>>
 
 ' ====================================================================
 ' DEFINICION DE EVENTOS
@@ -780,6 +826,14 @@ ResumenMapper ..> ResumenDTOResponse
 
 NotificacionMapper ..> Notificacion
 NotificacionMapper ..> NotificacionDTOResponse
+
+DescuentoMapper ..> Descuento
+DescuentoMapper ..> DescuentoDTORequest
+DescuentoMapper ..> DescuentoDTOResponse
+
+DescuentoRepository ..> Descuento
+
+CuentaBancariaServiceImpl ..> DescuentoRepository
 
 ' ====================================================================
 ' ASOCIACIONES EVENTOS

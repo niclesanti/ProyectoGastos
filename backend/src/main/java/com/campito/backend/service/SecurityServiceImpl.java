@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.campito.backend.dao.CompraCreditoRepository;
 import com.campito.backend.dao.CuentaBancariaRepository;
+import com.campito.backend.dao.DescuentoRepository;
 import com.campito.backend.dao.EspacioTrabajoRepository;
 import com.campito.backend.dao.NotificacionRepository;
 import com.campito.backend.dao.SolicitudPendienteEspacioTrabajoRepository;
@@ -20,6 +21,7 @@ import com.campito.backend.exception.UnauthorizedException;
 import com.campito.backend.model.CompraCredito;
 import com.campito.backend.model.CuentaBancaria;
 import com.campito.backend.model.CustomOAuth2User;
+import com.campito.backend.model.Descuento;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.Notificacion;
 import com.campito.backend.model.SolicitudPendienteEspacioTrabajo;
@@ -48,6 +50,7 @@ public class SecurityServiceImpl implements SecurityService {
     private final TarjetaRepository tarjetaRepository;
     private final NotificacionRepository notificacionRepository;
     private final SolicitudPendienteEspacioTrabajoRepository solicitudPendienteRepository;
+    private final DescuentoRepository descuentoRepository;
 
     /**
      * Obtiene el ID del usuario actualmente autenticado desde el contexto de seguridad de Spring.
@@ -307,6 +310,31 @@ public class SecurityServiceImpl implements SecurityService {
         }
         
         logger.debug("Ownership validado: Usuario {} tiene acceso a solicitud pendiente {}", userId, idSolicitud);
+    }
+
+    @Override
+    public void validateDescuentoOwnership(Long idDescuento) {
+        if (idDescuento == null) {
+            logger.warn("Intento de validar descuento con ID nulo");
+            throw new IllegalArgumentException("El ID del descuento no puede ser nulo");
+        }
+
+        UUID userId = getAuthenticatedUserId();
+
+        Descuento descuento = descuentoRepository.findById(idDescuento)
+            .orElseThrow(() -> {
+                logger.warn("Descuento {} no encontrado", idDescuento);
+                return new EntityNotFoundException("Descuento no encontrado");
+            });
+
+        if (!descuento.getEspacioTrabajo().getUsuariosParticipantes().stream()
+                .anyMatch(u -> u.getId().equals(userId))) {
+            logger.warn("Usuario {} intenta acceder a descuento {} que no le pertenece", 
+                userId, idDescuento);
+            throw new ForbiddenException("No tienes acceso a este descuento");
+        }
+
+        logger.debug("Ownership validado: Usuario {} tiene acceso a descuento {}", userId, idDescuento);
     }
 
     /**

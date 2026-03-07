@@ -103,6 +103,17 @@ public interface SecurityService {
     * @throws IllegalArgumentException si el idSolicitud es nulo.
     */
     void validateSolicitudOwnership(Long idSolicitud);
+
+    /**
+     * Valida que un descuento pertenezca a un espacio de trabajo al que el usuario tiene acceso.
+     * 
+     * @param idDescuento ID del descuento a validar.
+     * @throws UnauthorizedException si no hay usuario autenticado.
+     * @throws ForbiddenException si el usuario no tiene acceso.
+     * @throws EntityNotFoundException si el descuento no existe.
+     * @throws IllegalArgumentException si el idDescuento es nulo.
+     */
+    void validateDescuentoOwnership(Long idDescuento);
     
     /**
      * Verifica si el usuario autenticado tiene acceso a un espacio de trabajo específico.

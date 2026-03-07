@@ -71,6 +71,13 @@ Aplicación web moderna y responsiva desarrollada con React 18 y TypeScript que 
 - Seguimiento de cuotas pendientes
 - Cálculo automático de resúmenes
 
+### Descuentos
+- **Vista Kanban**: 7 columnas (Lunes–Domingo) para organizar descuentos por día
+- **Vista Móvil Responsive**: Tabs con badge de cantidad por día
+- **Alta de Descuentos**: Modal con `ToggleGroup` para dias, `Slider` para porcentaje, Combobox para localidad (24 provincias), `MoneyInput` para tope de reintegro, switches para app MODO y recurrencia semanal
+- Gestión de banco, comercio, modo de pago (Débito, Crédito, QR, Efectivo) y comentarios
+- Eliminación con confirmación vía `DeleteConfirmDialog`
+
 ### Notificaciones en Tiempo Real
 - **SSE (Server-Sent Events)**: Conexión persistente para notificaciones instantáneas
 - **NotificationBell**: Icono de campana con badge de contador
@@ -548,6 +555,7 @@ frontend/
 │   │   ├── ConfiguracionPage.tsx   # Configuración y ajustes
 │   │   ├── CreditosPage.tsx        # Tarjetas y créditos
 │   │   ├── DashboardPage.tsx       # Dashboard principal
+│   │   ├── DescuentosPage.tsx      # Descuentos bancarios/comerciales (Kanban 7 días)
 │   │   ├── LoginPage.tsx           # Página de login OAuth2
 │   │   └── MovimientosPage.tsx     # Transacciones
 │   ├── services/                   # Servicios de API
