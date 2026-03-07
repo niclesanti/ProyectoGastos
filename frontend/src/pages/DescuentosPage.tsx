@@ -349,9 +349,9 @@ function AddDiscountModal({ open, onOpenChange, espacioTrabajoId }: AddDiscountM
     <ResponsiveModal open={open} onOpenChange={handleOpenChange}>
       <ResponsiveModalContent className="max-w-lg">
         <ResponsiveModalHeader>
-          <ResponsiveModalTitle>Agregar descuento</ResponsiveModalTitle>
+          <ResponsiveModalTitle>Agregar descuento bancario</ResponsiveModalTitle>
           <ResponsiveModalDescription>
-            Registrá un descuento disponible con tu banco o tarjeta.
+            Registrá un descuento disponible con tu banco o tarjeta en algún comercio.
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
@@ -501,7 +501,9 @@ function AddDiscountModal({ open, onOpenChange, espacioTrabajoId }: AddDiscountM
                   name="topeReintegro"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tope de reintegro (opcional)</FormLabel>
+                      <FormLabel>
+                        Tope de reintegro <span className="text-zinc-500 text-xs font-normal">(opcional)</span>
+                        </FormLabel>
                       <FormControl>
                         <MoneyInput
                           value={field.value ?? null}
@@ -521,7 +523,9 @@ function AddDiscountModal({ open, onOpenChange, espacioTrabajoId }: AddDiscountM
                   name="localidad"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Localidad (opcional)</FormLabel>
+                      <FormLabel>
+                        Localidad <span className="text-zinc-500 text-xs font-normal">(opcional)</span>
+                      </FormLabel>
                       <Popover open={localidadPopoverOpen} onOpenChange={setLocalidadPopoverOpen}>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -615,7 +619,9 @@ function AddDiscountModal({ open, onOpenChange, espacioTrabajoId }: AddDiscountM
                   name="comentario"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Comentario (opcional)</FormLabel>
+                      <FormLabel>
+                        Comentario <span className="text-zinc-500 text-xs font-normal">(opcional)</span>
+                      </FormLabel>
                       <FormControl>
                         <Textarea
                           {...field}
