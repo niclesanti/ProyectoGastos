@@ -30,14 +30,8 @@ replay_pid*
 *.pem
 secrets/
 
-# Gemini instrucciones
-GEMINI.md
-GuiaTesting.md
-resumenProyecto.md
-promptGemini.md
-GuiaFrontend.md
-prompt.md
-PLANTILLA_COPILOT_CLI.md
-
 # VS Code
 .vscode/
+
+# OpenCode agents/commands
+.opencode/
