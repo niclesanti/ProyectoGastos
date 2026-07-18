@@ -5,7 +5,6 @@ import {
   ArrowLeftRight,
   CreditCard,
   BadgePercent,
-  BrainCircuit,
   Settings,
   ChevronsUpDown,
   LogOut,
@@ -51,7 +50,6 @@ const navigation = [
   { name: 'Movimientos', href: '/movimientos', icon: ArrowLeftRight },
   { name: 'Tarjetas de Crédito', href: '/creditos', icon: CreditCard },
   { name: 'Descuentos', href: '/descuentos', icon: BadgePercent },
-  { name: 'Agente IA', href: '/agente-ia', icon: BrainCircuit },
   { name: 'Configuración', href: '/configuracion', icon: Settings },
 ]
 
