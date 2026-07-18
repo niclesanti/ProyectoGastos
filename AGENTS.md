@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Personal finance management full-stack app. Backend: Spring Boot 3.5.3 / Java 21 / PostgreSQL 14 / Flyway. Frontend: React 18 / TypeScript / Vite / Tailwind + shadcn/ui. Auth: Google OAuth2 + JWT. AI Agent: Groq (Llama 3.3 70B) via Spring AI.
+Personal finance management full-stack app. Backend: Spring Boot 3.5.3 / Java 21 / PostgreSQL 14 / Flyway. Frontend: React 18 / TypeScript / Vite / Tailwind + shadcn/ui. Auth: Google OAuth2 + JWT.
 
 ## Quick Start (Docker)
 
@@ -58,7 +58,6 @@ controller/ → service/ → dao/ (repositories)
 - **Lombok** used extensively (`@RequiredArgsConstructor`, `@Data`, etc.).
 - **Custom validators** in `validation/` (e.g., `@ValidMonto`, `@ValidSaldoActual`).
 - **Scheduler tasks** in `scheduler/` (e.g., `ResumenScheduler`, `NotificacionScheduler`).
-- **AI Agent** in `service/agentAI/` — uses Spring AI with Groq, function calling, rate limiting (Bucket4j).
 - **SSE notifications** via `SseEmitterService` + event-driven architecture (`event/` package).
 
 ### Frontend Structure
