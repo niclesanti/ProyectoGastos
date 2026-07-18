@@ -6,7 +6,6 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { MovimientosPage } from '@/pages/MovimientosPage'
 import { CreditosPage } from '@/pages/CreditosPage'
 import { DescuentosPage } from '@/pages/DescuentosPage'
-import AgenteIAPage from '@/pages/AgenteIAPage'
 import { ConfiguracionPage } from '@/pages/ConfiguracionPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { OAuthCallback } from '@/pages/OAuthCallback'
@@ -28,7 +27,6 @@ const router = createBrowserRouter(
         { path: 'movimientos', element: <MovimientosPage /> },
         { path: 'creditos', element: <CreditosPage /> },
         { path: 'descuentos', element: <DescuentosPage /> },
-        { path: 'agente-ia', element: <AgenteIAPage /> },
         { path: 'configuracion', element: <ConfiguracionPage /> },
       ],
     },
