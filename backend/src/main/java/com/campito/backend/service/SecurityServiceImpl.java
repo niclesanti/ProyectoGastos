@@ -20,7 +20,6 @@ import com.campito.backend.exception.UnauthorizedException;
 import com.campito.backend.model.CompraCredito;
 import com.campito.backend.model.CuentaBancaria;
 import com.campito.backend.model.CustomOAuth2User;
-import com.campito.backend.model.Descuento;
 import com.campito.backend.model.EspacioTrabajo;
 import com.campito.backend.model.Notificacion;
 import com.campito.backend.model.SolicitudPendienteEspacioTrabajo;
@@ -319,14 +318,16 @@ public class SecurityServiceImpl implements SecurityService {
 
         UUID userId = getAuthenticatedUserId();
 
-        Descuento descuento = descuentoRepository.findById(idDescuento)
+        descuentoRepository.findById(idDescuento)
             .orElseThrow(() -> {
                 log.warn("Descuento {} no encontrado", idDescuento);
                 return new EntityNotFoundException("Descuento no encontrado");
             });
 
-        if (!descuento.getEspacioTrabajo().getUsuariosParticipantes().stream()
-                .anyMatch(u -> u.getId().equals(userId))) {
+        boolean hasAccess = descuentoRepository
+            .existsByIdAndEspacioTrabajo_UsuariosParticipantes_Id(idDescuento, userId);
+
+        if (!hasAccess) {
             log.warn("Usuario {} intenta acceder a descuento {} que no le pertenece", 
                 userId, idDescuento);
             throw new ForbiddenException("No tienes acceso a este descuento");

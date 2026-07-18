@@ -217,6 +217,7 @@ public class ComprasCreditoController {
         @NotNull(message = "El pago del resumen es obligatorio") 
         @RequestBody PagarResumenTarjetaRequest request) {
         
+        securityService.validateWorkspaceAccess(request.idEspacioTrabajo());
         comprasCreditoService.pagarResumenTarjeta(request);
         return new ResponseEntity<>(HttpStatus.OK);
     }

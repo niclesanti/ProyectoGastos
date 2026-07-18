@@ -41,6 +41,7 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3100}
+      JWT_SECRET: ${JWT_SECRET}
     networks:
       - campito-net
 
