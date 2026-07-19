@@ -1,11 +1,11 @@
 package com.campito.backend.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.campito.backend.dao.UsuarioRepository;
 import com.campito.backend.model.CustomOAuth2User;
 import com.campito.backend.model.ProveedorAutenticacion;
 import com.campito.backend.model.Usuario;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -18,10 +18,10 @@ import java.time.ZoneId;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class CustomOidcUserService extends OidcUserService {
 
-    @Autowired
-    private UsuarioRepository usuarioRepository;
+    private final UsuarioRepository usuarioRepository;
 
     @Override
     @Transactional

@@ -12,31 +12,31 @@ import type {
 
 export const transaccionService = {
   async registrarTransaccion(transaccion: TransaccionDTORequest): Promise<Transaccion> {
-    const { data } = await apiClient.post<Transaccion>('/transaccion/registrar', transaccion)
+    const { data } = await apiClient.post<Transaccion>('/transacciones', transaccion)
     return data
   },
 
   async buscarTransaccionesRecientes(idEspacio: string): Promise<TransaccionDTOResponse[]> {
-    const { data } = await apiClient.get<TransaccionDTOResponse[]>(`/transaccion/buscarRecientes/${idEspacio}`)
+    const { data } = await apiClient.get<TransaccionDTOResponse[]>(`/transacciones/recientes/${idEspacio}`)
     return data
   },
 
   async removerTransaccion(id: number): Promise<void> {
-    await apiClient.delete(`/transaccion/remover/${id}`)
+    await apiClient.delete(`/transacciones/${id}`)
   },
 
   async buscarTransacciones(busqueda: TransaccionBusquedaDTO & { page?: number; size?: number }): Promise<PaginatedResponse<TransaccionDTOResponse>> {
-    const { data } = await apiClient.post<PaginatedResponse<TransaccionDTOResponse>>('/transaccion/buscar', busqueda)
+    const { data } = await apiClient.post<PaginatedResponse<TransaccionDTOResponse>>('/transacciones/buscar', busqueda)
     return data
   },
 
   async listarMotivos(idEspacioTrabajo: string): Promise<MotivoTransaccion[]> {
-    const { data } = await apiClient.get<MotivoTransaccion[]>(`/transaccion/motivo/listar/${idEspacioTrabajo}`)
+    const { data } = await apiClient.get<MotivoTransaccion[]>(`/transacciones/motivos/espacio/${idEspacioTrabajo}`)
     return data
   },
 
   async listarContactos(idEspacioTrabajo: string): Promise<ContactoTransferencia[]> {
-    const { data } = await apiClient.get<ContactoTransferencia[]>(`/transaccion/contacto/listar/${idEspacioTrabajo}`)
+    const { data } = await apiClient.get<ContactoTransferencia[]>(`/transacciones/contactos/espacio/${idEspacioTrabajo}`)
     return data
   },
 

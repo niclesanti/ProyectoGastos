@@ -9,38 +9,36 @@ import type {
 
 export const espacioTrabajoService = {
   async getAll(): Promise<EspacioTrabajo[]> {
-    // El usuario se obtiene del contexto OAuth2 automáticamente
-    const { data } = await apiClient.get<EspacioTrabajo[]>('/espaciotrabajo/listar')
+    const { data } = await apiClient.get<EspacioTrabajo[]>('/espacios-trabajo')
     return data
   },
 
   async getById(id: string): Promise<EspacioTrabajo> {
-    const { data } = await apiClient.get<EspacioTrabajo>(`/espaciotrabajo/${id}`)
+    const { data } = await apiClient.get<EspacioTrabajo>(`/espacios-trabajo/${id}`)
     return data
   },
 
   async create(espacioTrabajo: EspacioTrabajoDTORequest): Promise<void> {
-    await apiClient.post<void>('/espaciotrabajo/registrar', espacioTrabajo)
+    await apiClient.post<void>('/espacios-trabajo', espacioTrabajo)
   },
 
   async update(id: string, espacioTrabajo: EspacioTrabajoDTORequest): Promise<EspacioTrabajo> {
-    const { data } = await apiClient.put<EspacioTrabajo>(`/espaciotrabajo/${id}`, espacioTrabajo)
+    const { data } = await apiClient.put<EspacioTrabajo>(`/espacios-trabajo/${id}`, espacioTrabajo)
     return data
   },
 
   async delete(id: string): Promise<void> {
-    await apiClient.delete<void>(`/espaciotrabajo/${id}`)
+    await apiClient.delete<void>(`/espacios-trabajo/${id}`)
   },
 
   // Gestión de miembros
   async getMiembros(espacioTrabajoId: string): Promise<MiembroEspacio[]> {
-    const { data } = await apiClient.get<MiembroEspacio[]>(`/espaciotrabajo/miembros/${espacioTrabajoId}`)
+    const { data } = await apiClient.get<MiembroEspacio[]>(`/espacios-trabajo/${espacioTrabajoId}/miembros`)
     return data
   },
 
   async compartirEspacio(email: string, idEspacioTrabajo: string): Promise<void> {
-    // Ya NO se envía idUsuarioAdmin, se valida en el backend desde el contexto OAuth2
-    await apiClient.put<void>(`/espaciotrabajo/compartir/${email}/${idEspacioTrabajo}`)
+    await apiClient.post<void>(`/espacios-trabajo/${idEspacioTrabajo}/miembros`, { email })
   },
 
   async invitarMiembro(invitacion: InvitacionMiembroDTORequest): Promise<MiembroEspacio> {
@@ -57,11 +55,11 @@ export const espacioTrabajoService = {
 
   // Gestión de solicitudes pendientes
   async listarSolicitudesPendientes(): Promise<SolicitudPendienteEspacioTrabajo[]> {
-    const { data } = await apiClient.get<SolicitudPendienteEspacioTrabajo[]>('/espaciotrabajo/solicitudes/pendientes')
+    const { data } = await apiClient.get<SolicitudPendienteEspacioTrabajo[]>('/espacios-trabajo/solicitudes/pendientes')
     return data
   },
 
   async responderSolicitud(idSolicitud: number, aceptada: boolean): Promise<void> {
-    await apiClient.put<void>(`/espaciotrabajo/solicitud/responder/${idSolicitud}/${aceptada}`)
+    await apiClient.post<void>(`/espacios-trabajo/solicitudes/${idSolicitud}/responder`, { aceptada })
   },
 }

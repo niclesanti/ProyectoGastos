@@ -37,7 +37,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/comprascredito")
+@RequestMapping("/api/compras-credito")
 @Tag(name = "ComprasCredito", description = "Operaciones para la gestión de compras con crédito")
 @RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
 @Validated
@@ -53,7 +53,7 @@ public class ComprasCreditoController {
                     @ApiResponse(responseCode = "400", description = "Error al registrar la compra con crédito"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
-    @PostMapping("/registrar")
+    @PostMapping
     public ResponseEntity<CompraCreditoDTOResponse> registrarCompraCredito(
         @Valid 
         @NotNull(message = "La compra a crédito es obligatoria") 
@@ -71,7 +71,7 @@ public class ComprasCreditoController {
                     @ApiResponse(responseCode = "400", description = "Error al registrar la tarjeta de crédito"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
-    @PostMapping("/registrarTarjeta")
+    @PostMapping("/tarjetas")
     public ResponseEntity<TarjetaDTOResponse> registrarTarjeta(
         @Valid 
         @NotNull(message = "La tarjeta es obligatoria") 
@@ -96,7 +96,7 @@ public class ComprasCreditoController {
         
         securityService.validateCompraCreditoOwnership(id);
         comprasCreditoService.removerCompraCredito(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Listar compras a crédito con cuotas pendientes",
@@ -167,7 +167,7 @@ public class ComprasCreditoController {
         
         securityService.validateTarjetaOwnership(id);
         comprasCreditoService.removerTarjeta(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Listar tarjetas de un espacio de trabajo",
@@ -262,14 +262,13 @@ public class ComprasCreditoController {
                     @ApiResponse(responseCode = "404", description = "Tarjeta de crédito no encontrada"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
-    @PutMapping("/modificarTarjeta/{id}/{diaCierre}/{diaVencimientoPago}")
+    @PutMapping("/tarjetas/{id}")
     public ResponseEntity<TarjetaDTOResponse> modificarTarjeta(
         @PathVariable @NotNull(message = "El id de la tarjeta es obligatorio") Long id,
-        @PathVariable @NotNull(message = "El día de cierre es obligatorio") Integer diaCierre,
-        @PathVariable @NotNull(message = "El día de vencimiento de pago es obligatorio") Integer diaVencimientoPago) {
+        @Valid @RequestBody TarjetaDTORequest tarjetaDTO) {
         
         securityService.validateTarjetaOwnership(id);
-        TarjetaDTOResponse tarjetaModificada = comprasCreditoService.modificarTarjeta(id, diaCierre, diaVencimientoPago);
+        TarjetaDTOResponse tarjetaModificada = comprasCreditoService.modificarTarjeta(id, tarjetaDTO.diaCierre(), tarjetaDTO.diaVencimientoPago());
         return new ResponseEntity<>(tarjetaModificada, HttpStatus.OK);
     }
 }

@@ -8,25 +8,23 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.campito.backend.dao.UsuarioRepository;
 import com.campito.backend.dto.UsuarioDTO;
-import com.campito.backend.model.Usuario;
 import com.campito.backend.service.SecurityService;
+import com.campito.backend.service.UsuarioService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/usuario")
+@RequestMapping("/api/usuarios")
 @Tag(name = "Usuario", description = "Operaciones para la gestión de usuarios")
 @RequiredArgsConstructor
 public class UsuarioController {
 
     private final SecurityService securityService;
-    private final UsuarioRepository usuarioRepository;
+    private final UsuarioService usuarioService;
 
     @Operation(summary = "Obtener datos del usuario autenticado", description = "Devuelve el id, nombre y email del usuario que ha iniciado sesión.")
     @ApiResponse(responseCode = "200", description = "Datos del usuario")
@@ -35,9 +33,7 @@ public class UsuarioController {
     @GetMapping("/me")
     public ResponseEntity<UsuarioDTO> getUsuarioAutenticado() {
         UUID userId = securityService.getAuthenticatedUserId();
-        Usuario usuario = usuarioRepository.findById(userId)
-            .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
-        UsuarioDTO usuarioAut = UsuarioDTO.fromUsuario(usuario);
+        UsuarioDTO usuarioAut = usuarioService.getUsuarioAutenticado(userId);
         return new ResponseEntity<>(usuarioAut, HttpStatus.OK);
     }
 }

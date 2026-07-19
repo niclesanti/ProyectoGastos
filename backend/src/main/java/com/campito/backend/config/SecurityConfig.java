@@ -3,7 +3,6 @@ package com.campito.backend.config;
 import com.campito.backend.security.JwtAuthenticationFilter;
 import com.campito.backend.security.OAuth2AuthenticationSuccessHandler;
 import com.campito.backend.service.CustomOidcUserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,14 +27,11 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private CustomOidcUserService customOidcUserService;
+    private final CustomOidcUserService customOidcUserService;
 
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Autowired
-    private OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
@@ -45,6 +41,12 @@ public class SecurityConfig {
     
     @Value("${spring.profiles.active:dev}")
     private String activeProfile;
+
+    SecurityConfig(CustomOidcUserService customOidcUserService, JwtAuthenticationFilter jwtAuthenticationFilter, OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler) {
+        this.customOidcUserService = customOidcUserService;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
+    }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
