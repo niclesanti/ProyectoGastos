@@ -1,14 +1,13 @@
 package com.campito.backend.controller;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,9 +16,9 @@ import com.campito.backend.dto.CuentaBancariaDTORequest;
 import com.campito.backend.dto.CuentaBancariaDTOResponse;
 import com.campito.backend.dto.DescuentoDTORequest;
 import com.campito.backend.dto.DescuentoDTOResponse;
+import com.campito.backend.dto.TransaccionCuentaRequest;
 import com.campito.backend.service.CuentaBancariaService;
 import com.campito.backend.service.SecurityService;
-import com.campito.backend.validation.ValidMonto;
 
 import java.util.UUID;
 
@@ -27,16 +26,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 
 @RestController
-@RequestMapping("/api/cuentabancaria")
+@RequestMapping("/api/cuentas-bancarias")
 @Tag(name = "CuentaBancaria", description = "Operaciones para la gestión de cuentas bancarias")
-@RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
-@Validated  // Habilita validación en @PathVariable
+@RequiredArgsConstructor
+@Validated
 public class CuentaBancariaController {
 
     private final CuentaBancariaService cuentaBancariaService;
@@ -49,7 +47,7 @@ public class CuentaBancariaController {
     @ApiResponse(responseCode = "201", description = "Cuenta bancaria creada correctamente")
     @ApiResponse(responseCode = "400", description = "Error al crear la cuenta bancaria")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-    @PostMapping("/crear")
+    @PostMapping
     public ResponseEntity<Void> crearCuentaBancaria(
         @Valid 
         @NotNull(message = "La cuenta bancaria es obligatoria") 
@@ -67,7 +65,7 @@ public class CuentaBancariaController {
     @ApiResponse(responseCode = "200", description = "Cuentas bancarias listadas correctamente")
     @ApiResponse(responseCode = "400", description = "Error al listar las cuentas bancarias")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-    @GetMapping("/listar/{idEspacioTrabajo}")
+    @GetMapping("/espacio/{idEspacioTrabajo}")
     public ResponseEntity<List<CuentaBancariaDTOResponse>> listarCuentasBancarias(
         @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
         
@@ -83,18 +81,15 @@ public class CuentaBancariaController {
     @ApiResponse(responseCode = "200", description = "Transacción realizada correctamente")
     @ApiResponse(responseCode = "400", description = "Error al realizar la transacción")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-    @PutMapping("/transaccion/{idCuentaOrigen}/{idCuentaDestino}/{monto}")
+    @PostMapping("/transacciones")
     public ResponseEntity<Void> realizarTransaccion(
-            @PathVariable @NotNull(message = "La cuenta de origen es obligatoria") Long idCuentaOrigen, 
-            @PathVariable @NotNull(message = "La cuenta de destino es obligatoria") Long idCuentaDestino, 
-            @PathVariable @NotNull(message = "El monto es obligatorio") 
-            @DecimalMin(value = "0.009", message = "El monto debe ser mayor a 0")
-            @ValidMonto BigDecimal monto) {
+            @Valid @NotNull(message = "La transacción es obligatoria")
+            @RequestBody TransaccionCuentaRequest request) {
             
-        securityService.validateCuentaBancariaOwnership(idCuentaOrigen);
-        securityService.validateCuentaBancariaOwnership(idCuentaDestino);
-        cuentaBancariaService.transaccionEntreCuentas(idCuentaOrigen, idCuentaDestino, monto);
-        return new ResponseEntity<>(HttpStatus.OK);
+        securityService.validateCuentaBancariaOwnership(request.idCuentaOrigen());
+        securityService.validateCuentaBancariaOwnership(request.idCuentaDestino());
+        cuentaBancariaService.transaccionEntreCuentas(request.idCuentaOrigen(), request.idCuentaDestino(), request.monto());
+        return ResponseEntity.ok().build();
     }
 
     // =========================================================
@@ -108,7 +103,7 @@ public class CuentaBancariaController {
     @ApiResponse(responseCode = "201", description = "Descuento creado correctamente")
     @ApiResponse(responseCode = "400", description = "Error de validación en los datos del descuento")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-    @PostMapping("/descuento/crear")
+    @PostMapping("/descuentos")
     public ResponseEntity<Void> crearDescuento(
         @Valid
         @NotNull(message = "El descuento es obligatorio")
@@ -125,7 +120,7 @@ public class CuentaBancariaController {
     )
     @ApiResponse(responseCode = "200", description = "Descuentos listados correctamente")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-    @GetMapping("/descuento/listar/{idEspacioTrabajo}")
+    @GetMapping("/descuentos/espacio/{idEspacioTrabajo}")
     public ResponseEntity<List<DescuentoDTOResponse>> listarDescuentos(
         @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
 
@@ -141,13 +136,13 @@ public class CuentaBancariaController {
     @ApiResponse(responseCode = "204", description = "Descuento eliminado correctamente")
     @ApiResponse(responseCode = "404", description = "Descuento no encontrado")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-    @org.springframework.web.bind.annotation.DeleteMapping("/descuento/eliminar/{id}")
+    @DeleteMapping("/descuentos/{id}")
     public ResponseEntity<Void> eliminarDescuento(
         @PathVariable @NotNull(message = "El id del descuento es obligatorio") Long id) {
         
         securityService.validateDescuentoOwnership(id);
         cuentaBancariaService.eliminarDescuento(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return ResponseEntity.noContent().build();
     }
 
 }

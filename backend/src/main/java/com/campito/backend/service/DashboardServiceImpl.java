@@ -13,7 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import com.campito.backend.dao.CuotaCreditoRepository;
@@ -39,9 +42,11 @@ import lombok.RequiredArgsConstructor;
  * Implementación del servicio para gestión del dashboard.
  * 
  * Proporciona métodos para obtener estadísticas y datos relevantes para el dashboard.
+ * Las queries independientes a la DB se ejecutan en paralelo usando CompletableFuture
+ * para minimizar el tiempo de respuesta total.
  */
 @Service
-@RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
+@RequiredArgsConstructor
 @Slf4j
 public class DashboardServiceImpl implements DashboardService {
 
@@ -51,8 +56,12 @@ public class DashboardServiceImpl implements DashboardService {
     private final TarjetaRepository tarjetaRepository;
     private final GastosIngresosMensualesRepository gastosIngresosMensualesRepository;
 
+    @Qualifier("taskExecutor")
+    private final Executor taskExecutor;
+
     /**
      * Obtiene las estadísticas consolidadas del dashboard para un espacio de trabajo.
+     * Ejecuta queries independientes en paralelo para optimizar el tiempo de respuesta.
      * 
      * @param idEspacio ID del espacio de trabajo.
      * @return DTO con todas las estadísticas del dashboard (KPIs + charts).
@@ -64,7 +73,6 @@ public class DashboardServiceImpl implements DashboardService {
 
         log.info("Obteniendo estadisticas consolidadas del dashboard para el espacio ID: {}", idEspacio);
 
-        EspacioTrabajo espacio = buscarEspacioTrabajoPorId(idEspacio);
         ZoneId buenosAiresZone = ZoneId.of("America/Argentina/Buenos_Aires");
         ZonedDateTime nowInBuenosAires = ZonedDateTime.now(buenosAiresZone);
         Integer anioActual = nowInBuenosAires.getYear();
@@ -72,64 +80,95 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDate now = LocalDate.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
 
-        /* 1. Balance total del espacio */
-        BigDecimal balanceTotal = espacio.getSaldo();
-
-        /* 2. Gastos del mes actual */
-        BigDecimal gastosMensuales = gastosMesActual(espacio, anioActual, mesActual);
-
-        /* 3. Deuda total pendiente (todas las cuotas impagadas) */
-        BigDecimal deudaTotalPendiente = cuotaCreditoRepository.calcularDeudaTotalPendiente(idEspacio);
-
-        /* 4. Flujo mensual (últimos 12 meses) */
-        
-        // Generar lista de los últimos 12 meses (del más antiguo al más reciente)
         List<String> ultimosMeses = new ArrayList<>();
         for (int i = 11; i >= 0; i--) {
             ultimosMeses.add(now.minusMonths(i).format(formatter));
         }
 
-        // Obtener los registros existentes de GastosIngresosMensuales
-        List<GastosIngresosMensuales> registrosMensuales = gastosIngresosMensualesRepository
-            .findByEspacioTrabajoAndMeses(idEspacio, ultimosMeses);
-        
-        // Crear un mapa para acceso rápido por mes
-        Map<String, GastosIngresosMensuales> mapRegistros = new HashMap<>();
-        for (GastosIngresosMensuales reg : registrosMensuales) {
-            String mesKey = String.format("%d-%02d", reg.getAnio(), reg.getMes());
-            mapRegistros.put(mesKey, reg);
-        }
-
-        List<IngresosGastosMesDTO> flujoMensualCompleto = FlujoMensual(now, idEspacio, ultimosMeses, mapRegistros);
-        log.debug("Flujo mensual calculado con {} registros encontrados de {} meses solicitados", 
-        registrosMensuales.size(), ultimosMeses.size());
-
-        /* 5. Distribución de gastos por motivo (último mes) */
         LocalDate fechaLimite = now.minusMonths(1);
-        List<DistribucionGastoDTO> distribucionGastos = dashboardRepository.findDistribucionGastos(idEspacio, fechaLimite);
 
-        /* 6. Flujo de tarjeta mensual (últimos 12 meses) - construido desde registrosMensuales ya cargados */
-        List<FlujoCreditoMesDTO> flujoTarjetaMensualCompleto = FlujoCreditoMensual(ultimosMeses, mapRegistros);
+        /* === FASE 1: Ejecutar queries independientes en paralelo === */
 
-        /* 7. Distribución de compras con crédito por motivo (último mes) */
-        List<DistribucionGastoDTO> distribucionComprasCredito = dashboardRepository.findDistribucionComprasCredito(idEspacio, fechaLimite);
+        CompletableFuture<EspacioTrabajo> espacioFuture = CompletableFuture.supplyAsync(
+            () -> buscarEspacioTrabajoPorId(idEspacio), taskExecutor);
 
-        /* 8. Resumen mensual (suma de las cuotas que entrarán en los próximos resúmenes por tarjeta) */
-        BigDecimal resumenMensual = resumenMensual(idEspacio, now);
+        CompletableFuture<BigDecimal> deudaFuture = CompletableFuture.supplyAsync(
+            () -> cuotaCreditoRepository.calcularDeudaTotalPendiente(idEspacio), taskExecutor);
 
-        DashboardStatsDTO stats = new DashboardStatsDTO(
-            balanceTotal,
-            gastosMensuales,
-            resumenMensual,
-            deudaTotalPendiente,
-            flujoMensualCompleto,
-            distribucionGastos,
-            flujoTarjetaMensualCompleto,
-            distribucionComprasCredito
-        );
+        CompletableFuture<List<GastosIngresosMensuales>> registrosMensualesFuture = CompletableFuture.supplyAsync(
+            () -> gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(idEspacio, ultimosMeses), taskExecutor);
 
-        log.info("Estadisticas del dashboard para el espacio ID {} generadas exitosamente.", idEspacio);
-        return stats;
+        CompletableFuture<List<DistribucionGastoDTO>> distribucionGastosFuture = CompletableFuture.supplyAsync(
+            () -> dashboardRepository.findDistribucionGastos(idEspacio, fechaLimite), taskExecutor);
+
+        CompletableFuture<List<DistribucionGastoDTO>> distribucionComprasCreditoFuture = CompletableFuture.supplyAsync(
+            () -> dashboardRepository.findDistribucionComprasCredito(idEspacio, fechaLimite), taskExecutor);
+
+        CompletableFuture<BigDecimal> resumenMensualFuture = CompletableFuture.supplyAsync(
+            () -> resumenMensual(idEspacio, now), taskExecutor);
+
+        /* === FASE 2: Resolver dependencias encadenadas === */
+
+        // gastosMesActual depende del espacio (necesita el objeto EspacioTrabajo)
+        CompletableFuture<BigDecimal> gastosMensualesFuture = espacioFuture.thenApplyAsync(
+            espacio -> gastosMesActual(espacio, anioActual, mesActual), taskExecutor);
+
+        /* === FASE 3: Combinar resultados y construir el DTO === */
+
+        CompletableFuture<DashboardStatsDTO> statsFuture = CompletableFuture.allOf(
+                espacioFuture, gastosMensualesFuture, deudaFuture,
+                registrosMensualesFuture, distribucionGastosFuture,
+                distribucionComprasCreditoFuture, resumenMensualFuture
+            ).thenApplyAsync(v -> {
+
+                EspacioTrabajo espacio = espacioFuture.join();
+                BigDecimal balanceTotal = espacio.getSaldo();
+                BigDecimal gastosMensuales = gastosMensualesFuture.join();
+                BigDecimal deudaTotalPendiente = deudaFuture.join();
+                List<GastosIngresosMensuales> registrosMensuales = registrosMensualesFuture.join();
+                List<DistribucionGastoDTO> distribucionGastos = distribucionGastosFuture.join();
+                List<DistribucionGastoDTO> distribucionComprasCredito = distribucionComprasCreditoFuture.join();
+                BigDecimal resumenMensualTotal = resumenMensualFuture.join();
+
+                Map<String, GastosIngresosMensuales> mapRegistros = new HashMap<>();
+                for (GastosIngresosMensuales reg : registrosMensuales) {
+                    String mesKey = String.format("%d-%02d", reg.getAnio(), reg.getMes());
+                    mapRegistros.put(mesKey, reg);
+                }
+
+                List<IngresosGastosMesDTO> flujoMensualCompleto = FlujoMensual(now, idEspacio, ultimosMeses, mapRegistros);
+                List<FlujoCreditoMesDTO> flujoTarjetaMensualCompleto = FlujoCreditoMensual(ultimosMeses, mapRegistros);
+
+                log.debug("Flujo mensual calculado con {} registros encontrados de {} meses solicitados",
+                    registrosMensuales.size(), ultimosMeses.size());
+
+                DashboardStatsDTO stats = new DashboardStatsDTO(
+                    balanceTotal,
+                    gastosMensuales,
+                    resumenMensualTotal,
+                    deudaTotalPendiente,
+                    flujoMensualCompleto,
+                    distribucionGastos,
+                    flujoTarjetaMensualCompleto,
+                    distribucionComprasCredito
+                );
+
+                log.info("Estadisticas del dashboard para el espacio ID {} generadas exitosamente.", idEspacio);
+                return stats;
+            }, taskExecutor);
+
+        try {
+            return statsFuture.orTimeout(30, java.util.concurrent.TimeUnit.SECONDS).join();
+        } catch (java.util.concurrent.CompletionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof java.util.concurrent.TimeoutException) {
+                throw new RuntimeException("Timeout al obtener estadísticas del dashboard para el espacio " + idEspacio, cause);
+            }
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            throw e;
+        }
     }
 
     /*
@@ -175,10 +214,10 @@ public class DashboardServiceImpl implements DashboardService {
         return registro.getGastos();
     }
 
-        /**
-        * Obtiene el flujo mensual de ingresos y gastos para los últimos 12 meses.
-        * Rellena con ceros los meses que no tengan registros.
-        */
+    /**
+     * Obtiene el flujo mensual de ingresos y gastos para los últimos 12 meses.
+     * Rellena con ceros los meses que no tengan registros.
+     */
     private List<IngresosGastosMesDTO> FlujoMensual(LocalDate now, UUID idEspacio, List<String> ultimosMeses, Map<String, GastosIngresosMensuales> mapRegistros) {
         
         // Construir la lista completa con todos los meses (rellenar con ceros los faltantes)
@@ -192,7 +231,6 @@ public class DashboardServiceImpl implements DashboardService {
                     reg.getGastos()
                 ));
             } else {
-                // Mes sin datos: ingresos y gastos en cero
                 flujoMensualCompleto.add(new IngresosGastosMesDTOImpl(
                     mes,
                     BigDecimal.ZERO,
@@ -231,7 +269,6 @@ public class DashboardServiceImpl implements DashboardService {
      * fechas y luego trae todas las cuotas pendientes en ese rango para filtrar en memoria.
      */
     private BigDecimal resumenMensual(UUID idEspacio, LocalDate now) {
-        // 1. Traer todas las tarjetas del espacio (1 query)
         List<Tarjeta> tarjetas = tarjetaRepository.findByEspacioTrabajo_Id(idEspacio);
         
         if (tarjetas.isEmpty()) {
