@@ -9,11 +9,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.campito.backend.model.CompraCredito;
 
-@Repository
 public interface CompraCreditoRepository extends JpaRepository<CompraCredito, Long>, JpaSpecificationExecutor<CompraCredito> {
     
     List<CompraCredito> findByEspacioTrabajo_Id(UUID idEspacioTrabajo);

@@ -7,12 +7,10 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.campito.backend.dto.DistribucionGastoDTO;
 import com.campito.backend.model.Transaccion;
 
-@Repository
 public interface DashboardRepository extends JpaRepository<Transaccion, Long> {
 
     @Query(value = """

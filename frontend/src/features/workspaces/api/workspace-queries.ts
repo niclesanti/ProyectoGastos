@@ -6,15 +6,15 @@ import { espacioTrabajoService } from '@/services/espacio-trabajo.service'
 // Hook para LISTAR espacios de trabajo (GET)
 export const useWorkspaces = (userId: string | undefined) => {
   return useQuery({
-    queryKey: ['workspaces', userId], // El caché se identifica por este ID
+    queryKey: ['workspaces', userId],
     queryFn: async () => {
       const { data } = await apiClient.get<EspacioTrabajoResponse[]>(
-        `/espaciotrabajo/listar`
+        `/espacios-trabajo`
       )
       return data
     },
-    enabled: !!userId, // Solo se ejecuta si hay un usuario autenticado
-    staleTime: 1000 * 60 * 5, // Los datos se consideran "frescos" por 5 minutos
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -25,19 +25,18 @@ export const useCreateWorkspace = () => {
   return useMutation({
     mutationFn: async (newWorkspace: EspacioTrabajoRequest) => {
       const { data } = await apiClient.post<void>(
-        '/espaciotrabajo/registrar',
+        '/espacios-trabajo',
         newWorkspace
       )
       return data
     },
     onSuccess: () => {
-      // Invalida el caché para que la sidebar se actualice automáticamente
       queryClient.invalidateQueries({ queryKey: ['workspaces'] })
     },
   })
 }
 
-// Hook para COMPARTIR espacio de trabajo (PUT)
+// Hook para COMPARTIR espacio de trabajo (POST)
 export const useShareWorkspace = () => {
   const queryClient = useQueryClient()
 
@@ -47,10 +46,11 @@ export const useShareWorkspace = () => {
       idEspacioTrabajo,
     }: {
       email: string
-      idEspacioTrabajo: string  // UUID
+      idEspacioTrabajo: string
     }) => {
-      const { data } = await apiClient.put<void>(
-        `/espaciotrabajo/compartir/${email}/${idEspacioTrabajo}`
+      const { data } = await apiClient.post<void>(
+        `/espacios-trabajo/${idEspacioTrabajo}/miembros`,
+        { email }
       )
       return data
     },
@@ -65,11 +65,11 @@ export const useSolicitudesPendientes = () => {
   return useQuery({
     queryKey: ['solicitudes-pendientes'],
     queryFn: () => espacioTrabajoService.listarSolicitudesPendientes(),
-    staleTime: 1000 * 60 * 2, // Los datos se consideran "frescos" por 2 minutos
+    staleTime: 1000 * 60 * 2,
   })
 }
 
-// Hook para RESPONDER a una solicitud (PUT)
+// Hook para RESPONDER a una solicitud (POST)
 export const useResponderSolicitud = () => {
   const queryClient = useQueryClient()
 
@@ -84,7 +84,6 @@ export const useResponderSolicitud = () => {
       await espacioTrabajoService.responderSolicitud(idSolicitud, aceptada)
     },
     onSuccess: () => {
-      // Invalida el caché de solicitudes y workspaces
       queryClient.invalidateQueries({ queryKey: ['solicitudes-pendientes'] })
       queryClient.invalidateQueries({ queryKey: ['workspaces'] })
     },

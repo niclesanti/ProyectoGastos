@@ -85,7 +85,7 @@ class AuthService {
    */
   async getCurrentUser(): Promise<User | null> {
     try {
-      const response = await fetch(`${API_URL}/usuario/me`, {
+      const response = await fetch(`${API_URL}/api/usuarios/me`, {
         method: 'GET',
         credentials: 'include',
         headers: {

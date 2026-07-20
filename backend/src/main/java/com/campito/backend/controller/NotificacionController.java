@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -93,9 +94,7 @@ public class NotificacionController {
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @PutMapping("/{id}/leer")
     public ResponseEntity<Void> marcarComoLeida(@PathVariable Long id) {
-        // Validar que la notificación pertenece al usuario autenticado
         securityService.validateNotificacionOwnership(id);
-        securityService.getAuthenticatedUserId();
 
         notificacionService.marcarComoLeida(id);
         return ResponseEntity.ok().build();
@@ -138,12 +137,10 @@ public class NotificacionController {
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarNotificacion(@PathVariable Long id) {
-        // Validar que la notificación pertenece al usuario autenticado
         securityService.validateNotificacionOwnership(id);
-        securityService.getAuthenticatedUserId();
 
         notificacionService.eliminarNotificacion(id);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
     
     /**
@@ -173,6 +170,7 @@ public class NotificacionController {
      * @param mensaje Mensaje personalizado (opcional)
      * @return Respuesta de confirmación
      */
+    @Profile("dev")
     @Operation(
         summary = "Enviar notificación de prueba",
         description = "Publica un evento de notificación para el usuario autenticado. Útil para probar el SSE en tiempo real durante el desarrollo."

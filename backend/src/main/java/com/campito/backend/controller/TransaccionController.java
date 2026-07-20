@@ -35,9 +35,9 @@ import org.springframework.http.ResponseEntity;
 
 
 @RestController
-@RequestMapping("/api/transaccion")
-@Tag(name = "Transaccion", description = "Operaciones para la gestión de transacciones")
-@RequiredArgsConstructor  // Genera constructor con todos los campos final para inyección de dependencias
+@RequestMapping("/api/transacciones")
+@Tag(name = "Transacción", description = "Operaciones para la gestión de transacciones")
+@RequiredArgsConstructor
 @Validated
 public class TransaccionController {
 
@@ -52,7 +52,7 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "403", description = "No tienes acceso a este espacio de trabajo"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
-    @PostMapping("/registrar")
+    @PostMapping
     public ResponseEntity<TransaccionDTOResponse> registrarTransaccion(
         @Valid 
         @NotNull(message = "El cuerpo de la transacción es obligatorio") 
@@ -73,15 +73,14 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "404", description = "Transacción no encontrada"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
-    @DeleteMapping("/remover/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> removerTransaccion(
         @PathVariable @NotNull(message = "El id de la transacción es obligatorio") Long id) {
         
-        // Validar que la transacción pertenece a un espacio del usuario
         securityService.validateTransactionOwnership(id);
         
         transaccionService.removerTransaccion(id);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Buscar transacciones",
@@ -113,7 +112,7 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "403", description = "No tienes acceso a este espacio de trabajo"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
-    @PostMapping("/contacto/registrar")
+    @PostMapping("/contactos")
     public ResponseEntity<ContactoDTOResponse> registrarContactoTransferencia(
         @Valid 
         @NotNull(message = "El contacto es obligatorio") 
@@ -134,7 +133,7 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "404", description = "Espacio de trabajo no encontrado"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
-    @GetMapping("/contacto/listar/{idEspacioTrabajo}")
+    @GetMapping("/contactos/espacio/{idEspacioTrabajo}")
     public ResponseEntity<List<ContactoDTOResponse>> listarContactos(
         @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
         
@@ -153,7 +152,7 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "403", description = "No tienes acceso a este espacio de trabajo"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
-    @PostMapping("/motivo/registrar")
+    @PostMapping("/motivos")
     public ResponseEntity<MotivoDTOResponse> nuevoMotivoTransaccion(
         @Valid 
         @NotNull(message = "El motivo es obligatorio") 
@@ -174,7 +173,7 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "404", description = "Espacio de trabajo no encontrado"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
-    @GetMapping("/motivo/listar/{idEspacioTrabajo}")
+    @GetMapping("/motivos/espacio/{idEspacioTrabajo}")
     public ResponseEntity<List<MotivoDTOResponse>> listarMotivos(
         @PathVariable @NotNull(message = "El id del espacio de trabajo es obligatorio") UUID idEspacioTrabajo) {
         
@@ -193,7 +192,7 @@ public class TransaccionController {
                     @ApiResponse(responseCode = "403", description = "No tienes acceso a este espacio de trabajo"),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                 })
-    @GetMapping("/buscarRecientes/{idEspacio}")
+    @GetMapping("/recientes/{idEspacio}")
     public ResponseEntity<List<TransaccionDTOResponse>> buscarTransaccionesRecientes(
         @PathVariable @NotNull(message = "El id del espacio es obligatorio") UUID idEspacio) {
         
