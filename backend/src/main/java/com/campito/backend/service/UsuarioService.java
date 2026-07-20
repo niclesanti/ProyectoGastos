@@ -1,23 +1,16 @@
 package com.campito.backend.service;
 
-import com.campito.backend.dao.UsuarioRepository;
-import com.campito.backend.dto.UsuarioDTO;
-import com.campito.backend.model.Usuario;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.util.UUID;
 
-@Service
-@RequiredArgsConstructor
-public class UsuarioService {
+import com.campito.backend.dto.UsuarioDTOResponse;
 
-    private final UsuarioRepository usuarioRepository;
+public interface UsuarioService {
 
-    public UsuarioDTO getUsuarioAutenticado(UUID userId) {
-        Usuario usuario = usuarioRepository.findById(userId)
-            .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
-        return UsuarioDTO.fromUsuario(usuario);
-    }
+    /**
+     * Obtiene los datos del usuario autenticado a partir de su ID.
+     *
+     * @param userId ID del usuario autenticado.
+     * @return DTO con los datos del usuario.
+     */
+    UsuarioDTOResponse getUsuarioAutenticado(UUID userId);
 }

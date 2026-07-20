@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.campito.backend.dto.UsuarioDTO;
+import com.campito.backend.dto.UsuarioDTOResponse;
 import com.campito.backend.service.SecurityService;
 import com.campito.backend.service.UsuarioService;
 
@@ -31,9 +31,9 @@ public class UsuarioController {
     @ApiResponse(responseCode = "401", description = "No autorizado")
     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @GetMapping("/me")
-    public ResponseEntity<UsuarioDTO> getUsuarioAutenticado() {
+    public ResponseEntity<UsuarioDTOResponse> getUsuarioAutenticado() {
         UUID userId = securityService.getAuthenticatedUserId();
-        UsuarioDTO usuarioAut = usuarioService.getUsuarioAutenticado(userId);
+        UsuarioDTOResponse usuarioAut = usuarioService.getUsuarioAutenticado(userId);
         return new ResponseEntity<>(usuarioAut, HttpStatus.OK);
     }
 }

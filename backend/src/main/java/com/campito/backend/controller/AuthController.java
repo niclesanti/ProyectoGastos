@@ -1,7 +1,7 @@
 package com.campito.backend.controller;
 
 import com.campito.backend.dto.AuthStatusResponse;
-import com.campito.backend.dto.UsuarioDTO;
+import com.campito.backend.mapper.UsuarioMapper;
 import com.campito.backend.model.CustomOAuth2User;
 import com.campito.backend.security.JwtTokenProvider;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final UsuarioMapper usuarioMapper;
 
     @Operation(summary = "Verificar estado de autenticación",
                description = "Devuelve si el usuario está autenticado y sus datos.",
@@ -39,7 +40,7 @@ public class AuthController {
             );
             AuthStatusResponse response = new AuthStatusResponse(
                 true,
-                UsuarioDTO.fromUsuario(principal.getUsuario()),
+                usuarioMapper.toResponse(principal.getUsuario()),
                 token
             );
             return ResponseEntity.ok(response);

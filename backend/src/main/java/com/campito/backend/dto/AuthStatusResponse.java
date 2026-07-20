@@ -2,6 +2,6 @@ package com.campito.backend.dto;
 
 public record AuthStatusResponse(
     boolean authenticated,
-    UsuarioDTO user,
+    UsuarioDTOResponse user,
     String token
 ) {}
