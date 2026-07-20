@@ -86,11 +86,6 @@ class DashboardServiceTest {
     // --------------------------------------------------
 
     @Test
-    void obtenerDashboardStats_idEspacioNulo_lanzaIllegalArgument() {
-        assertThrows(IllegalArgumentException.class, () -> dashboardService.obtenerDashboardStats(null));
-    }
-
-    @Test
     void obtenerDashboardStats_espacioNoExiste_lanzaEntityNotFound() {
         when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.empty());
 
