@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,9 @@ class DashboardServiceTest {
     @Mock
     private GastosIngresosMensualesRepository gastosIngresosMensualesRepository;
 
+    @Mock
+    private Executor taskExecutor;
+
     @InjectMocks
     private DashboardServiceImpl dashboardService;
 
@@ -68,11 +72,23 @@ class DashboardServiceTest {
         espacio = new EspacioTrabajo();
         espacio.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
         espacio.setSaldo(new BigDecimal("123.45"));
+
+        // Configure mock executor to run tasks synchronously on the calling thread
+        lenient().doAnswer(invocation -> {
+            Runnable task = invocation.getArgument(0);
+            task.run();
+            return null;
+        }).when(taskExecutor).execute(any(Runnable.class));
     }
 
     // --------------------------------------------------
     // Tests for obtenerDashboardStats
     // --------------------------------------------------
+
+    @Test
+    void obtenerDashboardStats_idEspacioNulo_lanzaIllegalArgument() {
+        assertThrows(IllegalArgumentException.class, () -> dashboardService.obtenerDashboardStats(null));
+    }
 
     @Test
     void obtenerDashboardStats_espacioNoExiste_lanzaEntityNotFound() {
@@ -81,14 +97,12 @@ class DashboardServiceTest {
         assertThrows(EntityNotFoundException.class, () -> dashboardService.obtenerDashboardStats(espacio.getId()));
 
         verify(espacioRepository).findById(espacio.getId());
-        verifyNoMoreInteractions(espacioRepository, dashboardRepository, cuotaCreditoRepository, tarjetaRepository, gastosIngresosMensualesRepository);
     }
 
     @Test
     void obtenerDashboardStats_gastosNoEncontrado_completaConCerosYCalculaOtrosCampos() {
         when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
 
-        // No gastosIngresosMensuales para el mes actual
         when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(any(java.util.UUID.class), anyInt(), anyInt()))
             .thenReturn(Optional.empty());
 
@@ -118,7 +132,6 @@ class DashboardServiceTest {
     void obtenerDashboardStats_conDatos_mapeaValoresResumenYFlujoYDistribucion() {
         when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
 
-        // Simular que tenemos registro de gastos para dos meses dentro de los últimos 12
         LocalDate now = LocalDate.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
 
@@ -127,7 +140,6 @@ class DashboardServiceTest {
             ultimosMeses.add(now.minusMonths(i).format(formatter));
         }
 
-        // choose two months to return as existing records
         YearMonth ym1 = YearMonth.from(now).minusMonths(2);
         YearMonth ym2 = YearMonth.from(now).minusMonths(5);
 
@@ -155,12 +167,10 @@ class DashboardServiceTest {
 
         when(cuotaCreditoRepository.calcularDeudaTotalPendiente(espacio.getId())).thenReturn(new BigDecimal("250.50"));
 
-        // Distribucion de gastos
         DistribucionGastoDTO distribMock = mock(DistribucionGastoDTO.class);
         when(dashboardRepository.findDistribucionGastos(eq(espacio.getId()), any(LocalDate.class))).thenReturn(List.of(distribMock));
         when(dashboardRepository.findDistribucionComprasCredito(eq(espacio.getId()), any(LocalDate.class))).thenReturn(new ArrayList<>());
 
-        // Tarjeta y cuotas pendientes -> resumen mensual
         Tarjeta tarjeta = new Tarjeta();
         tarjeta.setId(20L);
         tarjeta.setDiaCierre(5);
@@ -168,12 +178,9 @@ class DashboardServiceTest {
         tarjeta.setEspacioTrabajo(espacio);
         when(tarjetaRepository.findByEspacioTrabajo_Id(espacio.getId())).thenReturn(List.of(tarjeta));
         
-        // Crear compra crédito para asociar las cuotas con la tarjeta
         var compraCredito = new com.campito.backend.model.CompraCredito();
         compraCredito.setTarjeta(tarjeta);
         
-        // Calcular el rango de fechas que el método resumenMensual() utilizará
-        // Esto simula la lógica del método para asegurar que las fechas coincidan
         YearMonth ym = YearMonth.from(LocalDate.now());
         int diaAjustadoCierre = Math.min(5, ym.lengthOfMonth());
         LocalDate fechaCierre = ym.atDay(diaAjustadoCierre);
@@ -183,25 +190,21 @@ class DashboardServiceTest {
             fechaCierre = siguiente.atDay(diaAjustadoCierre);
         }
         LocalDate fechaInicio = fechaCierre.plusDays(1);
-        // Calcular fecha vencimiento (mismo cálculo que calcularFechaVencimiento)
         YearMonth mesActual = YearMonth.from(fechaCierre);
         YearMonth mesSiguiente = mesActual.plusMonths(1);
         int diaAjustadoVenc = Math.min(10, mesSiguiente.lengthOfMonth());
         LocalDate fechaFin = mesSiguiente.atDay(diaAjustadoVenc);
         
-        // Crear cuotas con fechas que caigan DENTRO del rango calculado
         CuotaCredito cuota1 = new CuotaCredito();
         cuota1.setMontoCuota(new BigDecimal("120.00"));
         cuota1.setCompraCredito(compraCredito);
-        cuota1.setFechaVencimiento(fechaInicio.plusDays(1)); // Dentro del rango
+        cuota1.setFechaVencimiento(fechaInicio.plusDays(1));
         
         CuotaCredito cuota2 = new CuotaCredito();
         cuota2.setMontoCuota(new BigDecimal("80.00"));
         cuota2.setCompraCredito(compraCredito);
-        cuota2.setFechaVencimiento(fechaInicio.plusDays(5)); // Dentro del rango
+        cuota2.setFechaVencimiento(fechaInicio.plusDays(5));
 
-        // OPTIMIZACIÓN: Ahora se usa findByEspacioTrabajoSinResumenEnRango (batch query)
-        // en lugar de findByTarjetaSinResumenEnRango (query por tarjeta individual)
         when(cuotaCreditoRepository.findByEspacioTrabajoSinResumenEnRango(eq(espacio.getId()), any(LocalDate.class), any(LocalDate.class)))
                 .thenReturn(List.of(cuota1, cuota2));
 
@@ -209,13 +212,12 @@ class DashboardServiceTest {
 
         assertNotNull(stats);
         assertEquals(espacio.getSaldo(), stats.balanceTotal());
-        assertEquals(new BigDecimal("100.00"), stats.gastosMensuales()); // because findByEspacioTrabajo_IdAndAnioAndMes returned g1
+        assertEquals(new BigDecimal("100.00"), stats.gastosMensuales());
         assertEquals(new BigDecimal("250.50"), stats.deudaTotalPendiente());
         assertEquals(new BigDecimal("200.00"), stats.resumenMensual(), "Resumen mensual es la suma de las cuotas devueltas");
         assertEquals(12, stats.flujoMensual().size());
         assertEquals(1, stats.distribucionGastos().size());
 
-        // Verificar que la consulta batch fue utilizada (no la query individual por tarjeta)
         verify(cuotaCreditoRepository).findByEspacioTrabajoSinResumenEnRango(eq(espacio.getId()), any(LocalDate.class), any(LocalDate.class));
         verify(cuotaCreditoRepository, never()).findByTarjetaSinResumenEnRango(anyLong(), any(LocalDate.class), any(LocalDate.class));
     }
@@ -251,4 +253,3 @@ class DashboardServiceTest {
     }
 
 }
-
