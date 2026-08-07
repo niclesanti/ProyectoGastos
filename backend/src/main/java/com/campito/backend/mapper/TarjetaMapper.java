@@ -2,9 +2,11 @@ package com.campito.backend.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
 import com.campito.backend.dto.TarjetaDTORequest;
 import com.campito.backend.dto.TarjetaDTOResponse;
+import com.campito.backend.dto.TarjetaDTOUpdate;
 import com.campito.backend.mapper.config.MapstructConfig;
 import com.campito.backend.model.Tarjeta;
 
@@ -43,4 +45,20 @@ public interface TarjetaMapper {
      */
     @Mapping(target = "espacioTrabajoId", source = "espacioTrabajo.id")
     TarjetaDTOResponse toResponse(Tarjeta tarjeta);
+
+    /**
+     * Actualiza los campos editables de una Tarjeta existente desde TarjetaDTOUpdate.
+     * Solo actualiza diaCierre y diaVencimientoPago; el resto se ignora.
+     *
+     * @param dto DTO con los campos a actualizar
+     * @param tarjeta Entidad a actualizar (MappingTarget)
+     */
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "espacioTrabajo", ignore = true)
+    @Mapping(target = "numeroTarjeta", ignore = true)
+    @Mapping(target = "entidadFinanciera", ignore = true)
+    @Mapping(target = "redDePago", ignore = true)
+    @Mapping(target = "fechaCreacion", ignore = true)
+    @Mapping(target = "fechaModificacion", ignore = true)
+    void updateEntity(TarjetaDTOUpdate dto, @MappingTarget Tarjeta tarjeta);
 }
