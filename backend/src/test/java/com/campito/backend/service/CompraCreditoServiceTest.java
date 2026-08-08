@@ -42,6 +42,7 @@ import com.campito.backend.dto.CompraCreditoDTORequest;
 import com.campito.backend.dto.CompraCreditoDTOResponse;
 import com.campito.backend.dto.CuotaCreditoDTOResponse;
 import com.campito.backend.dto.PagarResumenTarjetaRequest;
+import com.campito.backend.dto.TarjetaDTOUpdate;
 import com.campito.backend.dto.TransaccionDTOResponse;
 import com.campito.backend.mapper.CompraCreditoMapper;
 import com.campito.backend.mapper.CuotaCreditoMapper;
@@ -364,7 +365,8 @@ public class CompraCreditoServiceTest {
     @Test
     void modificarTarjeta_tarjetaNoExiste_lanzaEntityNotFound() {
         when(tarjetaRepository.findById(20L)).thenReturn(Optional.empty());
-        assertThrows(EntityNotFoundException.class, () -> compraCreditoService.modificarTarjeta(20L, 15, 5));
+        TarjetaDTOUpdate dto = new TarjetaDTOUpdate(15, 5);
+        assertThrows(EntityNotFoundException.class, () -> compraCreditoService.modificarTarjeta(20L, dto));
     }
 
     @Test
@@ -379,8 +381,16 @@ public class CompraCreditoServiceTest {
             Tarjeta saved = inv.getArgument(0);
             return new com.campito.backend.dto.TarjetaDTOResponse(saved.getId(), saved.getNumeroTarjeta(), saved.getEntidadFinanciera(), saved.getRedDePago(), saved.getDiaCierre(), saved.getDiaVencimientoPago(), espacio.getId());
         });
+        lenient().doAnswer(inv -> {
+            TarjetaDTOUpdate dto = inv.getArgument(0);
+            Tarjeta target = inv.getArgument(1);
+            target.setDiaCierre(dto.diaCierre());
+            target.setDiaVencimientoPago(dto.diaVencimientoPago());
+            return null;
+        }).when(tarjetaMapper).updateEntity(any(TarjetaDTOUpdate.class), any(Tarjeta.class));
 
-        var resp = compraCreditoService.modificarTarjeta(20L, 15, 7);
+        TarjetaDTOUpdate dto = new TarjetaDTOUpdate(15, 7);
+        var resp = compraCreditoService.modificarTarjeta(20L, dto);
         assertNotNull(resp);
 
         ArgumentCaptor<Tarjeta> captor = ArgumentCaptor.forClass(Tarjeta.class);

@@ -23,6 +23,7 @@ import com.campito.backend.dto.PagarResumenTarjetaRequest;
 import com.campito.backend.dto.ResumenDTOResponse;
 import com.campito.backend.dto.TarjetaDTORequest;
 import com.campito.backend.dto.TarjetaDTOResponse;
+import com.campito.backend.dto.TarjetaDTOUpdate;
 import com.campito.backend.service.CompraCreditoService;
 import com.campito.backend.service.SecurityService;
 
@@ -265,10 +266,10 @@ public class ComprasCreditoController {
     @PutMapping("/tarjetas/{id}")
     public ResponseEntity<TarjetaDTOResponse> modificarTarjeta(
         @PathVariable @NotNull(message = "El id de la tarjeta es obligatorio") Long id,
-        @Valid @RequestBody TarjetaDTORequest tarjetaDTO) {
+        @Valid @RequestBody TarjetaDTOUpdate tarjetaDTO) {
         
         securityService.validateTarjetaOwnership(id);
-        TarjetaDTOResponse tarjetaModificada = comprasCreditoService.modificarTarjeta(id, tarjetaDTO.diaCierre(), tarjetaDTO.diaVencimientoPago());
+        TarjetaDTOResponse tarjetaModificada = comprasCreditoService.modificarTarjeta(id, tarjetaDTO);
         return new ResponseEntity<>(tarjetaModificada, HttpStatus.OK);
     }
 }
