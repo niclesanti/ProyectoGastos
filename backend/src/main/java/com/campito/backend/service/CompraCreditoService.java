@@ -12,6 +12,7 @@ import com.campito.backend.dto.PagarResumenTarjetaRequest;
 import com.campito.backend.dto.ResumenDTOResponse;
 import com.campito.backend.dto.TarjetaDTORequest;
 import com.campito.backend.dto.TarjetaDTOResponse;
+import com.campito.backend.dto.TarjetaDTOUpdate;
 
 public interface CompraCreditoService {
     public CompraCreditoDTOResponse registrarCompraCredito(CompraCreditoDTORequest compraCreditoDTO);
@@ -26,5 +27,5 @@ public interface CompraCreditoService {
     public void pagarResumenTarjeta(PagarResumenTarjetaRequest request);
     public List<ResumenDTOResponse> listarResumenesPorTarjeta(Long idTarjeta);
     public List<ResumenDTOResponse> listarResumenesPorEspacioTrabajo(UUID idEspacioTrabajo);
-    public TarjetaDTOResponse modificarTarjeta(Long id, Integer diaCierre, Integer diaVencimientoPago);
+    public TarjetaDTOResponse modificarTarjeta(Long id, TarjetaDTOUpdate tarjetaUpdate);
 }

@@ -39,6 +39,7 @@ import com.campito.backend.dto.PagarResumenTarjetaRequest;
 import com.campito.backend.dto.ResumenDTOResponse;
 import com.campito.backend.dto.TarjetaDTORequest;
 import com.campito.backend.dto.TarjetaDTOResponse;
+import com.campito.backend.dto.TarjetaDTOUpdate;
 import com.campito.backend.dto.TransaccionDTORequest;
 import com.campito.backend.dto.TransaccionDTOResponse;
 import com.campito.backend.exception.EntidadDuplicadaException;
@@ -599,20 +600,18 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
      * Modifica los días de cierre y vencimiento de pago de una tarjeta existente.
      * 
      * @param id ID de la tarjeta a modificar
-     * @param diaCierre Nuevo día de cierre
-     * @param diaVencimientoPago Nuevo día de vencimiento de pago
+     * @param tarjetaUpdate DTO con los campos a actualizar
      * @return Respuesta con los detalles de la tarjeta modificada
      * @throws EntityNotFoundException si la tarjeta no existe
      */
     @Override
     @Transactional
-    public TarjetaDTOResponse modificarTarjeta(Long id, Integer diaCierre, Integer diaVencimientoPago) {
+    public TarjetaDTOResponse modificarTarjeta(Long id, TarjetaDTOUpdate tarjetaUpdate) {
         log.info("Iniciando modificación de tarjeta ID {}", id);
 
         Tarjeta tarjeta = buscarTarjetaPorId(id);
 
-        tarjeta.setDiaCierre(diaCierre);
-        tarjeta.setDiaVencimientoPago(diaVencimientoPago);
+        tarjetaMapper.updateEntity(tarjetaUpdate, tarjeta);
 
         // Actualizar manualmente fecha_modificacion para que la tarjeta aparezca primero
         tarjeta.setFechaModificacion(LocalDateTime.now());
