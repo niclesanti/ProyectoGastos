@@ -31,6 +31,14 @@ jobs:
         cd backend
         ./mvnw clean test
 
+    - name: Subir reporte de cobertura
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: jacoco-report-backend
+        path: backend/target/site/jacoco/
+        if-no-files-found: warn
+
   # Job 2: Build y Push de la imagen Docker (solo si los tests pasan)
   build-and-push:
     needs: test
