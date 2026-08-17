@@ -99,7 +99,7 @@ Aplicación web moderna y responsiva desarrollada con React 18 y TypeScript que 
 - Modales y diálogos accesibles
 - Drag & drop para reorganización
 - Modo oscuro nativo
-- FAB (Floating Action Button) en móviles
+- Barra de navegación Liquid Glass en móviles
 - Animaciones suaves y transiciones
 
 ---
@@ -457,7 +457,7 @@ frontend/
 │   │   ├── CreditPurchaseModal.tsx
 │   │   ├── DeleteConfirmDialog.tsx
 │   │   ├── Header.tsx
-│   │   ├── MobileActionsFAB.tsx     # FAB para móviles
+│   │   ├── LiquidGlassNavigationBar.tsx # Barra Liquid Glass para móviles
 │   │   ├── PaymentProviderLogo.tsx
 │   │   ├── ProtectedRoute.tsx       # HOC de autenticación
 │   │   ├── Sidebar.tsx
@@ -1302,16 +1302,16 @@ xl: '1280px'  // Desktop
 
 ### Mobile-Specific Features
 
-#### Floating Action Button (FAB)
+#### Barra de navegación Liquid Glass
 
-**Archivo**: `src/components/MobileActionsFAB.tsx`
+**Archivo**: `src/components/LiquidGlassNavigationBar.tsx`
 
-- Botón flotante solo en móvil
-- Drawer con acciones rápidas:
-  - Registrar transacción
+- Barra flotante estilo iOS 26 con efecto Liquid Glass, solo en móvil/tablet pequeña (`md:hidden`)
+- Cuatro acciones directas que abren su modal correspondiente sin intermediarios:
+  - Registrar transacción (gastos/ingresos)
   - Movimiento entre cuentas
   - Compra con crédito
-  - Pagar resumen tarjeta
+  - Pagar resumen de tarjeta
 
 #### Touch Interactions
 - Swipe gestures en drawers
