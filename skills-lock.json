@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "skills": {
+    "313-frameworks-spring-db-migrations-flyway": {
+      "source": "jabrena/plinth",
+      "sourceType": "github",
+      "skillPath": "skills/313-frameworks-spring-db-migrations-flyway/SKILL.md",
+      "computedHash": "a01f685a6c8654bc112975205dfbfebfa9e62d4fcfc88260e70b24118b641c9e"
+    },
+    "docker-compose-production": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "skillPath": "plugins/tools/docker-compose/skills/docker-compose-production/SKILL.md",
+      "computedHash": "71eabff15298ed1751cf7a6e71e3b27269eaff07e8084dbdf8de5fff813044f6"
+    },
+    "github-actions": {
+      "source": "bobmatnyc/claude-mpm-skills",
+      "sourceType": "github",
+      "skillPath": "toolchains/universal/infrastructure/github-actions/SKILL.md",
+      "computedHash": "f0e55c5a43583424491a1e44ec8f6b69202cac21346d5878c0a335a354221f72"
+    },
+    "java-junit": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/java-junit/SKILL.md",
+      "computedHash": "fbf3cb0d47ffb44bdb6e1ebcc4d89dd7083208efdfc5b88f316c8bc2b58250b5"
+    },
+    "java-springboot": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/java-springboot/SKILL.md",
+      "computedHash": "f1b9c6b1277178fc33e5a612761c1cd1cf6ab5f946d05d69d52026d142c0a0c1"
+    },
+    "react-dev": {
+      "source": "softaworks/agent-toolkit",
+      "sourceType": "github",
+      "skillPath": "skills/react-dev/SKILL.md",
+      "computedHash": "da3caa5f2bfd7274fad3f08524ff3ad4f427978773c3e77e7b14e44aaac31d78"
+    },
+    "react-hook-form-zod": {
+      "source": "ovachiever/droid-tings",
+      "sourceType": "github",
+      "skillPath": "skills/react-hook-form-zod/SKILL.md",
+      "computedHash": "ae74aa8ed25ec6e82aa30d00b4865fa5cff76c65f1b43ff1169eb2a222740e01"
+    },
+    "react-state-management": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/frontend-mobile-development/skills/react-state-management/SKILL.md",
+      "computedHash": "ad235563b998dde651611d5b733f12c3cdcc61f6e9368551230a1dbfeec2313e"
+    },
+    "spring-boot-patterns": {
+      "source": "decebals/claude-code-java",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/spring-boot-patterns/SKILL.md",
+      "computedHash": "e1a883cf34fc1ede23df5d9bb4a422977ace2bc2f9a941502c93a323af193c16"
+    },
+    "spring-boot-security-jwt": {
+      "source": "giuseppe-trisciuoglio/developer-kit",
+      "sourceType": "github",
+      "skillPath": "plugins/developer-kit-java/skills/spring-boot-security-jwt/SKILL.md",
+      "computedHash": "f04cfa9e9e9cc68eefbfc7eb9e7a8d4f7e23f1a5545894f94aa88ce2dc2fe065"
+    },
+    "spring-data-jpa": {
+      "source": "giuseppe-trisciuoglio/developer-kit",
+      "sourceType": "github",
+      "skillPath": "plugins/developer-kit-java/skills/spring-data-jpa/SKILL.md",
+      "computedHash": "5e71f0c7eb4f851a7a1543d5d5212a0a5f44027c80f03b0280c85d816e16fee5"
+    },
+    "unit-test-service-layer": {
+      "source": "giuseppe-trisciuoglio/developer-kit",
+      "sourceType": "github",
+      "skillPath": "plugins/developer-kit-java/skills/unit-test-service-layer/SKILL.md",
+      "computedHash": "5b735efe659ea44061a2ed75835ad0637d5627bad588ee7fa50ce294d840ad20"
+    },
+    "vitest": {
+      "source": "jezweb/claude-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/dev-tools/skills/vitest/SKILL.md",
+      "computedHash": "e5348139f537b6cfdfb68de2fa45a2c361b295be193ceb1c357f0e096632f0d9"
+    },
+    "web-ui-shadcn-ui": {
+      "source": "agents-inc/skills",
+      "sourceType": "github",
+      "skillPath": "src/skills/web-ui-shadcn-ui/SKILL.md",
+      "computedHash": "08fa43fcdb6a6b830635212282a9372f07bbd92b40e5e6e9c2a642ac3ea0fd20"
+    },
+    "zustand-patterns": {
+      "source": "yonatangross/orchestkit",
+      "sourceType": "github",
+      "skillPath": "plugins/ork/skills/zustand-patterns/SKILL.md",
+      "computedHash": "5ec6f7fabe74a6fb6c9478ebc46d269b19b36af36cd52cb17326d358a89c6d22"
+    }
+  }
+}

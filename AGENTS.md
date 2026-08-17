@@ -96,18 +96,50 @@ controller/ → service/ → dao/ (repositories)
 
 ### backend-expert
 
-Subagent for backend Java/Spring Boot work. Has 11 skills installed at `~/.agents/skills/`.
+Subagent for backend Java/Spring Boot work. Has 9 skills installed locally at `.agents/skills/` (no global skills).
 
 - **Invoke manually**: `/backend-expert <prompt>`
 - **Invoke via Task tool**: `task(subagent="backend-expert", prompt="...")`
 - **Modes**: Plan (design only) and Build (implement)
 - **Permissions**: can edit `*.java`, `*.xml`, `*.properties`, `*.yml`, `*.yaml`, `*.sql`, `*.md`; can run `./mvnw`, `docker compose`, `npm`
 
-Skills activated contextually: `java-spring-boot`, `java-springboot`, `springboot-patterns`, `spring-data-jpa`, `postgres-patterns`, `springboot-security`, `java-junit`, `docker-patterns`, `multi-stage-dockerfile`, `create-spring-boot-java-project`, `find-skills`.
+**Skills (project-local only):**
+
+| Skill | When to activate |
+|-------|-----------------|
+| `java-springboot` | Spring Boot best practices, REST APIs, Actuator, profiles, configuration |
+| `spring-boot-security-jwt` | Spring Security, OAuth2, JWT, filter chains, CORS, auth flows |
+| `spring-data-jpa` | Repositories, Specifications, auditing, query methods, JPA entities |
+| `313-frameworks-spring-db-migrations-flyway` | Flyway migrations, schema versioning, database evolution |
+| `java-junit` | JUnit 5, assertions, parameterized tests, test lifecycle |
+| `unit-test-service-layer` | Service layer testing patterns, mocking with Mockito, AAA structure |
+| `spring-boot-patterns` | Architecture patterns, layered services, DTOs, exception handling |
+| `docker-compose-production` | Docker Compose configuration, networking, volumes, production setup |
+| `github-actions` | GitHub Actions CI/CD pipelines, workflows, secrets management |
+
+### frontend-expert
+
+Subagent for frontend React/TypeScript work. Has 6 skills installed locally at `.agents/skills/` (no global skills).
+
+- **Invoke manually**: `/frontend-expert <prompt>`
+- **Invoke via Task tool**: `task(subagent="frontend-expert", prompt="...")`
+- **Modes**: Plan (design only) and Build (implement)
+- **Permissions**: can edit `*.ts`, `*.tsx`, `*.js`, `*.jsx`, `*.css`, `*.json`, `*.md`; can run `npm`
+
+**Skills (project-local only):**
+
+| Skill | When to activate |
+|-------|-----------------|
+| `react-dev` | React best practices, hooks, components, performance, TypeScript patterns |
+| `react-state-management` | Zustand stores, React Query, global state, server state patterns |
+| `zustand-patterns` | Zustand-specific patterns, slices, middleware, store architecture |
+| `react-hook-form-zod` | Form handling with react-hook-form, Zod validation, shadcn/ui Form integration |
+| `web-ui-shadcn-ui` | shadcn/ui components, Radix UI primitives, Tailwind styling patterns |
+| `vitest` | Vitest testing, Testing Library, jsdom, component/unit test patterns |
 
 ### backend-reviewer
 
-Read-only Code Reviewer subagent. Reviews backend implementations against the same 11 skills' best practices. Cannot edit files — only produces review reports with severity levels, corrections, and scores.
+Read-only Code Reviewer subagent. Reviews backend implementations against the same 9 backend skills' best practices. Cannot edit files — only produces review reports with severity levels, corrections, and scores.
 
 - **Invoke manually**: `/backend-reviewer <path or description>`
 - **Invoke via Task tool**: `task(subagent="backend-reviewer", prompt="revisar path/to/File.java")`
