@@ -30,6 +30,31 @@ export function formatCurrency(amount: MoneyValue): string {
   return formatted.replace('$ ', '$');
 }
 
+/**
+ * Normaliza el separador decimal de un string de monto.
+ *
+ * Acepta tanto punto como coma como separador decimal: el ÚLTIMO '.' o ','
+ * presente se toma como separador decimal; cualquier otro separador anterior
+ * se interpreta como separador de miles y se elimina. Devuelve el string
+ * normalizado con punto como separador decimal.
+ *
+ * @example
+ * ```ts
+ * normalizeDecimalSeparator("12,34")   // "12.34"
+ * normalizeDecimalSeparator("12.34")   // "12.34"
+ * normalizeDecimalSeparator("1,234.56") // "1234.56"
+ * normalizeDecimalSeparator("1.234,56") // "1234.56"
+ * ```
+ */
+export function normalizeDecimalSeparator(value: string): string {
+  const raw = value.replace(/[$\s]/g, '')
+  const sepIndex = Math.max(raw.lastIndexOf('.'), raw.lastIndexOf(','))
+  if (sepIndex === -1) return raw
+  const integerPart = raw.slice(0, sepIndex).replace(/[.,]/g, '')
+  const decimalPart = raw.slice(sepIndex + 1).replace(/[.,]/g, '')
+  return `${integerPart}.${decimalPart}`
+}
+
 export function formatDate(date: string | Date): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date
   return new Intl.DateTimeFormat('es-AR', {
