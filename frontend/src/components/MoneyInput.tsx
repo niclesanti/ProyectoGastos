@@ -1,5 +1,6 @@
 import { forwardRef, InputHTMLAttributes, useCallback, useState, useEffect } from 'react';
 import { Input } from './ui/input';
+import { normalizeDecimalSeparator } from '@/lib/utils';
 
 export interface MoneyInputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value' | 'type'> {
@@ -80,8 +81,9 @@ export const MoneyInput = forwardRef<HTMLInputElement, MoneyInputProps>(
           return;
         }
 
-        // Remove currency symbols and whitespace
-        const cleanValue = inputValue.replace(/[$\s,]/g, '');
+        // Normalize decimal separator: accepts '.' or ',' as decimal (last one wins),
+        // removes any other separator (thousands) and currency symbols/whitespace.
+        const cleanValue = normalizeDecimalSeparator(inputValue);
 
         // Validate number format (allow trailing dot like "12.")
         const numberPattern = allowNegative ? /^-?\d*\.?\d*$/ : /^\d*\.?\d*$/;

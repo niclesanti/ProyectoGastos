@@ -98,6 +98,37 @@ describe('MoneyInput', () => {
       
       expect(onChange).toHaveBeenCalledWith(1234.56)
     })
+
+    it('should accept comma as decimal separator', () => {
+      const onChange = vi.fn()
+      render(<MoneyInput value={null} onChange={onChange} />)
+      
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: '12,34' } })
+      
+      expect(onChange).toHaveBeenCalledWith(12.34)
+    })
+
+    it('should accept comma as decimal separator with trailing comma', () => {
+      const onChange = vi.fn()
+      render(<MoneyInput value={null} onChange={onChange} />)
+      
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: '12,' } })
+      
+      // Trailing separator should not emit a value yet
+      expect(onChange).not.toHaveBeenCalled()
+    })
+
+    it('should handle European format (dot thousands, comma decimal)', () => {
+      const onChange = vi.fn()
+      render(<MoneyInput value={null} onChange={onChange} />)
+      
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: '1.234,56' } })
+      
+      expect(onChange).toHaveBeenCalledWith(1234.56)
+    })
   })
 
   describe('Validation - Min/Max', () => {
@@ -219,15 +250,14 @@ describe('MoneyInput', () => {
       expect(onChange).toHaveBeenCalledWith(0.01)
     })
 
-    it('should handle multiple decimal points', () => {
+    it('should treat repeated separators as thousands grouping (last one is decimal)', () => {
       const onChange = vi.fn()
       render(<MoneyInput value={null} onChange={onChange} />)
       
       const input = screen.getByRole('textbox')
       fireEvent.change(input, { target: { value: '12.34.56' } })
       
-      // Should not call onChange with invalid format
-      expect(onChange).not.toHaveBeenCalled()
+      expect(onChange).toHaveBeenCalledWith(1234.56)
     })
 
     it('should handle zero', () => {
