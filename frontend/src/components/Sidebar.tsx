@@ -10,7 +10,7 @@ import {
   LogOut,
   User,
   Plus,
-  TrendingDown,
+  BadgeDollarSign,
   ArrowRightLeft,
   Receipt,
 } from 'lucide-react'
@@ -215,7 +215,7 @@ export function AppSidebar() {
                       className="gap-2 p-2"
                       onClick={() => setTransactionModalOpen(true)}
                     >
-                      <TrendingDown className="size-4 text-rose-500" />
+                      <BadgeDollarSign className="size-4 text-emerald-500" />
                       <div className="flex flex-col">
                         <span className="font-medium">Gastos/Ingresos</span>
                         <span className="text-xs text-muted-foreground">
@@ -251,7 +251,7 @@ export function AppSidebar() {
                       className="gap-2 p-2"
                       onClick={() => setCardPaymentModalOpen(true)}
                     >
-                      <Receipt className="size-4 text-emerald-500" />
+                      <Receipt className="size-4 text-rose-500" />
                       <div className="flex flex-col">
                         <span className="font-medium">Resumen mensual tarjetas</span>
                         <span className="text-xs text-muted-foreground">

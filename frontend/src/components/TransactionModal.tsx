@@ -60,7 +60,7 @@ import { Separator } from '@/components/ui/separator'
 import { CalendarIcon, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
+import { cn, normalizeDecimalSeparator } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import { MoneyInput } from '@/components/MoneyInput'
 
@@ -113,15 +113,15 @@ const newCuentaSchema = z.object({
   saldoActual: z.string()
     .refine((val) => {
       if (!val || val.trim() === '') return true
-      // Validar que solo contenga números y punto decimal
-      const validFormat = /^\d+(\.\d{1,2})?$/.test(val)
+      // Validar que solo contenga números y punto o coma decimal
+      const validFormat = /^\d+([.,]\d{1,2})?$/.test(val)
       if (!validFormat) return false
-      const num = parseFloat(val)
+      const num = parseFloat(normalizeDecimalSeparator(val))
       return !isNaN(num) && num >= 0
     }, { message: "El saldo debe ser un número válido (0 o mayor)." })
     .refine((val) => {
       if (!val || val.trim() === '') return true
-      const parts = val.split('.')
+      const parts = normalizeDecimalSeparator(val).split('.')
       if (parts.length === 1) return parts[0].length <= 12
       return parts[0].length <= 12 && parts[1].length <= 2
     }, { message: "Máximo 12 dígitos enteros y 2 decimales." }),
@@ -330,7 +330,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
     }
 
     const saldoValue = newCuentaSaldo && newCuentaSaldo.trim() !== '' 
-      ? parseFloat(newCuentaSaldo) 
+      ? parseFloat(normalizeDecimalSeparator(newCuentaSaldo)) 
       : 0
 
     try {
@@ -390,7 +390,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
 
   // Restringir entrada de saldo de cuenta
   const handleSaldoCuentaChange = (value: string) => {
-    const regex = /^\d{0,12}(\.\d{0,2})?$/
+    const regex = /^\d{0,12}([.,]\d{0,2})?$/
     if (regex.test(value) || value === '') {
       setNewCuentaSaldo(value)
       setNewCuentaError('')
