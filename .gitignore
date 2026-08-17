@@ -32,6 +32,3 @@ secrets/
 
 # VS Code
 .vscode/
-
-# OpenCode agents/commands
-.opencode/

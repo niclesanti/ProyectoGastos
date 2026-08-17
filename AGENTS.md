@@ -135,6 +135,7 @@ Subagent for frontend React/TypeScript work. Has 6 skills installed locally at `
 | `zustand-patterns` | Zustand-specific patterns, slices, middleware, store architecture |
 | `react-hook-form-zod` | Form handling with react-hook-form, Zod validation, shadcn/ui Form integration |
 | `web-ui-shadcn-ui` | shadcn/ui components, Radix UI primitives, Tailwind styling patterns |
+| `liquid-glass-design` | Patterns for implementing Apple's Liquid Glass |
 | `vitest` | Vitest testing, Testing Library, jsdom, component/unit test patterns |
 
 ### backend-reviewer
