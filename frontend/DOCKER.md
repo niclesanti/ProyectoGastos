@@ -18,14 +18,14 @@ docker-compose down
 docker-compose up -d --build frontend
 ```
 
-### Producción
+### Levantar todos los servicios
 
 ```bash
-# Levantar en modo producción
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Levantar todos los servicios (entorno de desarrollo)
+docker compose up -d --build
 
 # Detener
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
+docker compose down
 ```
 
 ## 🎯 Acceso a los Servicios
@@ -122,18 +122,18 @@ docker-compose up -d frontend
 netstat -ano | findstr :3000
 taskkill /PID <PID> /F
 
-# O cambiar el puerto en docker-compose.override.yml:
+# O cambiar el puerto en compose.yaml (servicio frontend):
 ports:
-  - "3001:3000"  # Usar puerto 3001 externamente
+  - "3101:3000"  # Usar puerto 3101 externamente
 ```
 
 ## 🔐 Variables de Entorno
 
 ### Desarrollo
-Las variables se configuran en `docker-compose.override.yml`:
+Las variables se configuran en `compose.yaml` (servicio frontend):
 ```yaml
 environment:
-  - VITE_API_URL=http://localhost:8080/api
+  - VITE_API_URL=http://localhost:8080
 ```
 
 ### Producción
@@ -145,7 +145,7 @@ VITE_API_URL=https://api.tudominio.com/api
 
 Luego construye:
 ```bash
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml build frontend
+docker compose up -d --build frontend
 ```
 
 ## 📊 Comparación: Docker vs Local
@@ -178,9 +178,9 @@ docker-compose down
 
 ### Para Testing Completo
 ```bash
-# Probar como en producción
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-# Abrir http://localhost
+# Probar el stack completo (entorno de desarrollo)
+docker compose up -d --build
+# Abrir http://localhost:3100
 ```
 
 ## 📦 Comandos Rápidos
