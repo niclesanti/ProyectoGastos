@@ -55,12 +55,12 @@ export function LiquidGlassNavigationBar() {
         initial={{ opacity: 0, y: 16, scale: 0.92, x: '-50%' }}
         animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
         transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.8 }}
-        className="fixed bottom-4 left-1/2 z-50 md:hidden flex items-center gap-1 rounded-full p-1.5 border border-white/40 dark:border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.16),rgba(255,255,255,0.02))] dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.01))] backdrop-blur-xl backdrop-saturate-[1.8] backdrop-brightness-[1.12] shadow-[0_8px_32px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.5)]"
+        className="fixed bottom-4 left-1/2 z-50 md:hidden flex items-center gap-1 rounded-full p-1.5 border border-white/40 dark:border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.005))] dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.002))] backdrop-blur-xl backdrop-saturate-[1.8] backdrop-brightness-[1.12] shadow-[0_8px_32px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.5)]"
         style={{ paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom))' }}
       >
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/50 via-white/10 to-transparent dark:from-white/10 dark:via-white/5 dark:to-transparent"
+          className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/10 via-white/3 to-transparent dark:from-white/3 dark:via-white/1 dark:to-transparent"
         />
         {actions.map((action) => {
           const Icon = action.icon
