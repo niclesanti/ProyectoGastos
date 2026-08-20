@@ -1,3 +1,4 @@
+import { AnimatePresence } from 'framer-motion'
 import {
   Toast,
   ToastAction,
@@ -6,7 +7,7 @@ import {
   ToastProvider,
   ToastTitle,
   ToastViewport,
-  getToastIcon,
+  variantConfig,
 } from '@/components/ui/toast'
 import { useToast } from '@/hooks/useToast'
 
@@ -15,39 +16,46 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, variant, ...props }) {
-        // Convertir action simple a componente ToastAction
-        let actionElement: React.ReactElement | null = null
-        if (action) {
-          if (typeof action === 'object' && 'label' in action && 'onClick' in action) {
-            // Es un objeto simple con label y onClick
-            actionElement = (
-              <ToastAction altText={action.label} onClick={action.onClick}>
-                {action.label}
-              </ToastAction>
-            )
-          } else {
-            // Es un ReactElement
-            actionElement = action as React.ReactElement
-          }
-        }
+      <AnimatePresence mode="popLayout">
+        {toasts
+          .filter((t) => t.open !== false)
+          .map(function ({ id, title, description, action, variant, ...props }) {
+            const config = variantConfig[variant ?? 'default']
 
-        return (
-          <Toast key={id} variant={variant} {...props}>
-            <div className="flex items-start gap-3 w-full">
-              {getToastIcon(variant)}
-              <div className="grid gap-1 flex-1">
-                {title && <ToastTitle>{title}</ToastTitle>}
-                {description && (
-                  <ToastDescription>{description}</ToastDescription>
+            let actionElement: React.ReactElement | null = null
+            if (action) {
+              if (typeof action === 'object' && 'label' in action && 'onClick' in action) {
+                actionElement = (
+                  <ToastAction altText={action.label} onClick={action.onClick}>
+                    {action.label}
+                  </ToastAction>
+                )
+              } else {
+                actionElement = action as React.ReactElement
+              }
+            }
+
+            return (
+              <Toast key={id} variant={variant} {...props}>
+                {config.icon && (
+                  <div
+                    className={`flex items-center justify-center rounded-xl p-2 ${config.badgeBg} shrink-0`}
+                  >
+                    <span className={config.iconColor}>{config.icon}</span>
+                  </div>
                 )}
-              </div>
-            </div>
-            {actionElement}
-            <ToastClose />
-          </Toast>
-        )
-      })}
+                <div className="grid gap-1 flex-1 min-w-0">
+                  {title && <ToastTitle>{title}</ToastTitle>}
+                  {description && (
+                    <ToastDescription>{description}</ToastDescription>
+                  )}
+                </div>
+                {actionElement}
+                <ToastClose />
+              </Toast>
+            )
+          })}
+      </AnimatePresence>
       <ToastViewport />
     </ToastProvider>
   )

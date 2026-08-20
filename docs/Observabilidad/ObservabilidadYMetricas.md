@@ -246,7 +246,7 @@ management.server.port=9090
 management.endpoints.web.base-path=/actuator
 ```
 
-Y en `docker-compose.yml` NO expongas el puerto 9090 públicamente (solo interno).
+Y en `compose.yaml` NO expongas el puerto 9090 públicamente (solo interno).
 
 **Duración:** 1-2 horas (incluyendo deploy y validación).  
 **Costo:** $0.  

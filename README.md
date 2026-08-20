@@ -240,9 +240,7 @@ ProyectoGastos/
 |   ├── DespliegueProduccion.md
 |   └── ProblemasSoluciones.md
 │
-├── docker-compose.yml          # Orquestación Docker
-├── docker-compose.override.yml # Configuración desarrollo
-├── docker-compose.prod.yml     # Configuración producción
+├── compose.yaml                # Orquestación Docker (entorno de desarrollo)
 └── .env                        # Variables de entorno
 ```
 
@@ -342,11 +340,11 @@ cd backend
 
 ## 🌐 Despliegue en Producción
 
-El proyecto incluye configuración para despliegue en Google Cloud Run:
+Actualmente solo existe el entorno de desarrollo, definido en `compose.yaml`. Para levantar el stack localmente:
 
 ```bash
-# Usar configuración de producción
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+# Levantar el entorno de desarrollo
+docker compose up --build
 ```
 
 **Producción actual**: No hay aún

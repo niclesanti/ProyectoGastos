@@ -2,6 +2,7 @@ package com.campito.backend.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -50,7 +51,7 @@ public class GastosIngresosMensuales {
     @Column(name = "pago_resumen", nullable = false, columnDefinition = "NUMERIC(15,2)")
     private BigDecimal pagoResumen;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "espacio_trabajo_id", nullable = false)
     private EspacioTrabajo espacioTrabajo;
 

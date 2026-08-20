@@ -33,11 +33,11 @@ public class CuotaCredito {
     @Column(name = "pagada", nullable = false)
     private boolean pagada;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "compra_credito_id", nullable = false)
     private CompraCredito compraCredito;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "resumen_id")
     private Resumen resumenAsociado;
 

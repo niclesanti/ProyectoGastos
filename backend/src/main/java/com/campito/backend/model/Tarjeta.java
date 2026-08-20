@@ -40,7 +40,7 @@ public class Tarjeta {
     @Column(name = "dia_vencimiento_pago", nullable = false)
     private Integer diaVencimientoPago;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "espacio_trabajo_id", nullable = false)
     private EspacioTrabajo espacioTrabajo;
 

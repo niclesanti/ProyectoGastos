@@ -150,7 +150,7 @@ docker-compose restart backend
 # Ver qué proceso usa el puerto 8080
 netstat -ano | findstr :8080
 
-# Cambiar el puerto en docker-compose.override.yml o detener el proceso
+# Cambiar el puerto en compose.yaml o detener el proceso
 ```
 
 ### Limpiar Contenedores Huérfanos
@@ -163,5 +163,5 @@ docker-compose down --remove-orphans
 
 - Los cambios en el código requieren reconstruir la imagen del backend
 - La base de datos persiste entre reinicios gracias a los volúmenes
-- El perfil `dev` se activa automáticamente según `docker-compose.override.yml`
+- El perfil `dev` se activa automáticamente según `SPRING_PROFILES_ACTIVE` del `.env` (usado por `compose.yaml`)
 - Las migraciones de Flyway se ejecutan automáticamente al iniciar el backend

@@ -9,7 +9,7 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidNombre {
-    String message() default "El nombre solo puede contener letras, números, coma, paréntesis, guiones y barra";
+    String message() default "El nombre solo puede contener letras (incluidas acentuadas), números, coma, paréntesis, guiones y barra";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }
