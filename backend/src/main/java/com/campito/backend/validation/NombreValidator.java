@@ -5,8 +5,6 @@ import jakarta.validation.ConstraintValidatorContext;
 
 public class NombreValidator implements ConstraintValidator<ValidNombre, String> {
 
-    private static final String NOMBRE_PATTERN = "^[a-zA-Z0-9,()_\\-/\\s]*$";
-
     @Override
     public void initialize(ValidNombre constraintAnnotation) {
     }
@@ -19,6 +17,6 @@ public class NombreValidator implements ConstraintValidator<ValidNombre, String>
         }
         
         // Validar contra el patrón regex
-        return nombre.matches(NOMBRE_PATTERN);
+        return nombre.matches(PatronesValidacion.NOMBRE_PATTERN);
     }
 }

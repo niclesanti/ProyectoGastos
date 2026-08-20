@@ -61,6 +61,7 @@ import { CalendarIcon, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn, normalizeDecimalSeparator } from '@/lib/utils'
+import { REGEX_TEXTO_VALIDO, filtrarTextoPermitido } from '@/lib/validation'
 import { toast } from '@/hooks/useToast'
 import { MoneyInput } from '@/components/MoneyInput'
 
@@ -85,7 +86,7 @@ const transactionFormSchema = z.object({
   contacto: z.string().optional(),
   descripcion: z.string()
     .max(100, { message: "La descripción no puede exceder los 100 caracteres." })
-    .regex(/^[a-zA-Z0-9,()_\-/\s]*$/, { 
+    .regex(REGEX_TEXTO_VALIDO, { 
       message: "Solo se permiten letras, números, coma, paréntesis, guiones y barra." 
     })
     .optional()
@@ -97,7 +98,7 @@ const newMotivoSchema = z.object({
   nombre: z.string()
     .min(1, { message: "El nombre del motivo es obligatorio." })
     .max(50, { message: "Máximo 50 caracteres." })
-    .regex(/^[a-zA-Z0-9,()_\-/\s]*$/, { 
+    .regex(REGEX_TEXTO_VALIDO, { 
       message: "Solo se permiten letras, números, coma, paréntesis, guiones y barra." 
     }),
 })
@@ -107,7 +108,7 @@ const newCuentaSchema = z.object({
   nombre: z.string()
     .min(1, { message: "El nombre de la cuenta es obligatorio." })
     .max(50, { message: "Máximo 50 caracteres." })
-    .regex(/^[a-zA-Z0-9,()_\-/\s]*$/, { 
+    .regex(REGEX_TEXTO_VALIDO, { 
       message: "Solo se permiten letras, números, coma, paréntesis, guiones y barra." 
     }),
   saldoActual: z.string()
@@ -133,7 +134,7 @@ const newContactoSchema = z.object({
   nombre: z.string()
     .min(1, { message: "El nombre del contacto es obligatorio." })
     .max(50, { message: "Máximo 50 caracteres." })
-    .regex(/^[a-zA-Z0-9,()_\-/\s]*$/, { 
+    .regex(REGEX_TEXTO_VALIDO, { 
       message: "Solo se permiten letras, números, coma, paréntesis, guiones y barra." 
     }),
 })
@@ -596,7 +597,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                           maxLength={50}
                           onChange={(e) => {
                             // Filtrar caracteres no permitidos
-                            const filtered = e.target.value.replace(/[^a-zA-Z0-9,()_\-/\s]/g, '')
+                            const filtered = filtrarTextoPermitido(e.target.value)
                             setNewMotivo(filtered)
                             setNewMotivoError('')
                           }}
@@ -687,7 +688,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                           maxLength={50}
                           onChange={(e) => {
                             // Filtrar caracteres no permitidos
-                            const filtered = e.target.value.replace(/[^a-zA-Z0-9,()_\-/\s]/g, '')
+                            const filtered = filtrarTextoPermitido(e.target.value)
                             setNewCuentaNombre(filtered)
                             setNewCuentaError('')
                           }}
@@ -808,7 +809,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                           maxLength={50}
                           onChange={(e) => {
                             // Filtrar caracteres no permitidos
-                            const filtered = e.target.value.replace(/[^a-zA-Z0-9,()_\-/\s]/g, '')
+                            const filtered = filtrarTextoPermitido(e.target.value)
                             setNewContacto(filtered)
                             setNewContactoError('')
                           }}
@@ -864,7 +865,7 @@ export function TransactionModal({ open, onOpenChange }: TransactionModalProps) 
                         className="resize-none"
                         onChange={(e) => {
                           // Filtrar caracteres no permitidos
-                          const filtered = e.target.value.replace(/[^a-zA-Z0-9,()_\-/\s]/g, '')
+                          const filtered = filtrarTextoPermitido(e.target.value)
                           field.onChange(filtered)
                         }}
                       />
