@@ -4,6 +4,33 @@
 
 Personal finance management full-stack app. Backend: Spring Boot 3.5.3 / Java 21 / PostgreSQL 14 / Flyway. Frontend: React 18 / TypeScript / Vite / Tailwind + shadcn/ui. Auth: Google OAuth2 + JWT.
 
+## Codebase Memory (Knowledge Graph)
+
+This project is indexed by **codebase-memory-mcp**, which maintains a knowledge graph of the codebase. **Always prefer the MCP graph tools over grep/glob/file-search for code discovery.**
+
+### Tool priority order
+
+1. `search_graph` — find functions, classes, routes, variables by pattern/query (e.g. `search_graph(query="update settings")`, `search_graph(name_pattern=".*OrderHandler.*")`)
+2. `trace_path` — trace who calls a function (`direction="inbound"`) or what it calls (`direction="outbound"`)
+3. `get_code_snippet` — read the exact source of a function/class (first find its `qualified_name` via `search_graph`)
+4. `check_index_coverage` — validate candidate paths and missed ranges before making claims
+5. `query_graph` — run Cypher queries for complex multi-hop patterns
+6. `get_architecture` — high-level project summary (structure, dependencies, routes, hotspots)
+
+### Rules of use
+
+- Call `list_projects` / `index_status` at session start or after compaction to confirm the project is indexed, then follow the tier flow: **Scout** (quick provisional lookup), **Verify** (default, task-directed evidence), **Auditor** (bounded-scope full verification).
+- After discovering candidate paths, call `check_index_coverage` once with every evidence path before citing or operating on files. A clean result means no recorded gap, not proof of completeness.
+- **Pagination**: responses carry `has_more`/`nextCursor`/`next` — paginate when present; never assume a result set is complete without checking.
+- **Best-effort**: absence of a coverage flag is NOT a completeness guarantee. Treat results as provisional until verified against source when the claim is material.
+- Subagents do NOT inherit MCP access — query the graph in the parent agent first and pass findings (tier, symbols, paths, coverage evidence) to the child.
+
+### When to fall back to grep/glob
+
+- Searching for string literals, error messages, or config values.
+- Searching non-code files (Dockerfiles, shell scripts, YAML, etc.).
+- When MCP tools return insufficient results or coverage reports flag gaps (`parse_partial`/`skipped` ranges) — grep those exact ranges.
+
 ## Quick Start (Docker)
 
 ```bash

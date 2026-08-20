@@ -9,6 +9,7 @@ import {
   useResponderSolicitud,
 } from '@/features/workspaces/api/workspace-queries'
 import type { MiembroEspacio } from '@/types'
+import { REGEX_TEXTO_VALIDO, filtrarTextoPermitido } from '@/lib/validation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -61,7 +62,7 @@ const createWorkspaceSchema = z.object({
     .min(1, { message: 'Por favor, ingresa el nombre del espacio de trabajo.' })
     .max(50, { message: 'El nombre no puede exceder los 50 caracteres.' })
     .regex(
-      /^[a-zA-Z0-9,()\\-_/\s]+$/,
+      REGEX_TEXTO_VALIDO,
       { message: 'Solo se permiten letras, números, coma, paréntesis, guiones, barra y espacios.' }
     ),
 })
@@ -256,7 +257,7 @@ export function ConfiguracionPage() {
   // Función para filtrar caracteres permitidos en el nombre del espacio
   const filterWorkspaceName = (value: string): string => {
     // Solo permite: letras, números, coma, paréntesis, guiones, barra y espacios
-    return value.replace(/[^a-zA-Z0-9,()\-_/\s]/g, '')
+    return filtrarTextoPermitido(value)
   }
 
   // Función para filtrar caracteres permitidos en emails

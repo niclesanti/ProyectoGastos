@@ -5,8 +5,6 @@ import jakarta.validation.ConstraintValidatorContext;
 
 public class DescripcionValidator implements ConstraintValidator<ValidDescripcion, String> {
 
-    private static final String DESCRIPCION_PATTERN = "^[a-zA-Z0-9,()_\\-/\\s]*$";
-
     @Override
     public void initialize(ValidDescripcion constraintAnnotation) {
     }
@@ -19,6 +17,6 @@ public class DescripcionValidator implements ConstraintValidator<ValidDescripcio
         }
         
         // Validar contra el patrón regex
-        return descripcion.matches(DESCRIPCION_PATTERN);
+        return descripcion.matches(PatronesValidacion.DESCRIPCION_PATTERN);
     }
 }

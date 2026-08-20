@@ -53,6 +53,7 @@ import { CalendarIcon, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { REGEX_TEXTO_VALIDO, filtrarTextoPermitido } from '@/lib/validation'
 import { toast } from '@/hooks/useToast'
 import { MoneyInput } from '@/components/MoneyInput'
 
@@ -61,7 +62,7 @@ const newMotivoSchema = z.object({
   motivo: z.string()
     .min(1, { message: "El nombre del motivo es obligatorio." })
     .max(50, { message: "El motivo no puede exceder los 50 caracteres." })
-    .regex(/^[a-zA-Z0-9,()_\-/\s]*$/, { 
+    .regex(REGEX_TEXTO_VALIDO, { 
       message: "Solo se permiten letras, números, comas, paréntesis, guiones y barras." 
     }),
 })
@@ -71,7 +72,7 @@ const newComercioSchema = z.object({
   nombre: z.string()
     .min(1, { message: "El nombre del comercio es obligatorio." })
     .max(50, { message: "El comercio no puede exceder los 50 caracteres." })
-    .regex(/^[a-zA-Z0-9,()_\-/\s]*$/, { 
+    .regex(REGEX_TEXTO_VALIDO, { 
       message: "Solo se permiten letras, números, comas, paréntesis, guiones y barras." 
     }),
 })
@@ -95,7 +96,7 @@ const creditPurchaseFormSchema = z.object({
   comercio: z.string().optional(),
   descripcion: z.string()
     .max(100, { message: "La descripción no puede exceder los 100 caracteres." })
-    .regex(/^[a-zA-Z0-9,()_\-/\s]*$/, { 
+    .regex(REGEX_TEXTO_VALIDO, { 
       message: "Solo se permiten letras, números, comas, paréntesis, guiones y barras." 
     })
     .optional()
@@ -309,7 +310,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
 
   // Filtrar caracteres no permitidos en motivo
   const handleMotivoInputChange = (value: string) => {
-    const filtered = value.replace(/[^a-zA-Z0-9,()_\-/\s]/g, '')
+    const filtered = filtrarTextoPermitido(value)
     if (filtered.length <= 50) {
       newMotivoForm.setValue('motivo', filtered)
     }
@@ -317,7 +318,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
 
   // Filtrar caracteres no permitidos en comercio
   const handleComercioInputChange = (value: string) => {
-    const filtered = value.replace(/[^a-zA-Z0-9,()_\-/\s]/g, '')
+    const filtered = filtrarTextoPermitido(value)
     if (filtered.length <= 50) {
       newComercioForm.setValue('nombre', filtered)
     }
@@ -325,7 +326,7 @@ export function CreditPurchaseModal({ open, onOpenChange }: CreditPurchaseModalP
 
   // Filtrar caracteres no permitidos en descripción
   const handleDescripcionChange = (value: string) => {
-    const filtered = value.replace(/[^a-zA-Z0-9,()_\-/\s]/g, '')
+    const filtered = filtrarTextoPermitido(value)
     if (filtered.length <= 100) {
       form.setValue('descripcion', filtered)
     }

@@ -1312,7 +1312,7 @@ SPRING_DATASOURCE_PASSWORD=...
 
 **Desarrollo (local):**
 ```bash
-# .env o docker-compose.yml
+# .env o compose.yaml
 GOOGLE_CLIENT_ID=<tu_client_id>
 GOOGLE_CLIENT_SECRET=<tu_client_secret>
 FRONTEND_URL=http://localhost:3100
@@ -2131,9 +2131,11 @@ docker logs -f campito-backend
 
 ### Docker Compose
 
-Archivo `docker-compose.yml` en la raíz del proyecto incluye:
+Archivo `compose.yaml` en la raíz del proyecto incluye:
 - Backend (Spring Boot)
 - Base de datos PostgreSQL
+- Frontend (React/Vite)
+- pgAdmin
 - Red interna
 - Volúmenes para persistencia
 

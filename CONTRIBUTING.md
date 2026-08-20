@@ -388,7 +388,7 @@ docker-compose up -d --build
 # Ver qué proceso usa el puerto
 netstat -ano | findstr :8080
 
-# Cambiar el puerto en docker-compose.override.yml
+# Cambiar el puerto en compose.yaml
 # O detener el proceso que usa el puerto
 ```
 

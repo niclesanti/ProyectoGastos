@@ -52,6 +52,7 @@ import { CalendarIcon, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { REGEX_TEXTO_VALIDO, filtrarTextoPermitido } from '@/lib/validation'
 import { toast } from '@/hooks/useToast'
 import { useMoney } from '@/hooks/useMoney'
 import { MoneyDisplay } from '@/components/MoneyDisplay'
@@ -83,7 +84,7 @@ const ENTIDADES_FINANCIERAS = [
   'Mercado Pago',
   'Naranja X',
   'Personal Pay',
-  'UalÃ¡',
+  'Ualá',
 ]
 
 // Esquema de validación para nueva cuenta
@@ -91,7 +92,7 @@ const newCuentaSchema = z.object({
   nombre: z.string()
     .min(1, { message: "El nombre de la cuenta es obligatorio." })
     .max(50, { message: "El nombre no puede exceder los 50 caracteres." })
-    .regex(/^[a-zA-Z0-9,()_\-/\s]*$/, { 
+    .regex(REGEX_TEXTO_VALIDO, { 
       message: "Solo se permiten letras, números, comas, paréntesis, guiones y barras." 
     }),
   saldoActual: z.string()
@@ -314,7 +315,7 @@ export function CardPaymentModal({ open, onOpenChange }: CardPaymentModalProps) 
 
   // Filtrar caracteres no permitidos en nombre de cuenta
   const handleCuentaNombreChange = (value: string) => {
-    const filtered = value.replace(/[^a-zA-Z0-9,()_\-/\s]/g, '')
+    const filtered = filtrarTextoPermitido(value)
     if (filtered.length <= 50) {
       newCuentaForm.setValue('nombre', filtered)
     }

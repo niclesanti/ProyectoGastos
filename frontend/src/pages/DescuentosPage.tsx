@@ -71,6 +71,7 @@ import {
 } from 'lucide-react'
 import { WorkspacePlaceholder } from '@/features/dashboard/WorkspacePlaceholder'
 import { cn } from '@/lib/utils'
+import { REGEX_TEXTO_VALIDO, filtrarTextoPermitido } from '@/lib/validation'
 import type { DescuentoDTOResponse } from '@/types'
 
 // ============================================================
@@ -159,7 +160,7 @@ const descuentoFormSchema = z.object({
     .string()
     .min(1, { message: 'El comercio es obligatorio.' })
     .max(50, { message: 'Máximo 50 caracteres.' })
-    .regex(/^[a-zA-Z0-9,()_\-/\s]*$/, {
+    .regex(REGEX_TEXTO_VALIDO, {
       message: 'Solo se permiten letras, números, coma, paréntesis, guiones y barra.',
     }),
   modoPago: z.string().min(1, { message: 'Seleccioná un modo de pago.' }),
@@ -168,7 +169,7 @@ const descuentoFormSchema = z.object({
   comentario: z
     .string()
     .max(100, { message: 'Máximo 100 caracteres.' })
-    .regex(/^[a-zA-Z0-9,()_\-/\s]*$/, {
+    .regex(REGEX_TEXTO_VALIDO, {
       message: 'Solo se permiten letras, números, coma, paréntesis, guiones y barra.',
     })
     .optional(),
@@ -407,7 +408,7 @@ function AddDiscountModal({ open, onOpenChange, espacioTrabajoId }: AddDiscountM
                           placeholder="Ej: Carrefour, Disco, YPF..."
                           maxLength={50}
                           onChange={(e) => {
-                            const filtered = e.target.value.replace(/[^a-zA-Z0-9,()_\-/\s]/g, '')
+                            const filtered = filtrarTextoPermitido(e.target.value)
                             field.onChange(filtered)
                           }}
                         />
@@ -631,7 +632,7 @@ function AddDiscountModal({ open, onOpenChange, espacioTrabajoId }: AddDiscountM
                           rows={2}
                           className="resize-none"
                           onChange={(e) => {
-                            const filtered = e.target.value.replace(/[^a-zA-Z0-9,()_\-/\s]/g, '')
+                            const filtered = filtrarTextoPermitido(e.target.value)
                             field.onChange(filtered)
                           }}
                         />

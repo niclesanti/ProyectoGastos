@@ -27,7 +27,7 @@ public class SolicitudPendienteEspacioTrabajo {
     @JoinColumn(name = "espacio_trabajo_id", nullable = false)
     private EspacioTrabajo espacioTrabajo;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_invitado_id", nullable = false)
     private Usuario usuarioInvitado;
 
