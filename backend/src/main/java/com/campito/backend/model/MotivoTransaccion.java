@@ -26,7 +26,7 @@ public class MotivoTransaccion {
     @Column(name = "motivo", nullable = false, length = 50)
     private String motivo;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_espacio_trabajo", nullable = false)
     private EspacioTrabajo espacioTrabajo;
 

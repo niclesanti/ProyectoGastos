@@ -3,6 +3,7 @@ package com.campito.backend.model;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -41,7 +42,7 @@ public class CuentaBancaria {
     @Column(name = "saldo_actual", nullable = false, columnDefinition = "NUMERIC(15,2)")
     private BigDecimal saldoActual;
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_espacio_trabajo", nullable = false)
     private EspacioTrabajo espacioTrabajo;
 

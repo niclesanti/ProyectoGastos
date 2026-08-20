@@ -26,7 +26,7 @@ public class ContactoTransferencia {
     @Column(name = "nombre", nullable = false, length = 50)
     private String nombre;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_espacio_trabajo", nullable = false)
     private EspacioTrabajo espacioTrabajo;
 
