@@ -1,4 +1,4 @@
-package com.campito.backend.dto;
+package com.campito.backend.descuentos.domain.dto;
 
 import java.util.UUID;
 

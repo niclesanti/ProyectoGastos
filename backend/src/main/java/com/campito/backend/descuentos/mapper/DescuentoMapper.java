@@ -1,12 +1,12 @@
-package com.campito.backend.mapper;
+package com.campito.backend.descuentos.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-import com.campito.backend.dto.DescuentoDTORequest;
-import com.campito.backend.dto.DescuentoDTOResponse;
-import com.campito.backend.mapper.config.MapstructConfig;
-import com.campito.backend.model.Descuento;
+import com.campito.backend.descuentos.domain.dto.DescuentoDTORequest;
+import com.campito.backend.descuentos.domain.dto.DescuentoDTOResponse;
+import com.campito.backend.descuentos.mapper.config.MapstructConfig;
+import com.campito.backend.descuentos.domain.entity.Descuento;
 
 /**
  * Mapper para conversión entre Descuento Entity y DTOs.
@@ -25,7 +25,6 @@ public interface DescuentoMapper {
      * @return Entidad Descuento sin ID (para INSERT)
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "espacioTrabajo", ignore = true)
     Descuento toEntity(DescuentoDTORequest request);
 
     /**
@@ -34,6 +33,5 @@ public interface DescuentoMapper {
      * @param descuento Entidad Descuento
      * @return DTO de respuesta con todos los datos del descuento
      */
-    @Mapping(target = "idEspacioTrabajo", source = "espacioTrabajo.id")
     DescuentoDTOResponse toResponse(Descuento descuento);
 }

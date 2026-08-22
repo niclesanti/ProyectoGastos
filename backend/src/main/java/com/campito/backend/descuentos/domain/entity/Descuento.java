@@ -1,4 +1,6 @@
-package com.campito.backend.model;
+package com.campito.backend.descuentos.domain.entity;
+
+import java.util.UUID;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -48,7 +50,6 @@ public class Descuento {
     @Column(name = "comentario", length = 100)
     private String comentario;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "espacio_trabajo_id", nullable = false)
-    private EspacioTrabajo espacioTrabajo;
+    @Column(name = "espacio_trabajo_id", nullable = false)
+    private UUID idEspacioTrabajo;
 }

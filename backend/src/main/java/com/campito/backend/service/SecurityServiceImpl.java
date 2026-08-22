@@ -9,7 +9,8 @@ import org.springframework.stereotype.Service;
 
 import com.campito.backend.dao.CompraCreditoRepository;
 import com.campito.backend.dao.CuentaBancariaRepository;
-import com.campito.backend.dao.DescuentoRepository;
+import com.campito.backend.descuentos.repository.DescuentoRepository;
+import com.campito.backend.descuentos.domain.entity.Descuento;
 import com.campito.backend.dao.EspacioTrabajoRepository;
 import com.campito.backend.dao.NotificacionRepository;
 import com.campito.backend.dao.SolicitudPendienteEspacioTrabajoRepository;
@@ -316,24 +317,16 @@ public class SecurityServiceImpl implements SecurityService {
             throw new IllegalArgumentException("El ID del descuento no puede ser nulo");
         }
 
-        UUID userId = getAuthenticatedUserId();
-
-        descuentoRepository.findById(idDescuento)
+        Descuento descuento = descuentoRepository.findById(idDescuento)
             .orElseThrow(() -> {
                 log.warn("Descuento {} no encontrado", idDescuento);
                 return new EntityNotFoundException("Descuento no encontrado");
             });
 
-        boolean hasAccess = descuentoRepository
-            .existsByIdAndEspacioTrabajo_UsuariosParticipantes_Id(idDescuento, userId);
+        UUID workspaceId = descuento.getIdEspacioTrabajo();
+        validateWorkspaceAccess(workspaceId);
 
-        if (!hasAccess) {
-            log.warn("Usuario {} intenta acceder a descuento {} que no le pertenece", 
-                userId, idDescuento);
-            throw new ForbiddenException("No tienes acceso a este descuento");
-        }
-
-        log.debug("Ownership validado: Usuario {} tiene acceso a descuento {}", userId, idDescuento);
+        log.debug("Ownership validado: Usuario tiene acceso a descuento {}", idDescuento);
     }
 
     /**
