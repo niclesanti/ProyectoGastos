@@ -5,7 +5,7 @@ import org.mapstruct.Mapping;
 
 import com.campito.backend.descuentos.domain.dto.DescuentoDTORequest;
 import com.campito.backend.descuentos.domain.dto.DescuentoDTOResponse;
-import com.campito.backend.mapper.config.MapstructConfig;
+import com.campito.backend.config.MapstructConfig;
 import com.campito.backend.descuentos.domain.entity.Descuento;
 
 /**

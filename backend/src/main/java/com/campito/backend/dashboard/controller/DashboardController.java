@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.campito.backend.dashboard.domain.dto.DashboardStatsDTO;
 import com.campito.backend.dashboard.service.DashboardService;
-import com.campito.backend.service.SecurityService;
+import com.campito.backend.security.SecurityService;
 
 import java.util.UUID;
 

@@ -14,8 +14,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 // Dependencias a revisar para reducir acoplamiento y mejorar la modularidad
-import com.campito.backend.shared.event.NotificacionEvent;
-import com.campito.backend.shared.event.TipoNotificacion;
+import com.campito.backend.common.event.NotificacionEvent;
+import com.campito.backend.common.event.TipoNotificacion;
 import com.campito.backend.usuarios.api.EspacioTrabajoApi;
 
 import com.campito.backend.transacciones.repository.CuotaCreditoRepository;
@@ -25,7 +25,7 @@ import com.campito.backend.transacciones.domain.entity.CuotaCredito;
 import com.campito.backend.transacciones.domain.entity.EstadoResumen;
 import com.campito.backend.transacciones.domain.entity.Resumen;
 import com.campito.backend.transacciones.domain.entity.Tarjeta;
-import com.campito.backend.util.MoneyUtils;
+import com.campito.backend.common.util.MoneyUtils;
 
 import lombok.RequiredArgsConstructor;
 

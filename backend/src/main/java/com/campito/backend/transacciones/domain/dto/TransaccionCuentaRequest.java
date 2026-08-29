@@ -2,7 +2,7 @@ package com.campito.backend.transacciones.domain.dto;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
-import com.campito.backend.validation.ValidMonto;
+import com.campito.backend.common.validation.ValidMonto;
 
 import java.math.BigDecimal;
 

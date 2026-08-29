@@ -7,7 +7,7 @@ import java.util.UUID;
 import com.campito.backend.transacciones.domain.dto.CuentaBancariaDTORequest;
 import com.campito.backend.transacciones.domain.dto.CuentaBancariaDTOResponse;
 import com.campito.backend.transacciones.domain.entity.CuentaBancaria;
-import com.campito.backend.transacciones.domain.entity.TipoTransaccion;
+import com.campito.backend.common.domain.TipoTransaccion;
 
 public interface CuentaBancariaService {
     public void crearCuentaBancaria(CuentaBancariaDTORequest cuentaBancariaDTO);

@@ -25,7 +25,7 @@ import com.campito.backend.transacciones.domain.dto.TarjetaDTORequest;
 import com.campito.backend.transacciones.domain.dto.TarjetaDTOResponse;
 import com.campito.backend.transacciones.domain.dto.TarjetaDTOUpdate;
 import com.campito.backend.transacciones.service.CompraCreditoService;
-import com.campito.backend.service.SecurityService;
+import com.campito.backend.security.SecurityService;
 
 import java.util.UUID;
 

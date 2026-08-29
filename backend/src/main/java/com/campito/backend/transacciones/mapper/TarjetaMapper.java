@@ -7,7 +7,7 @@ import org.mapstruct.MappingTarget;
 import com.campito.backend.transacciones.domain.dto.TarjetaDTORequest;
 import com.campito.backend.transacciones.domain.dto.TarjetaDTOResponse;
 import com.campito.backend.transacciones.domain.dto.TarjetaDTOUpdate;
-import com.campito.backend.mapper.config.MapstructConfig;
+import com.campito.backend.config.MapstructConfig;
 import com.campito.backend.transacciones.domain.entity.Tarjeta;
 
 /**

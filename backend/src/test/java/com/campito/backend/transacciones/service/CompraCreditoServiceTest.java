@@ -29,12 +29,13 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
+import com.campito.backend.common.domain.TipoTransaccion;
 import com.campito.backend.transacciones.repository.*;
 import com.campito.backend.usuarios.api.EspacioTrabajoApi;
 import com.campito.backend.usuarios.domain.entity.EspacioTrabajo;
-import com.campito.backend.shared.event.CompraCreditoEliminadaEvent;
-import com.campito.backend.shared.event.CompraCreditoRegistradaEvent;
-import com.campito.backend.shared.event.ResumenPagadoEvent;
+import com.campito.backend.common.event.CompraCreditoEliminadaEvent;
+import com.campito.backend.common.event.CompraCreditoRegistradaEvent;
+import com.campito.backend.common.event.ResumenPagadoEvent;
 import com.campito.backend.transacciones.domain.dto.*;
 import com.campito.backend.transacciones.domain.entity.*;
 import com.campito.backend.transacciones.mapper.*;
@@ -399,7 +400,7 @@ public class CompraCreditoServiceTest {
     void removerCompraCredito_tieneCuotasPagadas_lanzaIllegalState() {
         when(compraCreditoRepository.findById(100L)).thenReturn(Optional.of(compraCreditoEntity));
         when(cuotaCreditoRepository.findByCompraCredito_IdAndPagada(100L, true)).thenReturn(List.of(new CuotaCredito()));
-        assertThrows(com.campito.backend.exception.OperacionNoPermitidaException.class, () -> compraCreditoService.removerCompraCredito(100L));
+        assertThrows(com.campito.backend.common.exception.OperacionNoPermitidaException.class, () -> compraCreditoService.removerCompraCredito(100L));
     }
 
     @Test

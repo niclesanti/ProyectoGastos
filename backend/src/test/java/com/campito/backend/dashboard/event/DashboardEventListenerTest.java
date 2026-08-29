@@ -21,13 +21,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.campito.backend.dashboard.domain.entity.GastosIngresosMensuales;
 import com.campito.backend.dashboard.repository.GastosIngresosMensualesRepository;
-import com.campito.backend.exception.SaldoInsuficienteException;
-import com.campito.backend.shared.event.CompraCreditoEliminadaEvent;
-import com.campito.backend.shared.event.CompraCreditoRegistradaEvent;
-import com.campito.backend.shared.event.ResumenPagadoEvent;
-import com.campito.backend.shared.event.TransaccionEliminadaEvent;
-import com.campito.backend.shared.event.TransaccionRegistradaEvent;
-import com.campito.backend.transacciones.domain.entity.TipoTransaccion;
+import com.campito.backend.common.exception.SaldoInsuficienteException;
+import com.campito.backend.common.event.CompraCreditoEliminadaEvent;
+import com.campito.backend.common.event.CompraCreditoRegistradaEvent;
+import com.campito.backend.common.event.ResumenPagadoEvent;
+import com.campito.backend.common.event.TransaccionEliminadaEvent;
+import com.campito.backend.common.event.TransaccionRegistradaEvent;
+import com.campito.backend.common.domain.TipoTransaccion;
 
 @ExtendWith(MockitoExtension.class)
 class DashboardEventListenerTest {

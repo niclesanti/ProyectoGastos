@@ -9,8 +9,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.campito.backend.shared.event.NotificacionEvent;
-import com.campito.backend.shared.event.TipoNotificacion;
+import com.campito.backend.common.event.NotificacionEvent;
+import com.campito.backend.common.event.TipoNotificacion;
 
 import com.campito.backend.usuarios.repository.EspacioTrabajoRepository;
 import com.campito.backend.usuarios.repository.SolicitudPendienteEspacioTrabajoRepository;
@@ -25,8 +25,8 @@ import com.campito.backend.usuarios.mapper.UsuarioMapper;
 import com.campito.backend.usuarios.domain.entity.EspacioTrabajo;
 import com.campito.backend.usuarios.domain.entity.Usuario;
 import com.campito.backend.usuarios.domain.entity.SolicitudPendienteEspacioTrabajo;
-import com.campito.backend.exception.UsuarioNoEncontradoException;
-import com.campito.backend.exception.EntidadDuplicadaException;
+import com.campito.backend.common.exception.UsuarioNoEncontradoException;
+import com.campito.backend.common.exception.EntidadDuplicadaException;
 
 import java.util.Optional;
 import jakarta.persistence.EntityNotFoundException;

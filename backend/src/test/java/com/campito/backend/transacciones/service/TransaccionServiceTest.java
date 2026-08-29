@@ -1,9 +1,10 @@
 package com.campito.backend.transacciones.service;
 
+import com.campito.backend.common.domain.TipoTransaccion;
 import com.campito.backend.transacciones.repository.*;
 import com.campito.backend.usuarios.api.EspacioTrabajoApi;
-import com.campito.backend.shared.event.TransaccionEliminadaEvent;
-import com.campito.backend.shared.event.TransaccionRegistradaEvent;
+import com.campito.backend.common.event.TransaccionEliminadaEvent;
+import com.campito.backend.common.event.TransaccionRegistradaEvent;
 import com.campito.backend.transacciones.domain.dto.*;
 import com.campito.backend.transacciones.domain.entity.*;
 import com.campito.backend.transacciones.mapper.*;
@@ -642,8 +643,8 @@ public class TransaccionServiceTest {
         when(contactoRepository.findFirstByNombreAndIdEspacioTrabajo("Contacto Existente", espacioId))
                 .thenReturn(Optional.of(contactoExistente));
 
-        com.campito.backend.exception.EntidadDuplicadaException exception = 
-                assertThrows(com.campito.backend.exception.EntidadDuplicadaException.class, () -> {
+        com.campito.backend.common.exception.EntidadDuplicadaException exception = 
+                assertThrows(com.campito.backend.common.exception.EntidadDuplicadaException.class, () -> {
             transaccionService.registrarContactoTransferencia(dto);
         });
         
@@ -695,8 +696,8 @@ public class TransaccionServiceTest {
         when(motivoRepository.findFirstByMotivoAndIdEspacioTrabajo("Motivo Existente", espacioId))
                 .thenReturn(Optional.of(motivoExistente));
 
-        com.campito.backend.exception.EntidadDuplicadaException exception = 
-                assertThrows(com.campito.backend.exception.EntidadDuplicadaException.class, () -> {
+        com.campito.backend.common.exception.EntidadDuplicadaException exception = 
+                assertThrows(com.campito.backend.common.exception.EntidadDuplicadaException.class, () -> {
             transaccionService.nuevoMotivoTransaccion(dto);
         });
         

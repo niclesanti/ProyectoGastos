@@ -21,9 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.campito.backend.usuarios.api.EspacioTrabajoApi;
-import com.campito.backend.shared.event.CompraCreditoEliminadaEvent;
-import com.campito.backend.shared.event.CompraCreditoRegistradaEvent;
-import com.campito.backend.shared.event.ResumenPagadoEvent;
+import com.campito.backend.common.event.CompraCreditoEliminadaEvent;
+import com.campito.backend.common.event.CompraCreditoRegistradaEvent;
+import com.campito.backend.common.event.ResumenPagadoEvent;
 
 import com.campito.backend.transacciones.repository.CompraCreditoRepository;
 import com.campito.backend.transacciones.repository.ContactoTransferenciaRepository;
@@ -46,8 +46,8 @@ import com.campito.backend.transacciones.domain.dto.TarjetaDTOResponse;
 import com.campito.backend.transacciones.domain.dto.TarjetaDTOUpdate;
 import com.campito.backend.transacciones.domain.dto.TransaccionDTORequest;
 import com.campito.backend.transacciones.domain.dto.TransaccionDTOResponse;
-import com.campito.backend.exception.EntidadDuplicadaException;
-import com.campito.backend.exception.OperacionNoPermitidaException;
+import com.campito.backend.common.exception.EntidadDuplicadaException;
+import com.campito.backend.common.exception.OperacionNoPermitidaException;
 import com.campito.backend.transacciones.mapper.CompraCreditoMapper;
 import com.campito.backend.transacciones.mapper.CuotaCreditoMapper;
 import com.campito.backend.transacciones.mapper.ResumenMapper;
@@ -62,9 +62,9 @@ import com.campito.backend.transacciones.domain.entity.EstadoResumen;
 import com.campito.backend.transacciones.domain.entity.MotivoTransaccion;
 import com.campito.backend.transacciones.domain.entity.Resumen;
 import com.campito.backend.transacciones.domain.entity.Tarjeta;
-import com.campito.backend.transacciones.domain.entity.TipoTransaccion;
+import com.campito.backend.common.domain.TipoTransaccion;
 import com.campito.backend.transacciones.domain.entity.Transaccion;
-import com.campito.backend.util.MoneyUtils;
+import com.campito.backend.common.util.MoneyUtils;
 
 import jakarta.persistence.EntityNotFoundException;
 

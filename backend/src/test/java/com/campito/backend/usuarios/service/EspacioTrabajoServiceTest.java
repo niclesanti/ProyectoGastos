@@ -1,7 +1,7 @@
 package com.campito.backend.usuarios.service;
 
 import com.campito.backend.usuarios.repository.*;
-import com.campito.backend.exception.UsuarioNoEncontradoException;
+import com.campito.backend.common.exception.UsuarioNoEncontradoException;
 import com.campito.backend.usuarios.domain.entity.*;
 import com.campito.backend.usuarios.mapper.*;
 import com.campito.backend.usuarios.domain.dto.*;
@@ -304,8 +304,8 @@ public class EspacioTrabajoServiceTest {
         )).thenReturn(true); // Ya existe una solicitud pendiente
 
         // Act & Assert
-        com.campito.backend.exception.EntidadDuplicadaException exception = 
-            assertThrows(com.campito.backend.exception.EntidadDuplicadaException.class, () -> {
+        com.campito.backend.common.exception.EntidadDuplicadaException exception = 
+            assertThrows(com.campito.backend.common.exception.EntidadDuplicadaException.class, () -> {
                 espacioTrabajoService.compartirEspacioTrabajo(email, idEspacioTrabajo);
             });
 

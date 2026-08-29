@@ -1,10 +1,10 @@
 package com.campito.backend.notificaciones.controller;
 
 import com.campito.backend.notificaciones.domain.dto.NotificacionDTOResponse;
-import com.campito.backend.shared.event.TipoNotificacion;
+import com.campito.backend.common.event.TipoNotificacion;
 import com.campito.backend.notificaciones.service.NotificacionService;
-import com.campito.backend.service.SecurityService;
-import com.campito.backend.service.SseEmitterService;
+import com.campito.backend.security.SecurityService;
+import com.campito.backend.notificaciones.service.SseEmitterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;

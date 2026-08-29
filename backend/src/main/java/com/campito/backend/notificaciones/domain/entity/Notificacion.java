@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.campito.backend.shared.event.TipoNotificacion;
+import com.campito.backend.common.event.TipoNotificacion;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

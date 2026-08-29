@@ -1,6 +1,6 @@
 package com.campito.backend.notificaciones.domain.dto;
 
-import com.campito.backend.shared.event.TipoNotificacion;
+import com.campito.backend.common.event.TipoNotificacion;
 
 import java.time.LocalDateTime;
 

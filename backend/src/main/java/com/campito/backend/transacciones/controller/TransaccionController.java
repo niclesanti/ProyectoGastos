@@ -20,7 +20,7 @@ import com.campito.backend.transacciones.domain.dto.TransaccionBusquedaDTO;
 import com.campito.backend.transacciones.domain.dto.TransaccionDTORequest;
 import com.campito.backend.transacciones.domain.dto.TransaccionDTOResponse;
 import com.campito.backend.transacciones.service.TransaccionService;
-import com.campito.backend.service.SecurityService;
+import com.campito.backend.security.SecurityService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

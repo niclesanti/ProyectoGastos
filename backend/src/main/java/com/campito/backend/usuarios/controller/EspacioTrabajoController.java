@@ -20,7 +20,7 @@ import com.campito.backend.usuarios.domain.dto.ResponderSolicitudRequest;
 import com.campito.backend.usuarios.domain.dto.SolicitudPendienteEspacioTrabajoDTOResponse;
 import com.campito.backend.usuarios.domain.dto.UsuarioDTOResponse;
 import com.campito.backend.usuarios.service.EspacioTrabajoService;
-import com.campito.backend.service.SecurityService;
+import com.campito.backend.security.SecurityService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

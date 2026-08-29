@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.campito.backend.usuarios.domain.dto.UsuarioDTOResponse;
-import com.campito.backend.service.SecurityService;
+import com.campito.backend.security.SecurityService;
 import com.campito.backend.usuarios.service.UsuarioService;
 
 import io.swagger.v3.oas.annotations.Operation;

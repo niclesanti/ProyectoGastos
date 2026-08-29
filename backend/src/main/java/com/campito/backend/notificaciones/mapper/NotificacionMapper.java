@@ -1,7 +1,7 @@
 package com.campito.backend.notificaciones.mapper;
 
 import com.campito.backend.notificaciones.domain.dto.NotificacionDTOResponse;
-import com.campito.backend.mapper.config.MapstructConfig;
+import com.campito.backend.config.MapstructConfig;
 import com.campito.backend.notificaciones.domain.entity.Notificacion;
 import org.mapstruct.Mapper;
 

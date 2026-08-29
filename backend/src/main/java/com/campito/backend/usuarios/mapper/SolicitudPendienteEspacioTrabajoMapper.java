@@ -4,7 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 import com.campito.backend.usuarios.domain.dto.SolicitudPendienteEspacioTrabajoDTOResponse;
-import com.campito.backend.mapper.config.MapstructConfig;
+import com.campito.backend.config.MapstructConfig;
 import com.campito.backend.usuarios.domain.entity.SolicitudPendienteEspacioTrabajo;
 
 /**

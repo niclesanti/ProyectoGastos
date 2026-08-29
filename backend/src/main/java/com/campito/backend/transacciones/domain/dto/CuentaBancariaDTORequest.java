@@ -2,8 +2,8 @@ package com.campito.backend.transacciones.domain.dto;
 
 import java.math.BigDecimal;
 import java.util.UUID;
-import com.campito.backend.validation.ValidNombre;
-import com.campito.backend.validation.ValidSaldoActual;
+import com.campito.backend.common.validation.ValidNombre;
+import com.campito.backend.common.validation.ValidSaldoActual;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

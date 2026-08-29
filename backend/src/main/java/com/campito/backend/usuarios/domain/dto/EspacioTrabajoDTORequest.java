@@ -1,7 +1,7 @@
 package com.campito.backend.usuarios.domain.dto;
 
 import java.util.UUID;
-import com.campito.backend.validation.ValidNombre;
+import com.campito.backend.common.validation.ValidNombre;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

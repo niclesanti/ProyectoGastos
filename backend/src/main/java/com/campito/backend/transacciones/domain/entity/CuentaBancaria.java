@@ -1,5 +1,6 @@
 package com.campito.backend.transacciones.domain.entity;
 
+import com.campito.backend.common.domain.TipoTransaccion;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;

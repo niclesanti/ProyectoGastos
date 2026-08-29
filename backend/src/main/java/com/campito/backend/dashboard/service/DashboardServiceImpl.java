@@ -25,7 +25,7 @@ import com.campito.backend.transacciones.api.ReportesTransaccionesApi;
 import com.campito.backend.dashboard.repository.GastosIngresosMensualesRepository;
 
 import com.campito.backend.dashboard.domain.dto.DashboardStatsDTO;
-import com.campito.backend.shared.dto.DistribucionGastoDTO;
+import com.campito.backend.common.dto.DistribucionGastoDTO;
 import com.campito.backend.dashboard.domain.dto.FlujoCreditoMesDTO;
 import com.campito.backend.dashboard.domain.dto.FlujoCreditoMesDTOImpl;
 import com.campito.backend.dashboard.domain.dto.IngresosGastosMesDTO;

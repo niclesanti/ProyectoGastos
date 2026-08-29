@@ -29,7 +29,7 @@ import com.campito.backend.transacciones.api.ReportesTransaccionesApi;
 import com.campito.backend.usuarios.api.EspacioTrabajoApi;
 import com.campito.backend.dashboard.repository.*;
 import com.campito.backend.dashboard.domain.dto.*;
-import com.campito.backend.shared.dto.*;
+import com.campito.backend.common.dto.*;
 import com.campito.backend.dashboard.domain.entity.*;
 
 import jakarta.persistence.EntityNotFoundException;

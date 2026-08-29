@@ -24,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.campito.backend.common.domain.TipoTransaccion;
 import com.campito.backend.transacciones.repository.*;
 import com.campito.backend.usuarios.api.EspacioTrabajoApi;
 import com.campito.backend.transacciones.domain.dto.*;
@@ -175,7 +176,7 @@ public class CuentaBancariaServiceTest {
         cuentaConSaldo.setIdEspacioTrabajo(espacioTrabajo.getId());
         
         when(cuentaBancariaRepository.findById(1L)).thenReturn(Optional.of(cuentaConSaldo));
-        assertThrows(com.campito.backend.exception.SaldoInsuficienteException.class, () -> {
+        assertThrows(com.campito.backend.common.exception.SaldoInsuficienteException.class, () -> {
             cuentaBancariaService.actualizarCuentaBancaria(1L, TipoTransaccion.GASTO, new BigDecimal("2000.00"));
         });
     }
@@ -273,7 +274,7 @@ public class CuentaBancariaServiceTest {
         when(cuentaBancariaRepository.findById(1L)).thenReturn(Optional.of(cuentaConSaldo));
         when(cuentaBancariaRepository.findById(2L)).thenReturn(Optional.of(cuentaDestino));
 
-        assertThrows(com.campito.backend.exception.SaldoInsuficienteException.class, () -> {
+        assertThrows(com.campito.backend.common.exception.SaldoInsuficienteException.class, () -> {
             cuentaBancariaService.transaccionEntreCuentas(1L, 2L, new BigDecimal("2000.00"));
         });
     }

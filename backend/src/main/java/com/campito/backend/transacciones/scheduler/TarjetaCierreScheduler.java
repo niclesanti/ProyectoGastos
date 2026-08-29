@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.UUID;
 
 // Dependencias a revisar para reducir acoplamiento y mejorar la modularidad
-import com.campito.backend.shared.event.NotificacionEvent;
-import com.campito.backend.shared.event.TipoNotificacion;
+import com.campito.backend.common.event.NotificacionEvent;
+import com.campito.backend.common.event.TipoNotificacion;
 import com.campito.backend.usuarios.api.EspacioTrabajoApi;
 
 import org.springframework.context.ApplicationEventPublisher;

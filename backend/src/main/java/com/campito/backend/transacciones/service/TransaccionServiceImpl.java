@@ -18,8 +18,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import com.campito.backend.usuarios.api.EspacioTrabajoApi;
-import com.campito.backend.shared.event.TransaccionEliminadaEvent;
-import com.campito.backend.shared.event.TransaccionRegistradaEvent;
+import com.campito.backend.common.event.TransaccionEliminadaEvent;
+import com.campito.backend.common.event.TransaccionRegistradaEvent;
 
 import com.campito.backend.transacciones.repository.ContactoTransferenciaRepository;
 import com.campito.backend.transacciones.repository.CuentaBancariaRepository;
@@ -39,10 +39,10 @@ import com.campito.backend.transacciones.mapper.TransaccionMapper;
 import com.campito.backend.transacciones.domain.entity.ContactoTransferencia;
 import com.campito.backend.transacciones.domain.entity.CuentaBancaria;
 import com.campito.backend.transacciones.domain.entity.MotivoTransaccion;
-import com.campito.backend.transacciones.domain.entity.TipoTransaccion;
+import com.campito.backend.common.domain.TipoTransaccion;
 import com.campito.backend.transacciones.domain.entity.Transaccion;
 
-import com.campito.backend.exception.EntidadDuplicadaException;
+import com.campito.backend.common.exception.EntidadDuplicadaException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 

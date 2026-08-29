@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import com.campito.backend.transacciones.domain.entity.TipoTransaccion;
+import com.campito.backend.common.domain.TipoTransaccion;
 
 public record TransaccionDTOResponse(
     Long id,

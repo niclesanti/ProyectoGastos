@@ -5,7 +5,7 @@ import org.mapstruct.Mapping;
 
 import com.campito.backend.usuarios.domain.dto.UsuarioDTORequest;
 import com.campito.backend.usuarios.domain.dto.UsuarioDTOResponse;
-import com.campito.backend.mapper.config.MapstructConfig;
+import com.campito.backend.config.MapstructConfig;
 import com.campito.backend.usuarios.domain.entity.Usuario;
 
 /**

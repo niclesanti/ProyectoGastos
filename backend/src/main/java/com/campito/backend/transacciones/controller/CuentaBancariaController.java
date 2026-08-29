@@ -15,7 +15,7 @@ import com.campito.backend.transacciones.domain.dto.CuentaBancariaDTORequest;
 import com.campito.backend.transacciones.domain.dto.CuentaBancariaDTOResponse;
 import com.campito.backend.transacciones.domain.dto.TransaccionCuentaRequest;
 import com.campito.backend.transacciones.service.CuentaBancariaService;
-import com.campito.backend.service.SecurityService;
+import com.campito.backend.security.SecurityService;
 
 import java.util.UUID;
 

@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.campito.backend.descuentos.domain.dto.DescuentoDTORequest;
 import com.campito.backend.descuentos.domain.dto.DescuentoDTOResponse;
 import com.campito.backend.descuentos.service.DescuentoService;
-import com.campito.backend.service.SecurityService;
+import com.campito.backend.security.SecurityService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

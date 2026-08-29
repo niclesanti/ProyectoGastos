@@ -1,5 +1,6 @@
 package com.campito.backend.transacciones.domain.entity;
 
+import com.campito.backend.common.domain.TipoTransaccion;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

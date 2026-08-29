@@ -1,6 +1,6 @@
 package com.campito.backend.usuarios.domain.dto;
 
-import com.campito.backend.validation.ValidNombre;
+import com.campito.backend.common.validation.ValidNombre;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

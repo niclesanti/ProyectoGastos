@@ -2,8 +2,8 @@ package com.campito.backend.descuentos.domain.dto;
 
 import java.util.UUID;
 
-import com.campito.backend.validation.ValidDescripcion;
-import com.campito.backend.validation.ValidNombre;
+import com.campito.backend.common.validation.ValidDescripcion;
+import com.campito.backend.common.validation.ValidNombre;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

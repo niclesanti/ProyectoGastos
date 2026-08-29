@@ -1,12 +1,11 @@
 package com.campito.backend.notificaciones.event;
 
 import lombok.extern.slf4j.Slf4j;
-import com.campito.backend.shared.event.NotificacionEvent;
+import com.campito.backend.common.event.NotificacionEvent;
 import com.campito.backend.notificaciones.repository.NotificacionRepository;
-import com.campito.backend.notificaciones.domain.dto.NotificacionDTOResponse;
 import com.campito.backend.notificaciones.mapper.NotificacionMapper;
 import com.campito.backend.notificaciones.domain.entity.Notificacion;
-import com.campito.backend.service.SseEmitterService;
+import com.campito.backend.notificaciones.service.SseEmitterService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;

@@ -18,9 +18,9 @@ import com.campito.backend.transacciones.domain.dto.CuentaBancariaDTOResponse;
 import com.campito.backend.transacciones.mapper.CuentaBancariaMapper;
 import com.campito.backend.transacciones.domain.entity.CuentaBancaria;
 
-import com.campito.backend.transacciones.domain.entity.TipoTransaccion;
-import com.campito.backend.exception.EntidadDuplicadaException;
-import com.campito.backend.exception.SaldoInsuficienteException;
+import com.campito.backend.common.domain.TipoTransaccion;
+import com.campito.backend.common.exception.EntidadDuplicadaException;
+import com.campito.backend.common.exception.SaldoInsuficienteException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 

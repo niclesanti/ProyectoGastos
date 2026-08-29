@@ -5,7 +5,7 @@ import org.mapstruct.Mapping;
 
 import com.campito.backend.transacciones.domain.dto.CuotaCreditoDTORequest;
 import com.campito.backend.transacciones.domain.dto.CuotaCreditoDTOResponse;
-import com.campito.backend.mapper.config.MapstructConfig;
+import com.campito.backend.config.MapstructConfig;
 import com.campito.backend.transacciones.domain.entity.CuotaCredito;
 
 /**
