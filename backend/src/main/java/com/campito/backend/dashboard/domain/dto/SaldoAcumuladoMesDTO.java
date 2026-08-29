@@ -1,0 +1,8 @@
+package com.campito.backend.dashboard.domain.dto;
+
+import java.math.BigDecimal;
+
+public interface SaldoAcumuladoMesDTO {
+    String getMes();
+    BigDecimal getSaldoAcumulado();
+}

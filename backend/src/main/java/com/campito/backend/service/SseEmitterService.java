@@ -1,6 +1,6 @@
 package com.campito.backend.service;
 
-import com.campito.backend.model.Notificacion;
+import com.campito.backend.notificaciones.domain.entity.Notificacion;
 
 import java.util.UUID;
 

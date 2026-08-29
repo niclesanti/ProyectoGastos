@@ -1,9 +1,9 @@
 package com.campito.backend.service;
 
 import lombok.extern.slf4j.Slf4j;
-import com.campito.backend.dto.NotificacionDTOResponse;
-import com.campito.backend.mapper.NotificacionMapper;
-import com.campito.backend.model.Notificacion;
+import com.campito.backend.notificaciones.domain.dto.NotificacionDTOResponse;
+import com.campito.backend.notificaciones.mapper.NotificacionMapper;
+import com.campito.backend.notificaciones.domain.entity.Notificacion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;

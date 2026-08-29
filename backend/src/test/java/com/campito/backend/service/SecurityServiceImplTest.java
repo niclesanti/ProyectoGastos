@@ -1,7 +1,6 @@
 package com.campito.backend.service;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
@@ -19,14 +18,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import com.campito.backend.dao.EspacioTrabajoRepository;
+import com.campito.backend.usuarios.domain.entity.*;
+import com.campito.backend.usuarios.repository.*;
 import com.campito.backend.descuentos.domain.entity.Descuento;
 import com.campito.backend.descuentos.repository.DescuentoRepository;
 import com.campito.backend.exception.ForbiddenException;
 import com.campito.backend.exception.UnauthorizedException;
-import com.campito.backend.model.CustomOAuth2User;
-import com.campito.backend.model.ProveedorAutenticacion;
-import com.campito.backend.model.Usuario;
 
 import jakarta.persistence.EntityNotFoundException;
 

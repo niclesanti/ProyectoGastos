@@ -1,0 +1,19 @@
+package com.campito.backend.transacciones.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.campito.backend.transacciones.domain.entity.MotivoTransaccion;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public interface MotivoTransaccionRepository extends JpaRepository<MotivoTransaccion, Long> {
+
+    List<MotivoTransaccion> findByEspacioTrabajo_Id(UUID idEspacioTrabajo);
+    
+    // Método para obtener motivos ordenados por última modificación (más recientes primero)
+    List<MotivoTransaccion> findByEspacioTrabajo_IdOrderByFechaModificacionDesc(UUID idEspacioTrabajo);
+    
+    Optional<MotivoTransaccion> findFirstByMotivoAndEspacioTrabajo_Id(String motivo, UUID idEspacioTrabajo);
+}

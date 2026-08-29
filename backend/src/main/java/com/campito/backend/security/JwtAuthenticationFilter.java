@@ -1,9 +1,9 @@
 package com.campito.backend.security;
 
 import lombok.extern.slf4j.Slf4j;
-import com.campito.backend.dao.UsuarioRepository;
-import com.campito.backend.model.CustomOAuth2User;
-import com.campito.backend.model.Usuario;
+import com.campito.backend.usuarios.repository.UsuarioRepository;
+import com.campito.backend.usuarios.domain.entity.CustomOAuth2User;
+import com.campito.backend.usuarios.domain.entity.Usuario;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
