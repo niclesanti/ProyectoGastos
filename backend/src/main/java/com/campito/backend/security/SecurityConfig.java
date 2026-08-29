@@ -1,7 +1,5 @@
 package com.campito.backend.security;
 
-import com.campito.backend.security.JwtAuthenticationFilter;
-import com.campito.backend.security.OAuth2AuthenticationSuccessHandler;
 import com.campito.backend.usuarios.service.CustomOidcUserService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
