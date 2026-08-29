@@ -10,10 +10,8 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-// Dependencia a corregir para reducir acoplamiento con el módulo de usuarios
-import com.campito.backend.usuarios.domain.entity.EspacioTrabajo;
-
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "tarjetas")
@@ -43,9 +41,8 @@ public class Tarjeta {
     @Column(name = "dia_vencimiento_pago", nullable = false)
     private Integer diaVencimientoPago;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "espacio_trabajo_id", nullable = false)
-    private EspacioTrabajo espacioTrabajo;
+    @Column(name = "espacio_trabajo_id", nullable = false)
+    private UUID idEspacioTrabajo;
 
     @CreatedDate
     @Column(name = "fecha_creacion", nullable = false, updatable = false)

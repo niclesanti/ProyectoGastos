@@ -25,7 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.campito.backend.transacciones.repository.*;
-import com.campito.backend.usuarios.repository.*;
+import com.campito.backend.usuarios.api.EspacioTrabajoApi;
 import com.campito.backend.transacciones.domain.dto.*;
 import com.campito.backend.transacciones.domain.entity.*;
 import com.campito.backend.usuarios.domain.entity.*;
@@ -40,7 +40,7 @@ public class CuentaBancariaServiceTest {
     private CuentaBancariaRepository cuentaBancariaRepository;
 
     @Mock
-    private EspacioTrabajoRepository espacioTrabajoRepository;
+    private EspacioTrabajoApi espacioTrabajoApi;
 
     @Mock
     private CuentaBancariaMapper cuentaBancariaMapper;
@@ -76,7 +76,7 @@ public class CuentaBancariaServiceTest {
         cuentaBancaria.setNombre("Cuenta de Ahorros");
         cuentaBancaria.setEntidadFinanciera("Banco A");
         cuentaBancaria.setSaldoActual(BigDecimal.ZERO);
-        cuentaBancaria.setEspacioTrabajo(espacioTrabajo);
+        cuentaBancaria.setIdEspacioTrabajo(espacioTrabajo.getId());
         
         lenient().when(cuentaBancariaMapper.toEntity(any(CuentaBancariaDTORequest.class))).thenAnswer(invocation -> {
             CuentaBancariaDTORequest dto = invocation.getArgument(0);
@@ -106,7 +106,7 @@ public class CuentaBancariaServiceTest {
 
     @Test
     void testCrearCuentaBancaria_cuandoEspacioTrabajoNoExiste_lanzaExcepcion() {
-        when(espacioTrabajoRepository.findById(espacioTrabajo.getId())).thenReturn(Optional.empty());
+        when(espacioTrabajoApi.existe(espacioTrabajo.getId())).thenReturn(false);
         assertThrows(EntityNotFoundException.class, () -> {
             cuentaBancariaService.crearCuentaBancaria(cuentaBancariaDTO);
         });
@@ -115,7 +115,7 @@ public class CuentaBancariaServiceTest {
 
     @Test
     void testCrearCuentaBancaria_conDatosValidos_guardaCuenta() {
-        when(espacioTrabajoRepository.findById(espacioTrabajo.getId())).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioTrabajoApi.existe(espacioTrabajo.getId())).thenReturn(true);
         cuentaBancariaService.crearCuentaBancaria(cuentaBancariaDTO);
         verify(cuentaBancariaRepository, times(1)).save(any(CuentaBancaria.class));
     }
@@ -123,7 +123,7 @@ public class CuentaBancariaServiceTest {
     @Test
     void testCrearCuentaBancaria_conDatosValidos_guardaCuentaConSaldoCeroYEspacioAsignado() {
         // Arrange
-        when(espacioTrabajoRepository.findById(espacioTrabajo.getId())).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioTrabajoApi.existe(espacioTrabajo.getId())).thenReturn(true);
 
         // Act
         cuentaBancariaService.crearCuentaBancaria(cuentaBancariaDTO);
@@ -134,7 +134,7 @@ public class CuentaBancariaServiceTest {
         CuentaBancaria saved = captor.getValue();
         assertNotNull(saved);
         assertEquals(0, new BigDecimal("0.00").compareTo(saved.getSaldoActual()));
-        assertEquals(espacioTrabajo, saved.getEspacioTrabajo());
+        assertEquals(espacioTrabajo.getId(), saved.getIdEspacioTrabajo());
         assertEquals("Cuenta de Ahorros", saved.getNombre());
         assertEquals("Banco A", saved.getEntidadFinanciera());
     }
@@ -148,7 +148,7 @@ public class CuentaBancariaServiceTest {
         cuentaConSaldo.setNombre("Cuenta de Ahorros");
         cuentaConSaldo.setEntidadFinanciera("Banco A");
         cuentaConSaldo.setSaldoActual(new BigDecimal("1000.00"));
-        cuentaConSaldo.setEspacioTrabajo(espacioTrabajo);
+        cuentaConSaldo.setIdEspacioTrabajo(espacioTrabajo.getId());
         
         when(cuentaBancariaRepository.findById(1L)).thenReturn(Optional.of(cuentaConSaldo));
         CuentaBancaria cuentaActualizada = cuentaBancariaService.actualizarCuentaBancaria(1L, TipoTransaccion.GASTO, new BigDecimal("1000.00"));
@@ -172,7 +172,7 @@ public class CuentaBancariaServiceTest {
         cuentaConSaldo.setNombre("Cuenta de Ahorros");
         cuentaConSaldo.setEntidadFinanciera("Banco A");
         cuentaConSaldo.setSaldoActual(new BigDecimal("1000.00"));
-        cuentaConSaldo.setEspacioTrabajo(espacioTrabajo);
+        cuentaConSaldo.setIdEspacioTrabajo(espacioTrabajo.getId());
         
         when(cuentaBancariaRepository.findById(1L)).thenReturn(Optional.of(cuentaConSaldo));
         assertThrows(com.campito.backend.exception.SaldoInsuficienteException.class, () -> {
@@ -188,7 +188,7 @@ public class CuentaBancariaServiceTest {
         cuentaConSaldo.setNombre("Cuenta de Ahorros");
         cuentaConSaldo.setEntidadFinanciera("Banco A");
         cuentaConSaldo.setSaldoActual(new BigDecimal("1000.00"));
-        cuentaConSaldo.setEspacioTrabajo(espacioTrabajo);
+        cuentaConSaldo.setIdEspacioTrabajo(espacioTrabajo.getId());
         
         when(cuentaBancariaRepository.findById(1L)).thenReturn(Optional.of(cuentaConSaldo));
         CuentaBancaria cuentaActualizada = cuentaBancariaService.actualizarCuentaBancaria(1L, TipoTransaccion.INGRESO, new BigDecimal("500.00"));
@@ -204,7 +204,7 @@ public class CuentaBancariaServiceTest {
         cuentaConSaldo.setNombre("Cuenta de Ahorros");
         cuentaConSaldo.setEntidadFinanciera("Banco A");
         cuentaConSaldo.setSaldoActual(new BigDecimal("1000.00"));
-        cuentaConSaldo.setEspacioTrabajo(espacioTrabajo);
+        cuentaConSaldo.setIdEspacioTrabajo(espacioTrabajo.getId());
         
         when(cuentaBancariaRepository.findById(1L)).thenReturn(Optional.of(cuentaConSaldo));
         CuentaBancaria cuentaActualizada = cuentaBancariaService.actualizarCuentaBancaria(1L, TipoTransaccion.GASTO, new BigDecimal("500.00"));
@@ -215,7 +215,7 @@ public class CuentaBancariaServiceTest {
     // Tests para listarCuentasBancarias
     @Test
     void testListarCuentasBancarias_cuandoNoExistenCuentas_retornaListaVacia() {
-        when(cuentaBancariaRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioTrabajo.getId())).thenReturn(Collections.emptyList());
+        when(cuentaBancariaRepository.findByIdEspacioTrabajoOrderByFechaModificacionDesc(espacioTrabajo.getId())).thenReturn(Collections.emptyList());
         List<CuentaBancariaDTOResponse> resultado = cuentaBancariaService.listarCuentasBancarias(espacioTrabajo.getId());
         assertNotNull(resultado);
         assertEquals(0, resultado.size());
@@ -223,7 +223,7 @@ public class CuentaBancariaServiceTest {
 
     @Test
     void testListarCuentasBancarias_cuandoExistenCuentas_retornaListaDTOs() {
-        when(cuentaBancariaRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioTrabajo.getId())).thenReturn(List.of(cuentaBancaria));
+        when(cuentaBancariaRepository.findByIdEspacioTrabajoOrderByFechaModificacionDesc(espacioTrabajo.getId())).thenReturn(List.of(cuentaBancaria));
         List<CuentaBancariaDTOResponse> resultado = cuentaBancariaService.listarCuentasBancarias(espacioTrabajo.getId());
         assertNotNull(resultado);
         assertEquals(1, resultado.size());
@@ -247,7 +247,7 @@ public class CuentaBancariaServiceTest {
         cuentaConSaldo.setNombre("Cuenta de Ahorros");
         cuentaConSaldo.setEntidadFinanciera("Banco A");
         cuentaConSaldo.setSaldoActual(new BigDecimal("1000.00"));
-        cuentaConSaldo.setEspacioTrabajo(espacioTrabajo);
+        cuentaConSaldo.setIdEspacioTrabajo(espacioTrabajo.getId());
         
         when(cuentaBancariaRepository.findById(1L)).thenReturn(Optional.of(cuentaConSaldo));
         when(cuentaBancariaRepository.findById(2L)).thenReturn(Optional.empty());
@@ -264,7 +264,7 @@ public class CuentaBancariaServiceTest {
         cuentaConSaldo.setNombre("Cuenta de Ahorros");
         cuentaConSaldo.setEntidadFinanciera("Banco A");
         cuentaConSaldo.setSaldoActual(new BigDecimal("1000.00"));
-        cuentaConSaldo.setEspacioTrabajo(espacioTrabajo);
+        cuentaConSaldo.setIdEspacioTrabajo(espacioTrabajo.getId());
         
         CuentaBancaria cuentaDestino = new CuentaBancaria();
         cuentaDestino.setId(2L);
@@ -286,7 +286,7 @@ public class CuentaBancariaServiceTest {
         cuentaConSaldo.setNombre("Cuenta de Ahorros");
         cuentaConSaldo.setEntidadFinanciera("Banco A");
         cuentaConSaldo.setSaldoActual(new BigDecimal("1000.00"));
-        cuentaConSaldo.setEspacioTrabajo(espacioTrabajo);
+        cuentaConSaldo.setIdEspacioTrabajo(espacioTrabajo.getId());
         
         CuentaBancaria cuentaDestino = new CuentaBancaria();
         cuentaDestino.setId(2L);

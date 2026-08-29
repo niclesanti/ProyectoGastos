@@ -1,7 +1,7 @@
 package com.campito.backend.notificaciones.service;
 
 import com.campito.backend.notificaciones.domain.dto.NotificacionDTOResponse;
-import com.campito.backend.notificaciones.domain.entity.TipoNotificacion;
+import com.campito.backend.shared.event.TipoNotificacion;
 
 import java.util.List;
 import java.util.UUID;

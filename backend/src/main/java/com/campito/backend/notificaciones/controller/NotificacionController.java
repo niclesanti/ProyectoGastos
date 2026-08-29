@@ -1,7 +1,7 @@
 package com.campito.backend.notificaciones.controller;
 
 import com.campito.backend.notificaciones.domain.dto.NotificacionDTOResponse;
-import com.campito.backend.notificaciones.domain.entity.TipoNotificacion;
+import com.campito.backend.shared.event.TipoNotificacion;
 import com.campito.backend.notificaciones.service.NotificacionService;
 import com.campito.backend.service.SecurityService;
 import com.campito.backend.service.SseEmitterService;

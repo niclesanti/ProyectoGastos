@@ -3,12 +3,9 @@ package com.campito.backend.transacciones.domain.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,11 +15,9 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-// Dependencia a corregir para reducir acoplamiento con el módulo de usuarios
-import com.campito.backend.usuarios.domain.entity.EspacioTrabajo;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "cuentas_bancarias")
@@ -45,9 +40,8 @@ public class CuentaBancaria {
     @Column(name = "saldo_actual", nullable = false, columnDefinition = "NUMERIC(15,2)")
     private BigDecimal saldoActual;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_espacio_trabajo", nullable = false)
-    private EspacioTrabajo espacioTrabajo;
+    @Column(name = "id_espacio_trabajo", nullable = false)
+    private UUID idEspacioTrabajo;
 
     @CreatedDate
     @Column(name = "fecha_creacion", nullable = false, updatable = false)

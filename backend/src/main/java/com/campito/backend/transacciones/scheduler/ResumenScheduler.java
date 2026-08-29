@@ -14,8 +14,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 // Dependencias a revisar para reducir acoplamiento y mejorar la modularidad
-import com.campito.backend.notificaciones.event.NotificacionEvent;
-import com.campito.backend.notificaciones.domain.entity.TipoNotificacion;
+import com.campito.backend.shared.event.NotificacionEvent;
+import com.campito.backend.shared.event.TipoNotificacion;
+import com.campito.backend.usuarios.api.EspacioTrabajoApi;
 
 import com.campito.backend.transacciones.repository.CuotaCreditoRepository;
 import com.campito.backend.transacciones.repository.ResumenRepository;
@@ -48,6 +49,7 @@ public class ResumenScheduler {
     private final TarjetaRepository tarjetaRepository;
     private final CuotaCreditoRepository cuotaCreditoRepository;
     private final ResumenRepository resumenRepository;
+    private final EspacioTrabajoApi espacioTrabajoApi;
     private final ApplicationEventPublisher eventPublisher;
     private final MeterRegistry meterRegistry;  // Para métricas de Prometheus/Grafana
 
@@ -192,7 +194,7 @@ public class ResumenScheduler {
         
         // Emitir evento de notificación al administrador del espacio de trabajo
         try {
-            UUID idUsuarioAdmin = tarjeta.getEspacioTrabajo().getUsuarioAdmin().getId();
+            UUID idUsuarioAdmin = espacioTrabajoApi.obtenerIdUsuarioAdmin(tarjeta.getIdEspacioTrabajo());
             String numeroTarjeta = tarjeta.getNumeroTarjeta();
             String redDePago = tarjeta.getRedDePago();
             String fechaVencimientoStr = fechaVencimiento.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));

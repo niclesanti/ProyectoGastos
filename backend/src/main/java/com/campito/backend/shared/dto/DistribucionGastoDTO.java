@@ -1,4 +1,4 @@
-package com.campito.backend.dashboard.domain.dto;
+package com.campito.backend.shared.dto;
 
 import java.math.BigDecimal;
 

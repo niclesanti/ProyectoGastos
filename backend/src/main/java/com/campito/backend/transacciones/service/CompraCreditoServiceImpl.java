@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,11 +20,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// Dependencias a revisar para reducir el acomplamiento con otros módulos
-import com.campito.backend.usuarios.repository.EspacioTrabajoRepository;
-import com.campito.backend.dashboard.repository.GastosIngresosMensualesRepository;
-import com.campito.backend.usuarios.domain.entity.EspacioTrabajo;
-import com.campito.backend.dashboard.domain.entity.GastosIngresosMensuales;
+import com.campito.backend.usuarios.api.EspacioTrabajoApi;
+import com.campito.backend.shared.event.CompraCreditoEliminadaEvent;
+import com.campito.backend.shared.event.CompraCreditoRegistradaEvent;
+import com.campito.backend.shared.event.ResumenPagadoEvent;
 
 import com.campito.backend.transacciones.repository.CompraCreditoRepository;
 import com.campito.backend.transacciones.repository.ContactoTransferenciaRepository;
@@ -84,7 +84,7 @@ import com.campito.backend.config.MetricsConfig;
 public class CompraCreditoServiceImpl implements CompraCreditoService {
 
     private final CompraCreditoRepository compraCreditoRepository;
-    private final EspacioTrabajoRepository espacioRepository;
+    private final EspacioTrabajoApi espacioTrabajoApi;
     private final MotivoTransaccionRepository motivoRepository;
     private final ContactoTransferenciaRepository contactoRepository;
     private final CuentaBancariaRepository cuentaBancariaRepository;
@@ -92,7 +92,6 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     private final TarjetaRepository tarjetaRepository;
     private final TransaccionRepository transaccionRepository;
     private final ResumenRepository resumenRepository;
-    private final GastosIngresosMensualesRepository gastosIngresosMensualesRepository;
 
     private final CompraCreditoMapper compraCreditoMapper;
     private final TarjetaMapper tarjetaMapper;
@@ -100,6 +99,8 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     private final ResumenMapper resumenMapper;
 
     private final TransaccionService transaccionService;
+
+    private final ApplicationEventPublisher eventPublisher;
 
     private final MeterRegistry meterRegistry;  // Para métricas de Prometheus/Grafana
 
@@ -116,11 +117,18 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
 
         log.info("Iniciando registro de compraCredito por monto {} con cantidad de cuotas {} en espacio ID {}", compraCreditoDTO.montoTotal(), compraCreditoDTO.cantidadCuotas(), compraCreditoDTO.espacioTrabajoId());
 
-        EspacioTrabajo espacio = buscarEspacioTrabajoPorId(compraCreditoDTO.espacioTrabajoId());
+        UUID idEspacio = compraCreditoDTO.espacioTrabajoId();
+        if (!espacioTrabajoApi.existe(idEspacio)) {
+            String msg = "Espacio de trabajo con ID " + idEspacio + " no encontrado";
+            log.warn(msg);
+            throw new EntityNotFoundException(msg);
+        }
         MotivoTransaccion motivo = buscarMotivoPorId(compraCreditoDTO.motivoId());
         Tarjeta tarjeta = buscarTarjetaPorId(compraCreditoDTO.tarjetaId());
 
         CompraCredito compraCredito = compraCreditoMapper.toEntity(compraCreditoDTO);
+        compraCredito.setIdEspacioTrabajo(idEspacio);
+        compraCredito.setNombreEspacioTrabajo(espacioTrabajoApi.obtenerNombre(idEspacio));
 
         if (compraCreditoDTO.comercioId() != null) {
             ContactoTransferencia comercio = buscarComercioPorId(compraCreditoDTO.comercioId());
@@ -147,19 +155,19 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         Tarjeta tarjetaGuardada = tarjetaRepository.save(tarjeta);
         log.info("Tarjeta ID {} actualizado tras registro de transaccion", tarjetaGuardada.getId());
 
-        compraCredito.setEspacioTrabajo(espacio);
         compraCredito.setMotivo(motivoGuardado);
         compraCredito.setTarjeta(tarjetaGuardada);
 
         CompraCredito compraCreditoGuardada = compraCreditoRepository.save(compraCredito);
         crearCuotas(compraCreditoGuardada);
-        compraCreditoMesAnotar(compraCreditoGuardada.getMontoTotal(), compraCreditoGuardada.getEspacioTrabajo().getId(), compraCreditoGuardada.getFechaCompra());
-        log.info("Compra credito ID {} registrada exitosamente en espacio ID {}.", compraCreditoGuardada.getId(), espacio.getId());
+        eventPublisher.publishEvent(new CompraCreditoRegistradaEvent(
+                idEspacio, compraCreditoGuardada.getMontoTotal(), compraCreditoGuardada.getFechaCompra()));
+        log.info("Compra credito ID {} registrada exitosamente en espacio ID {}.", compraCreditoGuardada.getId(), idEspacio);
         
         // 📊 MÉTRICA: Incrementar contador de compras a crédito registradas
         Counter.builder(MetricsConfig.MetricNames.COMPRAS_CREDITO_CREADAS)
                 .description("Total de compras a crédito registradas exitosamente")
-                .tag(MetricsConfig.TagNames.ESPACIO_TRABAJO, espacio.getId().toString())
+                .tag(MetricsConfig.TagNames.ESPACIO_TRABAJO, idEspacio.toString())
                 .tag("tarjeta_id", tarjeta.getId().toString())
                 .tag("cuotas", String.valueOf(compraCreditoGuardada.getCantidadCuotas()))
                 .register(meterRegistry)
@@ -183,7 +191,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
 
         // Validar que no exista una tarjeta con la misma combinación en el espacio de trabajo
         Optional<Tarjeta> tarjetaExistente = tarjetaRepository
-                .findFirstByNumeroTarjetaAndEntidadFinancieraAndRedDePagoAndEspacioTrabajo_Id(
+                .findFirstByNumeroTarjetaAndEntidadFinancieraAndRedDePagoAndIdEspacioTrabajo(
                     tarjetaDTO.numeroTarjeta(), 
                     tarjetaDTO.entidadFinanciera(), 
                     tarjetaDTO.redDePago(), 
@@ -198,13 +206,17 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
             throw new EntidadDuplicadaException(msg);
         }
 
-        EspacioTrabajo espacio = buscarEspacioTrabajoPorId(tarjetaDTO.espacioTrabajoId());
+        if (!espacioTrabajoApi.existe(tarjetaDTO.espacioTrabajoId())) {
+            String msg = "Espacio de trabajo con ID " + tarjetaDTO.espacioTrabajoId() + " no encontrado";
+            log.warn(msg);
+            throw new EntityNotFoundException(msg);
+        }
 
         Tarjeta tarjeta = tarjetaMapper.toEntity(tarjetaDTO);
-        tarjeta.setEspacioTrabajo(espacio);
+        tarjeta.setIdEspacioTrabajo(tarjetaDTO.espacioTrabajoId());
 
         Tarjeta tarjetaGuardada = tarjetaRepository.save(tarjeta);
-        log.info("Tarjeta ID {} registrada exitosamente en espacio ID {}.", tarjetaGuardada.getId(), espacio.getId());
+        log.info("Tarjeta ID {} registrada exitosamente en espacio ID {}.", tarjetaGuardada.getId(), tarjetaDTO.espacioTrabajoId());
         
         return tarjetaMapper.toResponse(tarjetaGuardada);
     }
@@ -237,8 +249,9 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         cuotaCreditoRepository.deleteByCompraCredito_Id(id);
         log.info("Cuotas de la compra crédito ID {} eliminadas", id);
 
-        // Revertir el impacto en GastosIngresosMensuales
-        compraCreditoMesDelete(compraCredito.getMontoTotal(), compraCredito.getEspacioTrabajo().getId(), compraCredito.getFechaCompra());
+        // Revertir el impacto en GastosIngresosMensuales via evento síncrono del dashboard
+        eventPublisher.publishEvent(new CompraCreditoEliminadaEvent(
+                compraCredito.getIdEspacioTrabajo(), compraCredito.getMontoTotal(), compraCredito.getFechaCompra()));
 
         // Eliminar la compra crédito
         compraCreditoRepository.deleteById(id);
@@ -269,7 +282,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "fechaCompra"));
         
         Page<CompraCredito> comprasCreditoPage = compraCreditoRepository
-            .findByEspacioTrabajo_IdAndCuotasPendientesPageable(idEspacioTrabajo, pageable);
+            .findByIdEspacioTrabajoAndCuotasPendientesPageable(idEspacioTrabajo, pageable);
         
         Page<CompraCreditoDTOResponse> comprasDTOPage = comprasCreditoPage.map(compraCreditoMapper::toResponse);
 
@@ -291,7 +304,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
 
         log.info("Buscando compras crédito en espacio ID {}", idEspacioTrabajo);
 
-        List<CompraCredito> comprasCredito = compraCreditoRepository.findByEspacioTrabajo_Id(idEspacioTrabajo);
+        List<CompraCredito> comprasCredito = compraCreditoRepository.findByIdEspacioTrabajo(idEspacioTrabajo);
         
         List<CompraCreditoDTOResponse> comprasCreditoResponse = comprasCredito.stream()
             .map(compraCreditoMapper::toResponse)
@@ -323,7 +336,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "fechaCompra"));
 
         Specification<CompraCredito> spec = (root, query, cb) ->
-            cb.equal(root.get("espacioTrabajo").get("id"), datosBusqueda.idEspacioTrabajo());
+            cb.equal(root.get("idEspacioTrabajo"), datosBusqueda.idEspacioTrabajo());
 
         if (datosBusqueda.anio() != null) {
             int anio = datosBusqueda.anio();
@@ -400,7 +413,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
 
         log.info("Listando tarjetas en espacio ID {}", idEspacioTrabajo);
 
-        List<Tarjeta> tarjetas = tarjetaRepository.findByEspacioTrabajo_Id(idEspacioTrabajo);
+        List<Tarjeta> tarjetas = tarjetaRepository.findByIdEspacioTrabajo(idEspacioTrabajo);
         
         List<TarjetaDTOResponse> tarjetasResponse = tarjetas.stream()
             .map(tarjetaMapper::toResponse)
@@ -474,13 +487,13 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
 
         // 2. Buscar o crear el motivo "Pago de tarjeta" usando Optional.orElseGet()
         MotivoTransaccion motivo = motivoRepository
-            .findFirstByMotivoAndEspacioTrabajo_Id("Pago de tarjeta", request.idEspacioTrabajo())
+            .findFirstByMotivoAndIdEspacioTrabajo("Pago de tarjeta", request.idEspacioTrabajo())
             .orElseGet(() -> {
                 log.info("Creando motivo 'Pago de tarjeta' para espacio de trabajo ID: {}", 
                     request.idEspacioTrabajo());
                 MotivoTransaccion nuevoMotivo = MotivoTransaccion.builder()
                     .motivo("Pago de tarjeta")
-                    .espacioTrabajo(resumen.getTarjeta().getEspacioTrabajo())
+                    .idEspacioTrabajo(resumen.getTarjeta().getIdEspacioTrabajo())
                     .build();
                 return motivoRepository.save(nuevoMotivo);
             });
@@ -537,13 +550,14 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         
         cuotaCreditoRepository.saveAll(cuotasDelResumen);
         
-        // Anotar el pago del resumen en GastosIngresosMensuales del mes del resumen
-        pagoResumenMesAnotar(resumen.getMontoTotal(), request.idEspacioTrabajo(), LocalDate.of(resumen.getAnio(), resumen.getMes(), 1));
+        // Anotar el pago del resumen en GastosIngresosMensuales del mes del resumen via evento síncrono
+        eventPublisher.publishEvent(new ResumenPagadoEvent(
+                request.idEspacioTrabajo(), resumen.getMontoTotal(), resumen.getAnio(), resumen.getMes()));
 
         // 📊 MÉTRICA: Incrementar contador de resúmenes pagados
         Counter.builder(MetricsConfig.MetricNames.RESUMENES_PAGADOS)
                 .description("Total de resúmenes de tarjetas pagados exitosamente")
-                .tag(MetricsConfig.TagNames.ESPACIO_TRABAJO, resumen.getTarjeta().getEspacioTrabajo().getId().toString())
+                .tag(MetricsConfig.TagNames.ESPACIO_TRABAJO, resumen.getTarjeta().getIdEspacioTrabajo().toString())
                 .tag("tarjeta_id", resumen.getTarjeta().getId().toString())
                 .register(meterRegistry)
                 .increment();
@@ -726,89 +740,6 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     }
 
     /**
-     * Anota el monto de una compra con crédito en el registro mensual del espacio de trabajo.
-     * Usa la fecha real de la compra para determinar el anio/mes del registro.
-     */
-    private void compraCreditoMesAnotar(BigDecimal monto, UUID idEspacioTrabajo, LocalDate fecha) {
-        Integer anio = fecha.getYear();
-        Integer mes = fecha.getMonthValue();
-
-        Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository
-                .findByEspacioTrabajo_IdAndAnioAndMes(idEspacioTrabajo, anio, mes);
-
-        GastosIngresosMensuales registro = opt.orElseGet(() -> {
-            EspacioTrabajo espacio = buscarEspacioTrabajoPorId(idEspacioTrabajo);
-            return GastosIngresosMensuales.builder()
-                    .anio(anio)
-                    .mes(mes)
-                    .gastos(BigDecimal.ZERO)
-                    .ingresos(BigDecimal.ZERO)
-                    .comprasCredito(BigDecimal.ZERO)
-                    .pagoResumen(BigDecimal.ZERO)
-                    .espacioTrabajo(espacio)
-                    .build();
-        });
-
-        registro.actualizarComprasCredito(monto);
-        gastosIngresosMensualesRepository.save(registro);
-        log.info("Compras crédito mensuales anotadas: espacioId={}, anio={}, mes={}, comprasCredito={}",
-                idEspacioTrabajo, anio, mes, registro.getComprasCredito());
-    }
-
-    /**
-     * Elimina el monto de una compra con crédito del registro mensual (usada al remover una compra).
-     * Usa la fecha real de la compra para determinar el anio/mes del registro.
-     */
-    private void compraCreditoMesDelete(BigDecimal monto, UUID idEspacioTrabajo, LocalDate fecha) {
-        Integer anio = fecha.getYear();
-        Integer mes = fecha.getMonthValue();
-
-        Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository
-                .findByEspacioTrabajo_IdAndAnioAndMes(idEspacioTrabajo, anio, mes);
-
-        GastosIngresosMensuales registro = opt.orElseThrow(() -> {
-            String msg = "Registro de GastosIngresosMensuales no encontrado para espacioId=" + idEspacioTrabajo + ", anio=" + anio + ", mes=" + mes;
-            log.warn(msg);
-            return new EntityNotFoundException(msg);
-        });
-
-        registro.eliminarComprasCredito(monto);
-        gastosIngresosMensualesRepository.save(registro);
-        log.info("Compras crédito mensuales eliminadas: espacioId={}, anio={}, mes={}, comprasCredito={}",
-                idEspacioTrabajo, anio, mes, registro.getComprasCredito());
-    }
-
-    /**
-     * Anota el pago de un resumen en el registro del mes al que corresponde dicho resumen.
-     * Usa la fecha del resumen (anio/mes del ciclo) para determinar el registro a actualizar.
-     */
-    private void pagoResumenMesAnotar(BigDecimal monto, UUID idEspacioTrabajo, LocalDate fecha) {
-        Integer anio = fecha.getYear();
-        Integer mes = fecha.getMonthValue();
-
-        Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository
-                .findByEspacioTrabajo_IdAndAnioAndMes(idEspacioTrabajo, anio, mes);
-
-        GastosIngresosMensuales registro = opt.orElseGet(() -> {
-            EspacioTrabajo espacio = buscarEspacioTrabajoPorId(idEspacioTrabajo);
-            return GastosIngresosMensuales.builder()
-                    .anio(anio)
-                    .mes(mes)
-                    .gastos(BigDecimal.ZERO)
-                    .ingresos(BigDecimal.ZERO)
-                    .comprasCredito(BigDecimal.ZERO)
-                    .pagoResumen(BigDecimal.ZERO)
-                    .espacioTrabajo(espacio)
-                    .build();
-        });
-
-        registro.actualizarPagoResumen(monto);
-        gastosIngresosMensualesRepository.save(registro);
-        log.info("Pago de resumen mensual anotado: espacioId={}, anio={}, mes={}, pagoResumen={}",
-                idEspacioTrabajo, anio, mes, registro.getPagoResumen());
-    }
-
-    /**
      * Calcula la fecha del cierre anterior al período actual.
      * 
      * @param fechaActual Fecha de referencia
@@ -848,14 +779,6 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         }
         
         return fechaCierre;
-    }
-
-    private EspacioTrabajo buscarEspacioTrabajoPorId(UUID idEspacioTrabajo) {
-        return espacioRepository.findById(idEspacioTrabajo).orElseThrow(() -> {
-            String msg = "Espacio de trabajo con ID " + idEspacioTrabajo + " no encontrado";
-            log.warn(msg);
-            return new EntityNotFoundException(msg);
-        });
     }
 
     private MotivoTransaccion buscarMotivoPorId(Long idMotivo) {
@@ -919,7 +842,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         }
         
         // Validar que el espacio de trabajo coincida
-        if (!resumen.getTarjeta().getEspacioTrabajo().getId().equals(request.idEspacioTrabajo())) {
+        if (!resumen.getTarjeta().getIdEspacioTrabajo().equals(request.idEspacioTrabajo())) {
             throw new IllegalArgumentException(
                 "El resumen no pertenece al espacio de trabajo especificado");
         }
@@ -935,7 +858,7 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
                 .orElseThrow(() -> new EntityNotFoundException(
                     "Cuenta bancaria no encontrada con ID: " + request.idCuentaBancaria()));
             
-            if (!cuenta.getEspacioTrabajo().getId().equals(request.idEspacioTrabajo())) {
+            if (!cuenta.getIdEspacioTrabajo().equals(request.idEspacioTrabajo())) {
                 throw new IllegalArgumentException(
                     "La cuenta bancaria no pertenece al espacio de trabajo especificado");
             }
@@ -943,11 +866,3 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     }
     
 }
-
-
-
-
-
-
-
-

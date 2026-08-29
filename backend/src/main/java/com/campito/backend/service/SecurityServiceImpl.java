@@ -163,7 +163,7 @@ public class SecurityServiceImpl implements SecurityService {
                 return new EntityNotFoundException("Transacción no encontrada");
             });
         
-        UUID workspaceId = transaccion.getEspacioTrabajo().getId();
+        UUID workspaceId = transaccion.getIdEspacioTrabajo();
         validateWorkspaceAccess(workspaceId);
         
         log.debug("Ownership validado: Usuario tiene acceso a transacción {}", transactionId);
@@ -191,7 +191,7 @@ public class SecurityServiceImpl implements SecurityService {
                 return new EntityNotFoundException("Compra a crédito no encontrada");
             });
         
-        UUID workspaceId = compra.getEspacioTrabajo().getId();
+        UUID workspaceId = compra.getIdEspacioTrabajo();
         validateWorkspaceAccess(workspaceId);
         
         log.debug("Ownership validado: Usuario tiene acceso a compra a crédito {}", compraCreditoId);
@@ -219,7 +219,7 @@ public class SecurityServiceImpl implements SecurityService {
                 return new EntityNotFoundException("Cuenta bancaria no encontrada");
             });
         
-        UUID workspaceId = cuenta.getEspacioTrabajo().getId();
+        UUID workspaceId = cuenta.getIdEspacioTrabajo();
         validateWorkspaceAccess(workspaceId);
         
         log.debug("Ownership validado: Usuario tiene acceso a cuenta bancaria {}", cuentaBancariaId);
@@ -247,7 +247,7 @@ public class SecurityServiceImpl implements SecurityService {
                 return new EntityNotFoundException("Tarjeta no encontrada");
             });
         
-        UUID workspaceId = tarjeta.getEspacioTrabajo().getId();
+        UUID workspaceId = tarjeta.getIdEspacioTrabajo();
         validateWorkspaceAccess(workspaceId);
         
         log.debug("Ownership validado: Usuario tiene acceso a tarjeta {}", tarjetaId);
@@ -277,7 +277,7 @@ public class SecurityServiceImpl implements SecurityService {
                 return new EntityNotFoundException("Notificación no encontrada");
             });
         
-        if (!notificacion.getUsuario().getId().equals(userId)) {
+        if (!notificacion.getIdUsuario().equals(userId)) {
             log.warn("Usuario {} intenta acceder a notificación {} que no le pertenece", 
                 userId, notificacionId);
             throw new ForbiddenException("No tienes acceso a esta notificación");

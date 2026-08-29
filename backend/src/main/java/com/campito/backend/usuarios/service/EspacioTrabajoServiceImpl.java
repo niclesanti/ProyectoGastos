@@ -9,9 +9,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// Dependencias a revisar para reducir acoplamiento y mejorar la modularidad
-import com.campito.backend.notificaciones.event.NotificacionEvent;
-import com.campito.backend.notificaciones.domain.entity.TipoNotificacion;
+import com.campito.backend.shared.event.NotificacionEvent;
+import com.campito.backend.shared.event.TipoNotificacion;
 
 import com.campito.backend.usuarios.repository.EspacioTrabajoRepository;
 import com.campito.backend.usuarios.repository.SolicitudPendienteEspacioTrabajoRepository;

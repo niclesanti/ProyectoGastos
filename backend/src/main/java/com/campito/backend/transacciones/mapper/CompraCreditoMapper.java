@@ -31,7 +31,8 @@ public interface CompraCreditoMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "cuotasPagadas", constant = "0")
     @Mapping(target = "fechaCreacion", ignore = true)
-    @Mapping(target = "espacioTrabajo", ignore = true)
+    @Mapping(target = "idEspacioTrabajo", ignore = true)
+    @Mapping(target = "nombreEspacioTrabajo", ignore = true)
     @Mapping(target = "motivo", ignore = true)
     @Mapping(target = "comercio", ignore = true)
     @Mapping(target = "tarjeta", ignore = true)
@@ -45,8 +46,8 @@ public interface CompraCreditoMapper {
      * @param compraCredito Entidad CompraCredito
      * @return DTO de respuesta con todos los datos de la compra a crédito
      */
-    @Mapping(target = "espacioTrabajoId", source = "espacioTrabajo.id")
-    @Mapping(target = "nombreEspacioTrabajo", source = "espacioTrabajo.nombre")
+    @Mapping(target = "espacioTrabajoId", source = "idEspacioTrabajo")
+    @Mapping(target = "nombreEspacioTrabajo", source = "nombreEspacioTrabajo")
     @Mapping(target = "motivoId", source = "motivo.id")
     @Mapping(target = "nombreMotivo", source = "motivo.motivo")
     @Mapping(target = "comercioId", source = "comercio.id")

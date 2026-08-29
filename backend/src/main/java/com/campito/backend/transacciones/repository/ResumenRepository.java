@@ -34,7 +34,7 @@ public interface ResumenRepository extends JpaRepository<Resumen, Long> {
     /**
      * Lista todos los resúmenes de un espacio de trabajo
      */
-    @Query("SELECT r FROM Resumen r WHERE r.tarjeta.espacioTrabajo.id = :idEspacioTrabajo " +
+    @Query("SELECT r FROM Resumen r WHERE r.tarjeta.idEspacioTrabajo = :idEspacioTrabajo " +
            "ORDER BY r.anio DESC, r.mes DESC")
     List<Resumen> findByEspacioTrabajoId(@Param("idEspacioTrabajo") UUID idEspacioTrabajo);
     

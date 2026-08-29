@@ -1,4 +1,4 @@
-package com.campito.backend.notificaciones.domain.entity;
+package com.campito.backend.shared.event;
 
 /**
  * Enum que define los diferentes tipos de notificaciones del sistema.

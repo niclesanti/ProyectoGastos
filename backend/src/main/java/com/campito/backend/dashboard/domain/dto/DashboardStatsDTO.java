@@ -3,6 +3,8 @@ package com.campito.backend.dashboard.domain.dto;
 import java.math.BigDecimal;
 import java.util.List;
 
+import com.campito.backend.shared.dto.DistribucionGastoDTO;
+
 public record DashboardStatsDTO(
     // KPIs
     BigDecimal balanceTotal,

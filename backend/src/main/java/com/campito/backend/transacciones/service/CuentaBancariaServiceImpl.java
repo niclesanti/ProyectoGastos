@@ -9,9 +9,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// Dependencias a revisar para reducir el acomplamiento con otros módulos
-import com.campito.backend.usuarios.repository.EspacioTrabajoRepository;
-import com.campito.backend.usuarios.domain.entity.EspacioTrabajo;
+import com.campito.backend.usuarios.api.EspacioTrabajoApi;
 
 import com.campito.backend.transacciones.repository.CuentaBancariaRepository;
 
@@ -38,7 +36,7 @@ import lombok.RequiredArgsConstructor;
 public class CuentaBancariaServiceImpl implements CuentaBancariaService {
 
     private final CuentaBancariaRepository cuentaBancariaRepository;
-    private final EspacioTrabajoRepository espacioTrabajoRepository;
+    private final EspacioTrabajoApi espacioTrabajoApi;
     private final CuentaBancariaMapper cuentaBancariaMapper;
 
     /**
@@ -54,7 +52,7 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
         log.info("Creando cuenta bancaria '{}' para entidad '{}'", cuentaBancariaDTO.nombre(), cuentaBancariaDTO.entidadFinanciera());
         // Validar que no exista una cuenta con el mismo nombre en el espacio de trabajo
         Optional<CuentaBancaria> cuentaExistente = cuentaBancariaRepository
-                .findFirstByNombreAndEspacioTrabajo_Id(cuentaBancariaDTO.nombre(), cuentaBancariaDTO.idEspacioTrabajo());
+                .findFirstByNombreAndIdEspacioTrabajo(cuentaBancariaDTO.nombre(), cuentaBancariaDTO.idEspacioTrabajo());
         
         if (cuentaExistente.isPresent()) {
             String msg = String.format("Ya existe una cuenta bancaria con el nombre '%s' en este espacio de trabajo. Por favor, utiliza un nombre diferente.", 
@@ -62,11 +60,13 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
             log.warn(msg);
             throw new EntidadDuplicadaException(msg);
         }
-        EspacioTrabajo espacioTrabajo = buscarEspacioTrabajoPorId(cuentaBancariaDTO.idEspacioTrabajo());
+        if (!espacioTrabajoApi.existe(cuentaBancariaDTO.idEspacioTrabajo())) {
+            throw new EntityNotFoundException("Espacio de trabajo con ID " + cuentaBancariaDTO.idEspacioTrabajo() + " no encontrado");
+        }
 
         CuentaBancaria cuentaBancaria = cuentaBancariaMapper.toEntity(cuentaBancariaDTO);
 
-        cuentaBancaria.setEspacioTrabajo(espacioTrabajo);
+        cuentaBancaria.setIdEspacioTrabajo(cuentaBancariaDTO.idEspacioTrabajo());
         cuentaBancariaRepository.save(cuentaBancaria);
         log.info("Cuenta bancaria '{}' creada exitosamente.", cuentaBancaria.getNombre());
     }
@@ -115,7 +115,7 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
 
         log.info("Listando cuentas bancarias para el espacio de trabajo ID: {}", idEspacioTrabajo);
 
-        List<CuentaBancariaDTOResponse> cuentas = cuentaBancariaRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(idEspacioTrabajo).stream()
+        List<CuentaBancariaDTOResponse> cuentas = cuentaBancariaRepository.findByIdEspacioTrabajoOrderByFechaModificacionDesc(idEspacioTrabajo).stream()
             .map(cuentaBancariaMapper::toResponse)
             .toList();
         log.info("Encontradas {} cuentas bancarias para el espacio de trabajo ID: {} (ordenadas por última modificación).", cuentas.size(), idEspacioTrabajo);
@@ -159,15 +159,6 @@ public class CuentaBancariaServiceImpl implements CuentaBancariaService {
         MÉTODOS AUXILIARES PRIVADOS
     ===========================================================================
     */
-
-    private EspacioTrabajo buscarEspacioTrabajoPorId(UUID idEspacioTrabajo) {
-        return espacioTrabajoRepository.findById(idEspacioTrabajo)
-            .orElseThrow(() -> {
-                String mensaje = "Espacio de trabajo con ID " + idEspacioTrabajo + " no encontrado";
-                log.warn(mensaje);
-                return new EntityNotFoundException(mensaje);
-            });
-    }
 
     private CuentaBancaria buscarCuentaBancariaPorId(Long idCuenta) {
         return cuentaBancariaRepository.findById(idCuenta)

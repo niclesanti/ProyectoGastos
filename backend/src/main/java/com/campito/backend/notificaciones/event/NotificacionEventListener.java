@@ -1,13 +1,13 @@
 package com.campito.backend.notificaciones.event;
 
 import lombok.extern.slf4j.Slf4j;
+import com.campito.backend.shared.event.NotificacionEvent;
 import com.campito.backend.notificaciones.repository.NotificacionRepository;
-import com.campito.backend.usuarios.repository.UsuarioRepository;
+import com.campito.backend.notificaciones.domain.dto.NotificacionDTOResponse;
+import com.campito.backend.notificaciones.mapper.NotificacionMapper;
 import com.campito.backend.notificaciones.domain.entity.Notificacion;
-import com.campito.backend.usuarios.domain.entity.Usuario;
 import com.campito.backend.service.SseEmitterService;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -35,7 +35,7 @@ import com.campito.backend.config.MetricsConfig;
 public class NotificacionEventListener {
     
     private final NotificacionRepository notificacionRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final NotificacionMapper notificacionMapper;
     private final SseEmitterService sseEmitterService;
     private final MeterRegistry meterRegistry;  // Para métricas de Prometheus/Grafana
     
@@ -52,16 +52,9 @@ public class NotificacionEventListener {
             log.info("Procesando notificación: tipo={}, usuario={}", 
                        event.getTipo(), event.getIdUsuario());
             
-            // 1. Buscar usuario
-            Usuario usuario = usuarioRepository.findById(event.getIdUsuario()).orElseThrow(() -> {
-                String mensaje = "Usuario con ID " + event.getIdUsuario() + " no encontrado";
-                log.warn(mensaje);
-                return new EntityNotFoundException(mensaje);
-            });
-            
             // 2. Crear notificación
             Notificacion notificacion = new Notificacion();
-            notificacion.setUsuario(usuario);
+            notificacion.setIdUsuario(event.getIdUsuario());
             notificacion.setTipo(event.getTipo());
             notificacion.setMensaje(event.getMensaje());
             
@@ -69,7 +62,7 @@ public class NotificacionEventListener {
             notificacion = notificacionRepository.save(notificacion);
             
             // 4. Enviar via SSE (si el usuario está conectado)
-            sseEmitterService.enviarNotificacion(event.getIdUsuario(), notificacion);
+            sseEmitterService.enviarNotificacion(event.getIdUsuario(), notificacionMapper.toResponse(notificacion));
             
             // 📊 MÉTRICA: Incrementar contador de notificaciones enviadas
             Counter.builder(MetricsConfig.MetricNames.NOTIFICACIONES_ENVIADAS)

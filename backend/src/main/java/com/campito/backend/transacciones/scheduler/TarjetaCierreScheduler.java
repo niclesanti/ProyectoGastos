@@ -8,8 +8,9 @@ import java.util.List;
 import java.util.UUID;
 
 // Dependencias a revisar para reducir acoplamiento y mejorar la modularidad
-import com.campito.backend.notificaciones.event.NotificacionEvent;
-import com.campito.backend.notificaciones.domain.entity.TipoNotificacion;
+import com.campito.backend.shared.event.NotificacionEvent;
+import com.campito.backend.shared.event.TipoNotificacion;
+import com.campito.backend.usuarios.api.EspacioTrabajoApi;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 public class TarjetaCierreScheduler {
 
     private final TarjetaRepository tarjetaRepository;
+    private final EspacioTrabajoApi espacioTrabajoApi;
     private final ApplicationEventPublisher eventPublisher;
 
     /**
@@ -79,7 +81,7 @@ public class TarjetaCierreScheduler {
     }
 
     private void enviarRecordatorio(Tarjeta tarjeta, LocalDate fechaCierre) {
-        UUID idUsuarioAdmin = tarjeta.getEspacioTrabajo().getUsuarioAdmin().getId();
+        UUID idUsuarioAdmin = espacioTrabajoApi.obtenerIdUsuarioAdmin(tarjeta.getIdEspacioTrabajo());
         String numeroTarjeta = tarjeta.getNumeroTarjeta();
         String redDePago = tarjeta.getRedDePago();
         String fechaCierreStr = fechaCierre.format(DateTimeFormatter.ofPattern("dd/MM"));

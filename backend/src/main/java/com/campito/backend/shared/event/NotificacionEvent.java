@@ -1,6 +1,5 @@
-package com.campito.backend.notificaciones.event;
+package com.campito.backend.shared.event;
 
-import com.campito.backend.notificaciones.domain.entity.TipoNotificacion;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
@@ -9,7 +8,7 @@ import java.util.UUID;
 /**
  * Evento publicado cuando se genera una notificación en el sistema.
  * 
- * Este evento es capturado por {@link NotificacionEventListener} de forma
+ * Este evento es capturado por {@code NotificacionEventListener} de forma
  * asíncrona para crear la notificación en la base de datos y enviarla
  * en tiempo real via SSE si el usuario está conectado.
  * 

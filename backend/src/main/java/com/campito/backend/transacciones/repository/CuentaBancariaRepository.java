@@ -10,10 +10,10 @@ import com.campito.backend.transacciones.domain.entity.CuentaBancaria;
 
 public interface CuentaBancariaRepository extends JpaRepository<CuentaBancaria, Long> {
     
-    List<CuentaBancaria> findByEspacioTrabajo_Id(UUID idEspacioTrabajo);
+    List<CuentaBancaria> findByIdEspacioTrabajo(UUID idEspacioTrabajo);
     
     // Método para obtener cuentas bancarias ordenadas por última modificación (más recientes primero)
-    List<CuentaBancaria> findByEspacioTrabajo_IdOrderByFechaModificacionDesc(UUID idEspacioTrabajo);
+    List<CuentaBancaria> findByIdEspacioTrabajoOrderByFechaModificacionDesc(UUID idEspacioTrabajo);
     
-    Optional<CuentaBancaria> findFirstByNombreAndEspacioTrabajo_Id(String nombre, UUID idEspacioTrabajo);
+    Optional<CuentaBancaria> findFirstByNombreAndIdEspacioTrabajo(String nombre, UUID idEspacioTrabajo);
 }

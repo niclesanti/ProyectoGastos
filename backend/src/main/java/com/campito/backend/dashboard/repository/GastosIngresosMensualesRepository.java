@@ -12,7 +12,7 @@ import com.campito.backend.dashboard.domain.entity.GastosIngresosMensuales;
 
 public interface GastosIngresosMensualesRepository extends JpaRepository<GastosIngresosMensuales, Long> {
 
-    Optional<GastosIngresosMensuales> findByEspacioTrabajo_IdAndAnioAndMes(UUID espacioTrabajoId, Integer anio, Integer mes);
+    Optional<GastosIngresosMensuales> findByIdEspacioTrabajoAndAnioAndMes(UUID espacioTrabajoId, Integer anio, Integer mes);
 
     /**
      * Busca todos los registros de gastos e ingresos mensuales para un espacio de trabajo

@@ -30,7 +30,7 @@ public interface TarjetaMapper {
      * @return Entidad Tarjeta sin ID (para INSERT)
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "espacioTrabajo", ignore = true)
+    @Mapping(target = "idEspacioTrabajo", ignore = true)
     @Mapping(target = "fechaCreacion", ignore = true)
     @Mapping(target = "fechaModificacion", ignore = true)
     Tarjeta toEntity(TarjetaDTORequest request);
@@ -43,7 +43,7 @@ public interface TarjetaMapper {
      * @param tarjeta Entidad Tarjeta
      * @return DTO de respuesta con todos los datos de la tarjeta
      */
-    @Mapping(target = "espacioTrabajoId", source = "espacioTrabajo.id")
+    @Mapping(target = "espacioTrabajoId", source = "idEspacioTrabajo")
     TarjetaDTOResponse toResponse(Tarjeta tarjeta);
 
     /**
@@ -54,7 +54,7 @@ public interface TarjetaMapper {
      * @param tarjeta Entidad a actualizar (MappingTarget)
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "espacioTrabajo", ignore = true)
+    @Mapping(target = "idEspacioTrabajo", ignore = true)
     @Mapping(target = "numeroTarjeta", ignore = true)
     @Mapping(target = "entidadFinanciera", ignore = true)
     @Mapping(target = "redDePago", ignore = true)

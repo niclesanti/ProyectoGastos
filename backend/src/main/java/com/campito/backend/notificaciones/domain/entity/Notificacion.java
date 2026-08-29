@@ -7,10 +7,10 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-// Dependencia que hay que resolver para desacoplar el módulo de usuarios del módulo de notificaciones
-import com.campito.backend.usuarios.domain.entity.Usuario;
+import com.campito.backend.shared.event.TipoNotificacion;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * Entidad que representa una notificación del sistema para un usuario.
@@ -31,9 +31,8 @@ public class Notificacion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_usuario", nullable = false)
-    private Usuario usuario;
+    @Column(name = "id_usuario", nullable = false)
+    private UUID idUsuario;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)

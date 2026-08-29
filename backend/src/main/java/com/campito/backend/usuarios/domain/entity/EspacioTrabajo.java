@@ -14,9 +14,6 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-// Dependencia entre módulos que debe resolverse para evitar acoplamiento fuerte.
-import com.campito.backend.transacciones.domain.entity.TipoTransaccion;
-
 @Entity
 @Table(name = "espacios_trabajo")
 @EntityListeners(AuditingEntityListener.class)
@@ -52,19 +49,4 @@ public class EspacioTrabajo {
     @Column(name = "fecha_modificacion", nullable = false)
     private LocalDateTime fechaModificacion;
 
-    public void actualizarSaldoNuevaTransaccion(BigDecimal monto, TipoTransaccion tipo) {
-        if (tipo.equals(TipoTransaccion.INGRESO)) {
-            this.saldo = this.saldo.add(monto);
-        } else {
-            this.saldo = this.saldo.subtract(monto);
-        }
-    }
-
-    public void actualizarSaldoEliminarTransaccion(BigDecimal monto, TipoTransaccion tipo) {
-        if (tipo.equals(TipoTransaccion.INGRESO)) {
-            this.saldo = this.saldo.subtract(monto);
-        } else {
-            this.saldo = this.saldo.add(monto);
-        }
-    }
 }

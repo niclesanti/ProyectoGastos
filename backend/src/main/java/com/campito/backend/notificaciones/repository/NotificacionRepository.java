@@ -17,7 +17,7 @@ public interface NotificacionRepository extends JpaRepository<Notificacion, Long
      * @param idUsuario ID del usuario
      * @return Lista de notificaciones ordenadas
      */
-    List<Notificacion> findByUsuarioIdOrderByFechaCreacionDesc(UUID idUsuario);
+    List<Notificacion> findByIdUsuarioOrderByFechaCreacionDesc(UUID idUsuario);
     
     /**
      * Obtiene las últimas 50 notificaciones de un usuario ordenadas por fecha de creación descendente.
@@ -26,7 +26,7 @@ public interface NotificacionRepository extends JpaRepository<Notificacion, Long
      * @param idUsuario ID del usuario
      * @return Lista de las últimas 50 notificaciones
      */
-    List<Notificacion> findTop50ByUsuarioIdOrderByFechaCreacionDesc(UUID idUsuario);
+    List<Notificacion> findTop50ByIdUsuarioOrderByFechaCreacionDesc(UUID idUsuario);
     
     /**
      * Cuenta las notificaciones no leídas de un usuario.
@@ -34,7 +34,7 @@ public interface NotificacionRepository extends JpaRepository<Notificacion, Long
      * @param idUsuario ID del usuario
      * @return Cantidad de notificaciones no leídas
      */
-    Long countByUsuarioIdAndLeidaFalse(UUID idUsuario);
+    Long countByIdUsuarioAndLeidaFalse(UUID idUsuario);
     
     /**
      * Marca todas las notificaciones no leídas de un usuario como leídas.
@@ -44,7 +44,7 @@ public interface NotificacionRepository extends JpaRepository<Notificacion, Long
      * @return Cantidad de notificaciones actualizadas
      */
     @Modifying
-    @Query("UPDATE Notificacion n SET n.leida = true, n.fechaLeida = :fecha WHERE n.usuario.id = :idUsuario AND n.leida = false")
+    @Query("UPDATE Notificacion n SET n.leida = true, n.fechaLeida = :fecha WHERE n.idUsuario = :idUsuario AND n.leida = false")
     int marcarTodasComoLeidas(UUID idUsuario, LocalDateTime fecha);
     
     /**

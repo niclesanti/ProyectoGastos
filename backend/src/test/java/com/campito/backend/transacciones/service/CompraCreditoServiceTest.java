@@ -25,16 +25,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 import com.campito.backend.transacciones.repository.*;
-import com.campito.backend.usuarios.repository.*;
-import com.campito.backend.dashboard.repository.*;
+import com.campito.backend.usuarios.api.EspacioTrabajoApi;
+import com.campito.backend.usuarios.domain.entity.EspacioTrabajo;
+import com.campito.backend.shared.event.CompraCreditoEliminadaEvent;
+import com.campito.backend.shared.event.CompraCreditoRegistradaEvent;
+import com.campito.backend.shared.event.ResumenPagadoEvent;
 import com.campito.backend.transacciones.domain.dto.*;
 import com.campito.backend.transacciones.domain.entity.*;
-import com.campito.backend.usuarios.domain.entity.*;
-import com.campito.backend.dashboard.domain.entity.*;
 import com.campito.backend.transacciones.mapper.*;
 
 
@@ -49,7 +51,7 @@ public class CompraCreditoServiceTest {
     private CompraCreditoRepository compraCreditoRepository;
 
     @Mock
-    private EspacioTrabajoRepository espacioRepository;
+    private EspacioTrabajoApi espacioTrabajoApi;
 
     @Mock
     private MotivoTransaccionRepository motivoRepository;
@@ -73,9 +75,6 @@ public class CompraCreditoServiceTest {
     private ResumenRepository resumenRepository;
 
     @Mock
-    private GastosIngresosMensualesRepository gastosIngresosMensualesRepository;
-
-    @Mock
     private CompraCreditoMapper compraCreditoMapper;
 
     @Mock
@@ -90,6 +89,9 @@ public class CompraCreditoServiceTest {
     @Mock
     private TransaccionService transaccionService;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     @InjectMocks
     private CompraCreditoServiceImpl compraCreditoService;
 
@@ -103,7 +105,7 @@ public class CompraCreditoServiceTest {
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         compraCreditoService = new CompraCreditoServiceImpl(
             compraCreditoRepository,
-            espacioRepository,
+            espacioTrabajoApi,
             motivoRepository,
             contactoRepository,
             cuentaBancariaRepository,
@@ -111,12 +113,12 @@ public class CompraCreditoServiceTest {
             tarjetaRepository,
             transaccionRepository,
             resumenRepository,
-            gastosIngresosMensualesRepository,
             compraCreditoMapper,
             tarjetaMapper,
             cuotaCreditoMapper,
             resumenMapper,
             transaccionService,
+            eventPublisher,
             meterRegistry
         );
         espacio = new EspacioTrabajo();
@@ -127,7 +129,7 @@ public class CompraCreditoServiceTest {
         tarjeta.setId(10L);
         tarjeta.setDiaCierre(25);
         tarjeta.setDiaVencimientoPago(5);
-        tarjeta.setEspacioTrabajo(espacio);
+        tarjeta.setIdEspacioTrabajo(espacio.getId());
 
         compraCreditoEntity = new CompraCredito();
         compraCreditoEntity.setId(100L);
@@ -138,7 +140,7 @@ public class CompraCreditoServiceTest {
         MotivoTransaccion motivoDefault = new MotivoTransaccion();
         motivoDefault.setId(1L);
         compraCreditoEntity.setMotivo(motivoDefault);
-        compraCreditoEntity.setEspacioTrabajo(espacio);
+        compraCreditoEntity.setIdEspacioTrabajo(espacio.getId());
 
         // Mapper behavior
         lenient().when(compraCreditoMapper.toEntity(any(CompraCreditoDTORequest.class))).thenAnswer(invocation -> {
@@ -161,8 +163,8 @@ public class CompraCreditoServiceTest {
                 c.getDescripcion(),
                 "Aud",
                 c.getFechaCreacion() != null ? c.getFechaCreacion() : LocalDate.now().atStartOfDay(),
-                c.getEspacioTrabajo() != null ? c.getEspacioTrabajo().getId() : espacio.getId(),
-                c.getEspacioTrabajo() != null ? c.getEspacioTrabajo().getNombre() : "esp",
+                c.getIdEspacioTrabajo() != null ? c.getIdEspacioTrabajo() : espacio.getId(),
+                c.getNombreEspacioTrabajo() != null ? c.getNombreEspacioTrabajo() : "esp",
                 c.getMotivo() != null ? c.getMotivo().getId() : 1L,
                 c.getMotivo() != null ? c.getMotivo().getMotivo() : "mot",
                 c.getComercio() != null ? c.getComercio().getId() : null,
@@ -195,7 +197,7 @@ public class CompraCreditoServiceTest {
     @Test
     void registrarCompraCredito_espacioNoExiste_lanzaEntityNotFound() {
         CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.now(), new BigDecimal("100.00"), 2, "desc", "Aud", espacio.getId(), 1L, null, 1L);
-        when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.empty());
+        when(espacioTrabajoApi.existe(espacio.getId())).thenReturn(false);
         assertThrows(EntityNotFoundException.class, () -> compraCreditoService.registrarCompraCredito(dto));
         verify(compraCreditoRepository, never()).save(any());
     }
@@ -203,7 +205,8 @@ public class CompraCreditoServiceTest {
     @Test
     void registrarCompraCredito_creaCuotasSiCantidadValida_yGuardaCompra() {
         CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.of(2025, Month.JULY, 20), new BigDecimal("1000.00"), 3, "desc", "Aud", espacio.getId(), 1L, null, 10L);
-        when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
+        when(espacioTrabajoApi.existe(espacio.getId())).thenReturn(true);
+        when(espacioTrabajoApi.obtenerNombre(espacio.getId())).thenReturn("Mi Espacio");
         MotivoTransaccion motivoConId = new MotivoTransaccion();
         motivoConId.setId(1L);
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoConId));
@@ -229,13 +232,15 @@ public class CompraCreditoServiceTest {
         verify(compraCreditoRepository, times(1)).save(any(CompraCredito.class));
         // Crear cuotas debería invocar save en cuotaCreditoRepository tantas veces como cuotas
         verify(cuotaCreditoRepository, times(3)).save(any(CuotaCredito.class));
+        verify(eventPublisher).publishEvent(any(CompraCreditoRegistradaEvent.class));
     }
 
     @Test
     void registrarCompraCredito_conComercioOpcional_asignaComercio() {
         CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.of(2025, Month.JUNE, 10), new BigDecimal("500.00"), 2, "desc", "Aud", espacio.getId(), 1L, 99L, 10L);
 
-        when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
+        when(espacioTrabajoApi.existe(espacio.getId())).thenReturn(true);
+        when(espacioTrabajoApi.obtenerNombre(espacio.getId())).thenReturn("Mi Espacio");
         MotivoTransaccion motivoConId2 = new MotivoTransaccion();
         motivoConId2.setId(1L);
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoConId2));
@@ -272,7 +277,8 @@ public class CompraCreditoServiceTest {
     @Test
     void registrarCompraCredito_cantidadCuotasCero_noCreaCuotas() {
         CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.now(), new BigDecimal("1000.00"), 0, "desc", "Aud", espacio.getId(), 1L, null, 10L);
-        when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
+        when(espacioTrabajoApi.existe(espacio.getId())).thenReturn(true);
+        when(espacioTrabajoApi.obtenerNombre(espacio.getId())).thenReturn("Mi Espacio");
         MotivoTransaccion motivoConId3 = new MotivoTransaccion();
         motivoConId3.setId(1L);
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoConId3));
@@ -296,6 +302,7 @@ public class CompraCreditoServiceTest {
         compraCreditoService.registrarCompraCredito(dto);
 
         verify(cuotaCreditoRepository, never()).save(any(CuotaCredito.class));
+        verify(eventPublisher).publishEvent(any(CompraCreditoRegistradaEvent.class));
     }
 
     // ---------------------------------------------------------
@@ -305,14 +312,14 @@ public class CompraCreditoServiceTest {
     @Test
     void registrarTarjeta_espacioNoExiste_lanzaEntityNotFound() {
         var req = new TarjetaDTORequest("1234", "Entidad", "VISA", 1, 5, espacio.getId());
-        when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.empty());
+        when(espacioTrabajoApi.existe(espacio.getId())).thenReturn(false);
         assertThrows(EntityNotFoundException.class, () -> compraCreditoService.registrarTarjeta(req));
     }
 
     @Test
     void registrarTarjeta_exitoso_guardaYRetorna() {
         var req = new TarjetaDTORequest("1234", "Entidad", "VISA", 1, 5, espacio.getId());
-        when(espacioRepository.findById(espacio.getId())).thenReturn(Optional.of(espacio));
+        when(espacioTrabajoApi.existe(espacio.getId())).thenReturn(true);
         when(tarjetaMapper.toEntity(any())).thenAnswer(inv -> {
             TarjetaDTORequest r = inv.getArgument(0);
             Tarjeta t = new Tarjeta();
@@ -321,14 +328,14 @@ public class CompraCreditoServiceTest {
             t.setRedDePago(r.redDePago());
             t.setDiaCierre(r.diaCierre());
             t.setDiaVencimientoPago(r.diaVencimientoPago());
-            t.setEspacioTrabajo(espacio);
+            t.setIdEspacioTrabajo(espacio.getId());
             t.setId(555L);
             return t;
         });
         when(tarjetaRepository.save(any(Tarjeta.class))).thenAnswer(inv -> inv.getArgument(0));
         when(tarjetaMapper.toResponse(any(Tarjeta.class))).thenAnswer(inv -> {
             Tarjeta t = inv.getArgument(0);
-            return new TarjetaDTOResponse(t.getId(), t.getNumeroTarjeta(), t.getEntidadFinanciera(), t.getRedDePago(), t.getDiaCierre(), t.getDiaVencimientoPago(), t.getEspacioTrabajo().getId());
+            return new TarjetaDTOResponse(t.getId(), t.getNumeroTarjeta(), t.getEntidadFinanciera(), t.getRedDePago(), t.getDiaCierre(), t.getDiaVencimientoPago(), t.getIdEspacioTrabajo());
         });
 
         var resp = compraCreditoService.registrarTarjeta(req);
@@ -399,24 +406,12 @@ public class CompraCreditoServiceTest {
     void removerCompraCredito_sinCuotasPagadas_eliminaCompraYCuotas() {
         when(compraCreditoRepository.findById(100L)).thenReturn(Optional.of(compraCreditoEntity));
         when(cuotaCreditoRepository.findByCompraCredito_IdAndPagada(100L, true)).thenReturn(List.of());
-        // Mock para compraCreditoMesDelete: registros existentes del mes
-        GastosIngresosMensuales regMes = GastosIngresosMensuales.builder()
-            .anio(java.time.LocalDate.now().getYear())
-            .mes(java.time.LocalDate.now().getMonthValue())
-            .gastos(java.math.BigDecimal.ZERO)
-            .ingresos(java.math.BigDecimal.ZERO)
-            .comprasCredito(new java.math.BigDecimal("1000.00"))
-            .pagoResumen(java.math.BigDecimal.ZERO)
-            .espacioTrabajo(espacio)
-            .build();
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(
-            eq(espacio.getId()), any(Integer.class), any(Integer.class)))
-            .thenReturn(Optional.of(regMes));
 
         compraCreditoService.removerCompraCredito(100L);
 
         verify(cuotaCreditoRepository, times(1)).deleteByCompraCredito_Id(100L);
         verify(compraCreditoRepository, times(1)).deleteById(100L);
+        verify(eventPublisher).publishEvent(any(CompraCreditoEliminadaEvent.class));
     }
 
     // ---------------------------------------------------------
@@ -427,7 +422,7 @@ public class CompraCreditoServiceTest {
     void listarComprasCreditoDebeCuotas_retornaDTOs() {
         CompraCredito c = new CompraCredito();
         c.setId(200L);
-        when(compraCreditoRepository.findByEspacioTrabajo_IdAndCuotasPendientesPageable(eq(espacio.getId()), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(c)));
+        when(compraCreditoRepository.findByIdEspacioTrabajoAndCuotasPendientesPageable(eq(espacio.getId()), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(c)));
         when(compraCreditoMapper.toResponse(any())).thenReturn(new CompraCreditoDTOResponse(200L, LocalDate.now(), new BigDecimal("100.00"), 2, 0, "desc", "Aud", LocalDate.now().atStartOfDay(), espacio.getId(), "esp", 1L, "mot", null, null, 10L, "num", "ent", "red"));
 
         var res = compraCreditoService.listarComprasCreditoDebeCuotas(espacio.getId(), null, null);
@@ -438,7 +433,7 @@ public class CompraCreditoServiceTest {
     void buscarComprasCredito_retornaDTOs() {
         CompraCredito c = new CompraCredito();
         c.setId(201L);
-        when(compraCreditoRepository.findByEspacioTrabajo_Id(espacio.getId())).thenReturn(List.of(c));
+        when(compraCreditoRepository.findByIdEspacioTrabajo(espacio.getId())).thenReturn(List.of(c));
         when(compraCreditoMapper.toResponse(any())).thenReturn(new CompraCreditoDTOResponse(201L, LocalDate.now(), new BigDecimal("50.00"), 1, 0, "desc2", "Aud", LocalDate.now().atStartOfDay(), espacio.getId(), "esp", 1L, "mot", null, null, 10L, "num", "ent", "red"));
 
         var res = compraCreditoService.BuscarComprasCredito(espacio.getId());
@@ -513,11 +508,11 @@ public class CompraCreditoServiceTest {
         CuentaBancaria cuenta = new CuentaBancaria();
         cuenta.setId(3L);
         cuenta.setSaldoActual(new BigDecimal("50.00"));
-        cuenta.setEspacioTrabajo(espacio);
+        cuenta.setIdEspacioTrabajo(espacio.getId());
 
         when(resumenRepository.findById(52L)).thenReturn(Optional.of(resumen));
         when(cuentaBancariaRepository.findById(3L)).thenReturn(Optional.of(cuenta));
-        when(motivoRepository.findFirstByMotivoAndEspacioTrabajo_Id("Pago de tarjeta", espacio.getId())).thenReturn(Optional.empty());
+        when(motivoRepository.findFirstByMotivoAndIdEspacioTrabajo("Pago de tarjeta", espacio.getId())).thenReturn(Optional.empty());
         when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> {
             MotivoTransaccion m = inv.getArgument(0);
             m.setId(100L);
@@ -545,7 +540,7 @@ public class CompraCreditoServiceTest {
         when(resumenRepository.findById(60L)).thenReturn(Optional.of(resumen));
 
         // Motivo no existe -> se crea
-        when(motivoRepository.findFirstByMotivoAndEspacioTrabajo_Id("Pago de tarjeta", espacio.getId())).thenReturn(Optional.empty());
+        when(motivoRepository.findFirstByMotivoAndIdEspacioTrabajo("Pago de tarjeta", espacio.getId())).thenReturn(Optional.empty());
         when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // Transaccion creada por TransaccionService
@@ -558,20 +553,6 @@ public class CompraCreditoServiceTest {
         CuotaCredito cuota2 = new CuotaCredito(); cuota2.setId(2L); cuota2.setPagada(false); CompraCredito compra2 = new CompraCredito(); compra2.setCantidadCuotas(2); compra2.setCuotasPagadas(0); cuota2.setCompraCredito(compra2);
         when(cuotaCreditoRepository.findByResumenAsociado_Id(60L)).thenReturn(List.of(cuota1, cuota2));
 
-        // Mock para pagoResumenMesAnotar: registros del mes anterior
-        GastosIngresosMensuales regMesAnterior = GastosIngresosMensuales.builder()
-            .anio(java.time.YearMonth.now().minusMonths(1).getYear())
-            .mes(java.time.YearMonth.now().minusMonths(1).getMonthValue())
-            .gastos(java.math.BigDecimal.ZERO)
-            .ingresos(java.math.BigDecimal.ZERO)
-            .comprasCredito(java.math.BigDecimal.ZERO)
-            .pagoResumen(java.math.BigDecimal.ZERO)
-            .espacioTrabajo(espacio)
-            .build();
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(
-            eq(espacio.getId()), any(Integer.class), any(Integer.class)))
-            .thenReturn(Optional.of(regMesAnterior));
-
         // Ejecutar
         PagarResumenTarjetaRequest req = new PagarResumenTarjetaRequest(60L, LocalDate.now(), new BigDecimal("300.00"), "Aud", espacio.getId(), null);
         compraCreditoService.pagarResumenTarjeta(req);
@@ -580,6 +561,7 @@ public class CompraCreditoServiceTest {
         verify(resumenRepository, times(1)).save(resumen);
         verify(cuotaCreditoRepository, times(1)).saveAll(List.of(cuota1, cuota2));
         verify(compraCreditoRepository, times(2)).save(any(CompraCredito.class));
+        verify(eventPublisher).publishEvent(any(ResumenPagadoEvent.class));
     }
 
     // ---------------------------------------------------------
@@ -605,4 +587,3 @@ public class CompraCreditoServiceTest {
     }
 
 }
-

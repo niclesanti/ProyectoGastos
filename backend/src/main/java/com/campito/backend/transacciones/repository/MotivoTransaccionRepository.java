@@ -10,10 +10,10 @@ import java.util.UUID;
 
 public interface MotivoTransaccionRepository extends JpaRepository<MotivoTransaccion, Long> {
 
-    List<MotivoTransaccion> findByEspacioTrabajo_Id(UUID idEspacioTrabajo);
+    List<MotivoTransaccion> findByIdEspacioTrabajo(UUID idEspacioTrabajo);
     
     // Método para obtener motivos ordenados por última modificación (más recientes primero)
-    List<MotivoTransaccion> findByEspacioTrabajo_IdOrderByFechaModificacionDesc(UUID idEspacioTrabajo);
+    List<MotivoTransaccion> findByIdEspacioTrabajoOrderByFechaModificacionDesc(UUID idEspacioTrabajo);
     
-    Optional<MotivoTransaccion> findFirstByMotivoAndEspacioTrabajo_Id(String motivo, UUID idEspacioTrabajo);
+    Optional<MotivoTransaccion> findFirstByMotivoAndIdEspacioTrabajo(String motivo, UUID idEspacioTrabajo);
 }

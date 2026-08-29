@@ -1,4 +1,4 @@
-package com.campito.backend.dashboard.repository;
+package com.campito.backend.transacciones.api;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -8,10 +8,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import com.campito.backend.dashboard.domain.dto.DistribucionGastoDTO;
+import com.campito.backend.shared.dto.DistribucionGastoDTO;
 import com.campito.backend.transacciones.domain.entity.Transaccion;
 
-public interface DashboardRepository extends JpaRepository<Transaccion, Long> {
+/**
+ * Facade de lectura del módulo de transacciones para los reportes de
+ * distribución de gastos y compras a crédito usados por el dashboard.
+ * 
+ * Las queries nativas viven en este módulo para que el dashboard no
+ * dependa de tablas de transacciones.
+ */
+public interface ReportesTransaccionesApi extends JpaRepository<Transaccion, Long> {
 
     @Query(value = """
             SELECT

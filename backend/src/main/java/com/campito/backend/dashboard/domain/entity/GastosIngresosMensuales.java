@@ -2,12 +2,9 @@ package com.campito.backend.dashboard.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,9 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-
-// Dependencia de otro módulo que se debe solucionar.
-import com.campito.backend.usuarios.domain.entity.EspacioTrabajo;
+import java.util.UUID;
 
 /*
 * Entidad creada para optimizar el cálculo de gastos e ingresos mensuales
@@ -54,9 +49,8 @@ public class GastosIngresosMensuales {
     @Column(name = "pago_resumen", nullable = false, columnDefinition = "NUMERIC(15,2)")
     private BigDecimal pagoResumen;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "espacio_trabajo_id", nullable = false)
-    private EspacioTrabajo espacioTrabajo;
+    @Column(name = "espacio_trabajo_id", nullable = false)
+    private UUID idEspacioTrabajo;
 
     public void actualizarGastos(BigDecimal nuevoGasto) {
         this.gastos = this.gastos.add(nuevoGasto);

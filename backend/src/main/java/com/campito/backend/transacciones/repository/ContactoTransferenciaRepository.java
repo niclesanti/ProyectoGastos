@@ -10,10 +10,10 @@ import java.util.UUID;
 
 public interface ContactoTransferenciaRepository extends JpaRepository<ContactoTransferencia, Long> {
     
-    List<ContactoTransferencia> findByEspacioTrabajo_Id(UUID idEspacioTrabajo);
+    List<ContactoTransferencia> findByIdEspacioTrabajo(UUID idEspacioTrabajo);
     
     // Método para obtener contactos ordenados por última modificación (más recientes primero)
-    List<ContactoTransferencia> findByEspacioTrabajo_IdOrderByFechaModificacionDesc(UUID idEspacioTrabajo);
+    List<ContactoTransferencia> findByIdEspacioTrabajoOrderByFechaModificacionDesc(UUID idEspacioTrabajo);
     
-    Optional<ContactoTransferencia> findFirstByNombreAndEspacioTrabajo_Id(String nombre, UUID idEspacioTrabajo);
+    Optional<ContactoTransferencia> findFirstByNombreAndIdEspacioTrabajo(String nombre, UUID idEspacioTrabajo);
 }

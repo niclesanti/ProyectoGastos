@@ -2,8 +2,6 @@ package com.campito.backend.service;
 
 import lombok.extern.slf4j.Slf4j;
 import com.campito.backend.notificaciones.domain.dto.NotificacionDTOResponse;
-import com.campito.backend.notificaciones.mapper.NotificacionMapper;
-import com.campito.backend.notificaciones.domain.entity.Notificacion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -37,7 +35,6 @@ public class SseEmitterServiceImpl implements SseEmitterService {
      */
     private final Map<UUID, SseEmitter> emitters = new ConcurrentHashMap<>();
     
-    private final NotificacionMapper notificacionMapper;
     private final AtomicInteger sseConexionesActivasGauge;  // Gauge inyectado desde MetricsConfig
     
     /**
@@ -94,18 +91,17 @@ public class SseEmitterServiceImpl implements SseEmitterService {
      * Envía una notificación a un usuario via SSE si está conectado.
      * 
      * @param idUsuario ID del usuario destinatario
-     * @param notificacion Notificación a enviar
+     * @param notificacion DTO de la notificación a enviar
      */
     @Override
-    public void enviarNotificacion(UUID idUsuario, Notificacion notificacion) {
+    public void enviarNotificacion(UUID idUsuario, NotificacionDTOResponse notificacion) {
         SseEmitter emitter = emitters.get(idUsuario);
         
         if (emitter != null) {
             try {
-                NotificacionDTOResponse dto = notificacionMapper.toResponse(notificacion);
                 emitter.send(SseEmitter.event()
                         .name("notification")
-                        .data(dto));
+                        .data(notificacion));
                 log.info("Notificación enviada via SSE a usuario: {}", idUsuario);
             } catch (IOException e) {
                 log.error("Error al enviar notificación via SSE: {}", e.getMessage());

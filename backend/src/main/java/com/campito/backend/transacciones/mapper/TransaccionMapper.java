@@ -30,7 +30,8 @@ public interface TransaccionMapper {
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "fechaCreacion", ignore = true)
-    @Mapping(target = "espacioTrabajo", ignore = true)
+    @Mapping(target = "idEspacioTrabajo", ignore = true)
+    @Mapping(target = "nombreEspacioTrabajo", ignore = true)
     @Mapping(target = "motivo", ignore = true)
     @Mapping(target = "contacto", ignore = true)
     @Mapping(target = "cuentaBancaria", ignore = true)
@@ -44,8 +45,8 @@ public interface TransaccionMapper {
      * @param transaccion Entidad Transaccion
      * @return DTO de respuesta con todos los datos de la transacción
      */
-    @Mapping(target = "idEspacioTrabajo", source = "espacioTrabajo.id")
-    @Mapping(target = "nombreEspacioTrabajo", source = "espacioTrabajo.nombre")
+    @Mapping(target = "idEspacioTrabajo", source = "idEspacioTrabajo")
+    @Mapping(target = "nombreEspacioTrabajo", source = "nombreEspacioTrabajo")
     @Mapping(target = "idMotivo", source = "motivo.id")
     @Mapping(target = "nombreMotivo", source = "motivo.motivo")
     @Mapping(target = "idContacto", source = "contacto.id")

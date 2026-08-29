@@ -28,7 +28,7 @@ public interface CuotaCreditoRepository extends JpaRepository<CuotaCredito, Long
     
     @Query("SELECT COALESCE(SUM(c.montoCuota), 0) FROM CuotaCredito c " +
            "JOIN c.compraCredito cc " +
-           "WHERE cc.espacioTrabajo.id = :idEspacioTrabajo " +
+           "WHERE cc.idEspacioTrabajo = :idEspacioTrabajo " +
            "AND c.pagada = false")
     BigDecimal calcularDeudaTotalPendiente(@Param("idEspacioTrabajo") UUID idEspacioTrabajo);
     
@@ -61,7 +61,7 @@ public interface CuotaCreditoRepository extends JpaRepository<CuotaCredito, Long
     @Query("SELECT c FROM CuotaCredito c " +
            "JOIN FETCH c.compraCredito cc " +
            "JOIN FETCH cc.tarjeta t " +
-           "WHERE t.espacioTrabajo.id = :idEspacioTrabajo " +
+           "WHERE t.idEspacioTrabajo = :idEspacioTrabajo " +
            "AND c.resumenAsociado IS NULL " +
            "AND c.fechaVencimiento BETWEEN :fechaInicio AND :fechaFin " +
            "ORDER BY c.fechaVencimiento ASC")
@@ -93,7 +93,7 @@ public interface CuotaCreditoRepository extends JpaRepository<CuotaCredito, Long
     @Query("SELECT COALESCE(SUM(c.montoCuota), 0) FROM CuotaCredito c " +
            "JOIN c.compraCredito cc " +
            "JOIN cc.tarjeta t " +
-           "WHERE t.espacioTrabajo.id = :idEspacioTrabajo " +
+           "WHERE t.idEspacioTrabajo = :idEspacioTrabajo " +
            "AND c.resumenAsociado IS NULL " +
            "AND c.fechaVencimiento BETWEEN :fechaInicio AND :fechaFin")
     BigDecimal calcularResumenMensualPendiente(

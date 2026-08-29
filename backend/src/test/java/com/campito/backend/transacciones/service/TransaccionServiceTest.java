@@ -1,21 +1,22 @@
 package com.campito.backend.transacciones.service;
 
 import com.campito.backend.transacciones.repository.*;
-import com.campito.backend.usuarios.repository.*;
-import com.campito.backend.dashboard.repository.*;
+import com.campito.backend.usuarios.api.EspacioTrabajoApi;
+import com.campito.backend.shared.event.TransaccionEliminadaEvent;
+import com.campito.backend.shared.event.TransaccionRegistradaEvent;
 import com.campito.backend.transacciones.domain.dto.*;
 import com.campito.backend.transacciones.domain.entity.*;
-import com.campito.backend.usuarios.domain.entity.*;
 import com.campito.backend.transacciones.mapper.*;
-import com.campito.backend.dashboard.domain.entity.*;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -32,7 +33,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -43,7 +43,7 @@ public class TransaccionServiceTest {
     @Mock
     private TransaccionRepository transaccionRepository;
     @Mock
-    private EspacioTrabajoRepository espacioRepository;
+    private EspacioTrabajoApi espacioTrabajoApi;
     @Mock
     private MotivoTransaccionRepository motivoRepository;
     @Mock
@@ -55,8 +55,8 @@ public class TransaccionServiceTest {
     private CuentaBancariaService cuentaBancariaService;
 
     @Mock
-    private GastosIngresosMensualesRepository gastosIngresosMensualesRepository;
-    
+    private ApplicationEventPublisher eventPublisher;
+
     @Mock
     private TransaccionMapper transaccionMapper;
     @Mock
@@ -67,10 +67,8 @@ public class TransaccionServiceTest {
     @InjectMocks
     private TransaccionServiceImpl transaccionService;
 
-    private EspacioTrabajo espacioTrabajo;
     private MotivoTransaccion motivoTransaccion;
     private ContactoTransferencia contactoTransferencia;
-    private Usuario usuarioAdmin;
 
     // UUIDs para pruebas
     private UUID espacioId;
@@ -81,44 +79,31 @@ public class TransaccionServiceTest {
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         transaccionService = new TransaccionServiceImpl(
             transaccionRepository,
-            espacioRepository,
+            espacioTrabajoApi,
             motivoRepository,
             contactoRepository,
             cuentaBancariaRepository,
-            gastosIngresosMensualesRepository,
             cuentaBancariaService,
             transaccionMapper,
             contactoTransferenciaMapper,
             motivoTransaccionMapper,
+            eventPublisher,
             meterRegistry
         );
-        usuarioAdmin = new Usuario();
-        usuarioAdmin.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
-        usuarioAdmin.setNombre("Admin");
-        usuarioAdmin.setEmail("admin@test.com");
-        usuarioAdmin.setFotoPerfil("foto.jpg");
-        usuarioAdmin.setProveedor(ProveedorAutenticacion.MANUAL);
-        usuarioAdmin.setIdProveedor("123");
-        usuarioAdmin.setRol("ADMIN");
-        usuarioAdmin.setActivo(true);
-        usuarioAdmin.setFechaRegistro(LocalDateTime.now());
-        usuarioAdmin.setFechaUltimoAcceso(LocalDateTime.now());
+        espacioId = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
-        espacioTrabajo = new EspacioTrabajo();
-        espacioTrabajo.setId(espacioId = UUID.fromString("00000000-0000-0000-0000-000000000002"));
-        espacioTrabajo.setNombre("Espacio de Prueba");
-        espacioTrabajo.setSaldo(new BigDecimal("1000.00"));
-        espacioTrabajo.setUsuarioAdmin(usuarioAdmin);
+        lenient().when(espacioTrabajoApi.obtenerNombre(any(UUID.class))).thenReturn("Espacio de Prueba");
+        lenient().when(espacioTrabajoApi.obtenerSaldo(any(UUID.class))).thenReturn(new BigDecimal("1000.00"));
 
         motivoTransaccion = new MotivoTransaccion();
         motivoTransaccion.setId(1L);
         motivoTransaccion.setMotivo("Venta");
-        motivoTransaccion.setEspacioTrabajo(espacioTrabajo);
+        motivoTransaccion.setIdEspacioTrabajo(espacioId);
 
         contactoTransferencia = new ContactoTransferencia();
         contactoTransferencia.setId(1L);
         contactoTransferencia.setNombre("Cliente A");
-        contactoTransferencia.setEspacioTrabajo(espacioTrabajo);
+        contactoTransferencia.setIdEspacioTrabajo(espacioId);
         
         // Mock transaccionMapper behavior
         lenient().when(transaccionMapper.toEntity(any(TransaccionDTORequest.class))).thenAnswer(invocation -> {
@@ -142,8 +127,8 @@ public class TransaccionServiceTest {
                 t.getDescripcion(),
                 t.getNombreCompletoAuditoria(),
                 t.getFechaCreacion(),
-                t.getEspacioTrabajo() != null ? t.getEspacioTrabajo().getId() : null,
-                t.getEspacioTrabajo() != null ? t.getEspacioTrabajo().getNombre() : null,
+                t.getIdEspacioTrabajo(),
+                t.getNombreEspacioTrabajo(),
                 t.getMotivo() != null ? t.getMotivo().getId() : null,
                 t.getMotivo() != null ? t.getMotivo().getMotivo() : null,
                 t.getContacto() != null ? t.getContacto().getId() : null,
@@ -177,11 +162,6 @@ public class TransaccionServiceTest {
             MotivoTransaccion m = invocation.getArgument(0);
             return new MotivoDTOResponse(m.getId(), m.getMotivo());
         });
-
-        // Default: no GastosIngresosMensuales record for current year/month unless test overrides
-        // Lenient because not every test needs a monthly registro; tests will override when necessary
-        lenient().when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(any(UUID.class), anyInt(), anyInt()))
-                .thenReturn(Optional.empty());
     }
 
     // Tests para registrarTransaccion
@@ -189,7 +169,7 @@ public class TransaccionServiceTest {
     @Test
     void registrarTransaccion_cuandoEspacioTrabajoNoExiste_entoncesLanzaExcepcion() {
         TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), new BigDecimal("100.00"), TipoTransaccion.INGRESO, "Desc", "Auditor", UUID.fromString("00000000-0000-0000-0000-000000000099"), 1L, null, null);
-        when(espacioRepository.findById(UUID.fromString("00000000-0000-0000-0000-000000000099"))).thenReturn(Optional.empty());
+        when(espacioTrabajoApi.existe(UUID.fromString("00000000-0000-0000-0000-000000000099"))).thenReturn(false);
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
             transaccionService.registrarTransaccion(dto);
@@ -201,7 +181,7 @@ public class TransaccionServiceTest {
     @Test
     void registrarTransaccion_cuandoMotivoNoExiste_entoncesLanzaExcepcion() {
         TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), new BigDecimal("100.00"), TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 99L, null, null);
-        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioTrabajoApi.existe(espacioId)).thenReturn(true);
         when(motivoRepository.findById(99L)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
@@ -214,7 +194,7 @@ public class TransaccionServiceTest {
     @Test
     void registrarTransaccion_cuandoIdContactoExistePeroContactoNoExiste_entoncesLanzaExcepcion() {
         TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), new BigDecimal("100.00"), TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 1L, 99L, null);
-        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioTrabajoApi.existe(espacioId)).thenReturn(true);
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(contactoRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -228,7 +208,7 @@ public class TransaccionServiceTest {
     @Test
     void registrarTransaccion_cuandoOpcionCorrecta_entoncesRegistroExitoso() {
         TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), new BigDecimal("100.00"), TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 1L, 1L, null);
-        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioTrabajoApi.existe(espacioId)).thenReturn(true);
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(contactoRepository.findById(1L)).thenReturn(Optional.of(contactoTransferencia));
         when(contactoRepository.save(any(ContactoTransferencia.class))).thenAnswer(inv -> {
@@ -246,15 +226,14 @@ public class TransaccionServiceTest {
             trans.setId(1L);
             return trans;
         });
-        when(espacioRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
 
         TransaccionDTOResponse result = transaccionService.registrarTransaccion(dto);
 
         assertNotNull(result);
         assertEquals(1L, result.id());
         verify(transaccionRepository, times(1)).save(any(Transaccion.class));
-        verify(espacioRepository, times(1)).save(any(EspacioTrabajo.class));
-        assertEquals(new BigDecimal("1100.00"), espacioTrabajo.getSaldo()); // 1000 inicial + 100 de ingreso
+        verify(espacioTrabajoApi).aplicarMovimientoSaldo(espacioId, new BigDecimal("100.00"));
+        verify(eventPublisher).publishEvent(any(TransaccionRegistradaEvent.class));
     }
 
     @Test
@@ -266,7 +245,7 @@ public class TransaccionServiceTest {
 
         TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), new BigDecimal("100.00"), TipoTransaccion.INGRESO, "Desc", "Auditor", espacioId, 1L, 1L, 1L);
 
-        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioTrabajoApi.existe(espacioId)).thenReturn(true);
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(contactoRepository.findById(1L)).thenReturn(Optional.of(contactoTransferencia));
         when(contactoRepository.save(any(ContactoTransferencia.class))).thenAnswer(inv -> {
@@ -285,7 +264,6 @@ public class TransaccionServiceTest {
             trans.setId(1L);
             return trans;
         });
-        when(espacioRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
 
         // Act
         TransaccionDTOResponse result = transaccionService.registrarTransaccion(dto);
@@ -294,34 +272,22 @@ public class TransaccionServiceTest {
         assertNotNull(result);
         assertEquals(1L, result.id());
         verify(transaccionRepository, times(1)).save(any(Transaccion.class));
-        verify(espacioRepository, times(1)).save(any(EspacioTrabajo.class));
         verify(cuentaBancariaService, times(1)).actualizarCuentaBancaria(1L, TipoTransaccion.INGRESO, new BigDecimal("100.00"));
-        assertEquals(new BigDecimal("1100.00"), espacioTrabajo.getSaldo());
+        verify(espacioTrabajoApi).aplicarMovimientoSaldo(espacioId, new BigDecimal("100.00"));
     }
 
     @Test
-    void registrarTransaccion_cuandoRegistroMensualExistente_entoncesActualizaRegistroMensual() {
+    void registrarTransaccion_cuandoRegistroMensualExistente_entoncesPublicaEvento() {
         // Arrange
-        int año = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getYear();
-        int mes = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getMonthValue();
-        GastosIngresosMensuales registro = GastosIngresosMensuales.builder()
-                .anio(año)
-                .mes(mes)
-                .gastos(BigDecimal.ZERO)
-                .ingresos(BigDecimal.ZERO)
-                .espacioTrabajo(espacioTrabajo)
-                .build();
-
         TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), new BigDecimal("200.00"), TipoTransaccion.INGRESO, "Venta mayor", "Auditor", espacioId, 1L, null, null);
 
-        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioTrabajoApi.existe(espacioId)).thenReturn(true);
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> {
             MotivoTransaccion m = inv.getArgument(0);
             m.setId(1L);
             return m;
         });
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(espacioId, año, mes)).thenReturn(Optional.of(registro));
         when(transaccionRepository.save(any(Transaccion.class))).thenAnswer(invocation -> {
             Transaccion t = invocation.getArgument(0);
             t.setId(1L);
@@ -334,18 +300,19 @@ public class TransaccionServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(1L, result.id());
-        // registro debe haber sido actualizado y guardado
-        verify(gastosIngresosMensualesRepository, times(1)).save(any(GastosIngresosMensuales.class));
-        // El saldo del espacio se actualizó
-        assertEquals(new BigDecimal("1200.00"), espacioTrabajo.getSaldo());
+        // La actualización del registro mensual se delega al DashboardEventListener via evento
+        ArgumentCaptor<TransaccionRegistradaEvent> captor = ArgumentCaptor.forClass(TransaccionRegistradaEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertEquals(espacioId, captor.getValue().idEspacioTrabajo());
+        assertEquals(new BigDecimal("200.00"), captor.getValue().monto());
     }
 
     @Test
-    void registrarTransaccion_cuandoRegistroMensualAusente_entoncesCreaRegistro() {
+    void registrarTransaccion_cuandoRegistroMensualAusente_entoncesPublicaEvento() {
 
         TransaccionDTORequest dto = new TransaccionDTORequest(LocalDate.now(), new BigDecimal("100.00"), TipoTransaccion.INGRESO, "Venta pequena", "Auditor", espacioId, 1L, null, null);
 
-        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
+        when(espacioTrabajoApi.existe(espacioId)).thenReturn(true);
         when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoTransaccion));
         when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> {
             MotivoTransaccion m = inv.getArgument(0);
@@ -364,8 +331,7 @@ public class TransaccionServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(1L, result.id());
-        verify(gastosIngresosMensualesRepository, times(1)).save(any(GastosIngresosMensuales.class));
-        assertEquals(new BigDecimal("1100.00"), espacioTrabajo.getSaldo());
+        verify(eventPublisher).publishEvent(any(TransaccionRegistradaEvent.class));
     }
 
     // Tests para removerTransaccion
@@ -391,27 +357,22 @@ public class TransaccionServiceTest {
             .descripcion("Gasto Test")
             .nombreCompletoAuditoria("Auditor")
             .fechaCreacion(LocalDateTime.now())
-            .espacioTrabajo(espacioTrabajo)
+            .idEspacioTrabajo(espacioId)
+            .nombreEspacioTrabajo("Espacio de Prueba")
             .motivo(motivoTransaccion)
             .contacto(null)
             .build();
-        espacioTrabajo.setSaldo(new BigDecimal("950.00")); // Saldo después del gasto
-
-        int año = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getYear();
-        int mes = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getMonthValue();
-        GastosIngresosMensuales registro = GastosIngresosMensuales.builder().anio(año).mes(mes).gastos(new BigDecimal("50.00")).ingresos(BigDecimal.ZERO).espacioTrabajo(espacioTrabajo).build();
 
         when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
         doNothing().when(transaccionRepository).delete(any(Transaccion.class));
-        when(espacioRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(espacioId, año, mes)).thenReturn(Optional.of(registro));
 
         transaccionService.removerTransaccion(1L);
 
         verify(transaccionRepository, times(1)).findById(1L);
         verify(transaccionRepository, times(1)).delete(transaccion);
-        verify(espacioRepository, times(1)).save(espacioTrabajo);
-        assertEquals(new BigDecimal("1000.00"), espacioTrabajo.getSaldo()); // 950 + 50 de reversión
+        // GASTO eliminado => delta positivo para revertir el saldo del espacio
+        verify(espacioTrabajoApi).aplicarMovimientoSaldo(espacioId, new BigDecimal("50.00"));
+        verify(eventPublisher).publishEvent(any(TransaccionEliminadaEvent.class));
     }
 
     @Test
@@ -429,21 +390,15 @@ public class TransaccionServiceTest {
             .descripcion("Gasto Test")
             .nombreCompletoAuditoria("Auditor")
             .fechaCreacion(LocalDateTime.now())
-            .espacioTrabajo(espacioTrabajo)
+            .idEspacioTrabajo(espacioId)
+            .nombreEspacioTrabajo("Espacio de Prueba")
             .motivo(motivoTransaccion)
             .cuentaBancaria(cuentaBancaria)
             .build();
-        espacioTrabajo.setSaldo(new BigDecimal("900.00")); // Saldo después del gasto
-
-        int año = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getYear();
-        int mes = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getMonthValue();
-        GastosIngresosMensuales registro = GastosIngresosMensuales.builder().anio(año).mes(mes).gastos(new BigDecimal("100.00")).ingresos(BigDecimal.ZERO).espacioTrabajo(espacioTrabajo).build();
 
         when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
         doNothing().when(transaccionRepository).delete(any(Transaccion.class));
-        when(espacioRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
         when(cuentaBancariaRepository.save(any(CuentaBancaria.class))).thenReturn(cuentaBancaria);
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(espacioId, año, mes)).thenReturn(Optional.of(registro));
 
         // Act
         transaccionService.removerTransaccion(1L);
@@ -451,9 +406,8 @@ public class TransaccionServiceTest {
         // Assert
         verify(transaccionRepository, times(1)).findById(1L);
         verify(transaccionRepository, times(1)).delete(transaccion);
-        verify(espacioRepository, times(1)).save(espacioTrabajo);
         verify(cuentaBancariaRepository, times(1)).save(cuentaBancaria);
-        assertEquals(new BigDecimal("1000.00"), espacioTrabajo.getSaldo()); // 900 + 100 de reversión
+        verify(espacioTrabajoApi).aplicarMovimientoSaldo(espacioId, new BigDecimal("100.00"));
         assertEquals(new BigDecimal("500.00"), cuentaBancaria.getSaldoActual()); // 400 + 100 de reversión
     }
 
@@ -472,21 +426,15 @@ public class TransaccionServiceTest {
             .descripcion("Ingreso Test")
             .nombreCompletoAuditoria("Auditor")
             .fechaCreacion(LocalDateTime.now())
-            .espacioTrabajo(espacioTrabajo)
+            .idEspacioTrabajo(espacioId)
+            .nombreEspacioTrabajo("Espacio de Prueba")
             .motivo(motivoTransaccion)
             .cuentaBancaria(cuentaBancaria)
             .build();
-        espacioTrabajo.setSaldo(new BigDecimal("1100.00")); // Saldo después del ingreso
-
-        int año = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getYear();
-        int mes = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getMonthValue();
-        GastosIngresosMensuales registro = GastosIngresosMensuales.builder().anio(año).mes(mes).gastos(BigDecimal.ZERO).ingresos(new BigDecimal("200.00")).espacioTrabajo(espacioTrabajo).build();
 
         when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
         doNothing().when(transaccionRepository).delete(any(Transaccion.class));
-        when(espacioRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
         when(cuentaBancariaRepository.save(any(CuentaBancaria.class))).thenReturn(cuentaBancaria);
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(espacioId, año, mes)).thenReturn(Optional.of(registro));
 
         // Act
         transaccionService.removerTransaccion(1L);
@@ -494,45 +442,10 @@ public class TransaccionServiceTest {
         // Assert
         verify(transaccionRepository, times(1)).findById(1L);
         verify(transaccionRepository, times(1)).delete(transaccion);
-        verify(espacioRepository, times(1)).save(espacioTrabajo);
         verify(cuentaBancariaRepository, times(1)).save(cuentaBancaria);
-        assertEquals(new BigDecimal("1000.00"), espacioTrabajo.getSaldo()); // 1100 - 100 de reversión
+        // INGRESO eliminado => delta negativo para revertir el saldo del espacio
+        verify(espacioTrabajoApi).aplicarMovimientoSaldo(espacioId, new BigDecimal("-100.00"));
         assertEquals(new BigDecimal("500.00"), cuentaBancaria.getSaldoActual()); // 600 - 100 de reversión
-    }
-
-    @Test
-    void removerTransaccion_cuandoRegistroMensualInsuficiente_entoncesLanzaExcepcion() {
-        // Arrange
-        int año = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getYear();
-        int mes = java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).getMonthValue();
-
-        GastosIngresosMensuales registro = GastosIngresosMensuales.builder()
-                .anio(año)
-                .mes(mes)
-                .gastos(new BigDecimal("50.00"))
-                .ingresos(BigDecimal.ZERO)
-                .espacioTrabajo(espacioTrabajo)
-                .build();
-
-        Transaccion transaccion = Transaccion.builder()
-            .id(1L)
-            .tipo(TipoTransaccion.GASTO)
-            .monto(new BigDecimal("100.00"))
-            .fecha(LocalDate.now())
-            .descripcion("Gasto grande")
-            .nombreCompletoAuditoria("Auditor")
-            .fechaCreacion(LocalDateTime.now())
-            .espacioTrabajo(espacioTrabajo)
-            .motivo(motivoTransaccion)
-            .build();
-
-        when(transaccionRepository.findById(1L)).thenReturn(Optional.of(transaccion));
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(espacioId, año, mes)).thenReturn(Optional.of(registro));
-
-        // Act & Assert
-        assertThrows(com.campito.backend.exception.SaldoInsuficienteException.class, () -> transaccionService.removerTransaccion(1L));
-        verify(transaccionRepository, never()).delete(any(Transaccion.class));
-        verify(gastosIngresosMensualesRepository, never()).save(any(GastosIngresosMensuales.class));
     }
 
     // Tests para buscarTransaccion
@@ -557,7 +470,8 @@ public class TransaccionServiceTest {
             .descripcion("Test")
             .nombreCompletoAuditoria("User")
             .fechaCreacion(LocalDateTime.now())
-            .espacioTrabajo(espacioTrabajo)
+            .idEspacioTrabajo(espacioId)
+            .nombreEspacioTrabajo("Espacio de Prueba")
             .motivo(motivoTransaccion)
             .build();
         List<Transaccion> transacciones = Collections.singletonList(t);
@@ -581,7 +495,8 @@ public class TransaccionServiceTest {
             .descripcion("Test")
             .nombreCompletoAuditoria("User")
             .fechaCreacion(LocalDateTime.now())
-            .espacioTrabajo(espacioTrabajo)
+            .idEspacioTrabajo(espacioId)
+            .nombreEspacioTrabajo("Espacio de Prueba")
             .motivo(motivoTransaccion)
             .build();
         List<Transaccion> transacciones = Collections.singletonList(t);
@@ -605,7 +520,8 @@ public class TransaccionServiceTest {
             .descripcion("Test")
             .nombreCompletoAuditoria("User")
             .fechaCreacion(LocalDateTime.now())
-            .espacioTrabajo(espacioTrabajo)
+            .idEspacioTrabajo(espacioId)
+            .nombreEspacioTrabajo("Espacio de Prueba")
             .motivo(motivoTransaccion)
             .contacto(contactoTransferencia)
             .build();
@@ -630,7 +546,8 @@ public class TransaccionServiceTest {
             .descripcion("Test")
             .nombreCompletoAuditoria("User")
             .fechaCreacion(LocalDateTime.now())
-            .espacioTrabajo(espacioTrabajo)
+            .idEspacioTrabajo(espacioId)
+            .nombreEspacioTrabajo("Espacio de Prueba")
             .motivo(motivoTransaccion)
             .build();
         List<Transaccion> transacciones = Collections.singletonList(t);
@@ -654,7 +571,8 @@ public class TransaccionServiceTest {
             .descripcion("Test")
             .nombreCompletoAuditoria("User")
             .fechaCreacion(LocalDateTime.now())
-            .espacioTrabajo(espacioTrabajo)
+            .idEspacioTrabajo(espacioId)
+            .nombreEspacioTrabajo("Espacio de Prueba")
             .motivo(motivoTransaccion)
             .build();
         List<Transaccion> transacciones = Collections.singletonList(t);
@@ -685,7 +603,7 @@ public class TransaccionServiceTest {
     @Test
     void registrarContactoTransferencia_cuandoEspacioTrabajoNoExiste_entoncesLanzaExcepcion() {
         ContactoDTORequest dto = new ContactoDTORequest("Nombre Contacto", UUID.fromString("00000000-0000-0000-0000-000000000099"));
-        when(espacioRepository.findById(UUID.fromString("00000000-0000-0000-0000-000000000099"))).thenReturn(Optional.empty());
+        when(espacioTrabajoApi.existe(UUID.fromString("00000000-0000-0000-0000-000000000099"))).thenReturn(false);
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
             transaccionService.registrarContactoTransferencia(dto);
@@ -697,8 +615,8 @@ public class TransaccionServiceTest {
     @Test
     void registrarContactoTransferencia_cuandoOpcionCorrecta_entoncesRegistroExitoso() {
         ContactoDTORequest dto = new ContactoDTORequest("Nuevo Contacto", espacioId);
-        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
-        when(contactoRepository.findFirstByNombreAndEspacioTrabajo_Id("Nuevo Contacto", espacioId))
+        when(espacioTrabajoApi.existe(espacioId)).thenReturn(true);
+        when(contactoRepository.findFirstByNombreAndIdEspacioTrabajo("Nuevo Contacto", espacioId))
                 .thenReturn(Optional.empty());
         when(contactoRepository.save(any(ContactoTransferencia.class))).thenAnswer(invocation -> {
             ContactoTransferencia contacto = invocation.getArgument(0);
@@ -721,7 +639,7 @@ public class TransaccionServiceTest {
         contactoExistente.setId(10L);
         contactoExistente.setNombre("Contacto Existente");
         
-        when(contactoRepository.findFirstByNombreAndEspacioTrabajo_Id("Contacto Existente", espacioId))
+        when(contactoRepository.findFirstByNombreAndIdEspacioTrabajo("Contacto Existente", espacioId))
                 .thenReturn(Optional.of(contactoExistente));
 
         com.campito.backend.exception.EntidadDuplicadaException exception = 
@@ -735,12 +653,10 @@ public class TransaccionServiceTest {
 
     // Tests para nuevoMotivoTransaccion
 
-
-
     @Test
     void nuevoMotivoTransaccion_cuandoEspacioTrabajoNoExiste_entoncesLanzaExcepcion() {
         MotivoDTORequest dto = new MotivoDTORequest("Nuevo Motivo", UUID.fromString("00000000-0000-0000-0000-000000000099"));
-        when(espacioRepository.findById(UUID.fromString("00000000-0000-0000-0000-000000000099"))).thenReturn(Optional.empty());
+        when(espacioTrabajoApi.existe(UUID.fromString("00000000-0000-0000-0000-000000000099"))).thenReturn(false);
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
             transaccionService.nuevoMotivoTransaccion(dto);
@@ -752,8 +668,8 @@ public class TransaccionServiceTest {
     @Test
     void nuevoMotivoTransaccion_cuandoOpcionCorrecta_entoncesRegistroExitoso() {
         MotivoDTORequest dto = new MotivoDTORequest("Nuevo Motivo", espacioId);
-        when(espacioRepository.findById(espacioId)).thenReturn(Optional.of(espacioTrabajo));
-        when(motivoRepository.findFirstByMotivoAndEspacioTrabajo_Id("Nuevo Motivo", espacioId))
+        when(espacioTrabajoApi.existe(espacioId)).thenReturn(true);
+        when(motivoRepository.findFirstByMotivoAndIdEspacioTrabajo("Nuevo Motivo", espacioId))
                 .thenReturn(Optional.empty());
         when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(invocation -> {
             MotivoTransaccion motivo = invocation.getArgument(0);
@@ -776,7 +692,7 @@ public class TransaccionServiceTest {
         motivoExistente.setId(10L);
         motivoExistente.setMotivo("Motivo Existente");
         
-        when(motivoRepository.findFirstByMotivoAndEspacioTrabajo_Id("Motivo Existente", espacioId))
+        when(motivoRepository.findFirstByMotivoAndIdEspacioTrabajo("Motivo Existente", espacioId))
                 .thenReturn(Optional.of(motivoExistente));
 
         com.campito.backend.exception.EntidadDuplicadaException exception = 
@@ -792,20 +708,20 @@ public class TransaccionServiceTest {
 
     @Test
     void listarContactos_cuandoNoExistenContactos_entoncesRetornaListaVacia() {
-        when(contactoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId)).thenReturn(Collections.emptyList());
+        when(contactoRepository.findByIdEspacioTrabajoOrderByFechaModificacionDesc(espacioId)).thenReturn(Collections.emptyList());
 
         List<ContactoDTOResponse> result = transaccionService.listarContactos(espacioId);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
-        verify(contactoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId);
+        verify(contactoRepository, times(1)).findByIdEspacioTrabajoOrderByFechaModificacionDesc(espacioId);
     }
 
     @Test
     void listarContactos_cuandoExistenContactos_entoncesRetornaListaConContactos() {
         List<ContactoTransferencia> contactos = new ArrayList<>();
         contactos.add(contactoTransferencia);
-        when(contactoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId)).thenReturn(contactos);
+        when(contactoRepository.findByIdEspacioTrabajoOrderByFechaModificacionDesc(espacioId)).thenReturn(contactos);
 
         List<ContactoDTOResponse> result = transaccionService.listarContactos(espacioId);
 
@@ -814,27 +730,27 @@ public class TransaccionServiceTest {
         assertEquals(1, result.size());
         assertEquals(contactoTransferencia.getId(), result.get(0).id());
         assertEquals(contactoTransferencia.getNombre(), result.get(0).nombre());
-        verify(contactoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId);
+        verify(contactoRepository, times(1)).findByIdEspacioTrabajoOrderByFechaModificacionDesc(espacioId);
     }
 
     // Tests para listarMotivos
 
     @Test
     void listarMotivos_cuandoNoExistenMotivos_entoncesRetornaListaVacia() {
-        when(motivoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId)).thenReturn(Collections.emptyList());
+        when(motivoRepository.findByIdEspacioTrabajoOrderByFechaModificacionDesc(espacioId)).thenReturn(Collections.emptyList());
 
         List<MotivoDTOResponse> result = transaccionService.listarMotivos(espacioId);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
-        verify(motivoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId);
+        verify(motivoRepository, times(1)).findByIdEspacioTrabajoOrderByFechaModificacionDesc(espacioId);
     }
 
     @Test
     void listarMotivos_cuandoExistenMotivos_entoncesRetornaListaConMotivos() {
         List<MotivoTransaccion> motivos = new ArrayList<>();
         motivos.add(motivoTransaccion);
-        when(motivoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId)).thenReturn(motivos);
+        when(motivoRepository.findByIdEspacioTrabajoOrderByFechaModificacionDesc(espacioId)).thenReturn(motivos);
 
         List<MotivoDTOResponse> result = transaccionService.listarMotivos(espacioId);
 
@@ -843,7 +759,7 @@ public class TransaccionServiceTest {
         assertEquals(1, result.size());
         assertEquals(motivoTransaccion.getId(), result.get(0).id());
         assertEquals(motivoTransaccion.getMotivo(), result.get(0).motivo());
-        verify(motivoRepository, times(1)).findByEspacioTrabajo_IdOrderByFechaModificacionDesc(espacioId);
+        verify(motivoRepository, times(1)).findByIdEspacioTrabajoOrderByFechaModificacionDesc(espacioId);
     }
 
     // Tests para buscarTransaccionesRecientes
@@ -870,7 +786,8 @@ public class TransaccionServiceTest {
                 .descripcion("Desc " + i)
                 .nombreCompletoAuditoria("User")
                 .fechaCreacion(LocalDateTime.now().minusMinutes(i))
-                .espacioTrabajo(espacioTrabajo)
+                .idEspacioTrabajo(espacioId)
+                .nombreEspacioTrabajo("Espacio de Prueba")
                 .motivo(motivoTransaccion)
                 .build();
             transacciones.add(t);

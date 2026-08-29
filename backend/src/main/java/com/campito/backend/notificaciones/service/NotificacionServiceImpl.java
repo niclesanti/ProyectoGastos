@@ -3,10 +3,10 @@ package com.campito.backend.notificaciones.service;
 import lombok.extern.slf4j.Slf4j;
 import com.campito.backend.notificaciones.repository.NotificacionRepository;
 import com.campito.backend.notificaciones.domain.dto.NotificacionDTOResponse;
-import com.campito.backend.notificaciones.event.NotificacionEvent;
+import com.campito.backend.shared.event.NotificacionEvent;
 import com.campito.backend.notificaciones.mapper.NotificacionMapper;
 import com.campito.backend.notificaciones.domain.entity.Notificacion;
-import com.campito.backend.notificaciones.domain.entity.TipoNotificacion;
+import com.campito.backend.shared.event.TipoNotificacion;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +49,7 @@ public class NotificacionServiceImpl implements NotificacionService {
     public List<NotificacionDTOResponse> obtenerNotificacionesUsuario(UUID idUsuario) {
         log.info("Obteniendo notificaciones para usuario: {}", idUsuario);
         List<Notificacion> notificaciones = notificacionRepository
-                .findTop50ByUsuarioIdOrderByFechaCreacionDesc(idUsuario);
+                .findTop50ByIdUsuarioOrderByFechaCreacionDesc(idUsuario);
         return notificacionMapper.toResponseList(notificaciones);
     }
     
@@ -63,7 +63,7 @@ public class NotificacionServiceImpl implements NotificacionService {
     @Transactional(readOnly = true)
     public Long contarNoLeidas(UUID idUsuario) {
         log.info("Contando notificaciones no leídas para usuario: {}", idUsuario);
-        return notificacionRepository.countByUsuarioIdAndLeidaFalse(idUsuario);
+        return notificacionRepository.countByIdUsuarioAndLeidaFalse(idUsuario);
     }
     
     /**

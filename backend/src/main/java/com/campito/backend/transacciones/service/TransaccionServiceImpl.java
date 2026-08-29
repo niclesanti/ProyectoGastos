@@ -2,7 +2,6 @@ package com.campito.backend.transacciones.service;
 
 import lombok.extern.slf4j.Slf4j;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -10,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,11 +17,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
-// Dependencias a revisar para reducir el acomplamiento con otros módulos
-import com.campito.backend.usuarios.repository.EspacioTrabajoRepository;
-import com.campito.backend.dashboard.repository.GastosIngresosMensualesRepository;
-import com.campito.backend.usuarios.domain.entity.EspacioTrabajo;
-import com.campito.backend.dashboard.domain.entity.GastosIngresosMensuales;
+import com.campito.backend.usuarios.api.EspacioTrabajoApi;
+import com.campito.backend.shared.event.TransaccionEliminadaEvent;
+import com.campito.backend.shared.event.TransaccionRegistradaEvent;
 
 import com.campito.backend.transacciones.repository.ContactoTransferenciaRepository;
 import com.campito.backend.transacciones.repository.CuentaBancariaRepository;
@@ -45,7 +43,6 @@ import com.campito.backend.transacciones.domain.entity.TipoTransaccion;
 import com.campito.backend.transacciones.domain.entity.Transaccion;
 
 import com.campito.backend.exception.EntidadDuplicadaException;
-import com.campito.backend.exception.SaldoInsuficienteException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
@@ -65,15 +62,15 @@ import com.campito.backend.config.MetricsConfig;
 public class TransaccionServiceImpl implements TransaccionService {
 
     private final TransaccionRepository transaccionRepository;
-    private final EspacioTrabajoRepository espacioRepository;
+    private final EspacioTrabajoApi espacioTrabajoApi;
     private final MotivoTransaccionRepository motivoRepository;
     private final ContactoTransferenciaRepository contactoRepository;
     private final CuentaBancariaRepository cuentaBancariaRepository;
-    private final GastosIngresosMensualesRepository gastosIngresosMensualesRepository;
     private final CuentaBancariaService cuentaBancariaService;
     private final TransaccionMapper transaccionMapper;
     private final ContactoTransferenciaMapper contactoTransferenciaMapper;
     private final MotivoTransaccionMapper motivoTransaccionMapper;
+    private final ApplicationEventPublisher eventPublisher;
     private final MeterRegistry meterRegistry;  // Para métricas de Prometheus/Grafana
 
     /**
@@ -89,12 +86,17 @@ public class TransaccionServiceImpl implements TransaccionService {
 
         log.info("Iniciando registro de transaccion tipo {} por monto {} en espacio ID {}", transaccionDTO.tipo(), transaccionDTO.monto(), transaccionDTO.idEspacioTrabajo());
 
-        EspacioTrabajo espacio = buscarEspacioTrabajoPorId(transaccionDTO.idEspacioTrabajo());
+        UUID idEspacio = transaccionDTO.idEspacioTrabajo();
+        if (!espacioTrabajoApi.existe(idEspacio)) {
+            String msg = "Espacio de trabajo con ID " + idEspacio + " no encontrado";
+            log.warn(msg);
+            throw new EntityNotFoundException(msg);
+        }
         MotivoTransaccion motivo = buscarMotivoPorId(transaccionDTO.idMotivo());
 
         Transaccion transaccion = transaccionMapper.toEntity(transaccionDTO);
-
-        gastosIgresosMesAnotar(transaccion.getTipo(), transaccion.getMonto(), espacio.getId(), transaccion.getFecha());
+        transaccion.setIdEspacioTrabajo(idEspacio);
+        transaccion.setNombreEspacioTrabajo(espacioTrabajoApi.obtenerNombre(idEspacio));
 
         if (transaccionDTO.idContacto() != null) {
             ContactoTransferencia contacto = buscarContactoPorId(transaccionDTO.idContacto());
@@ -116,28 +118,30 @@ public class TransaccionServiceImpl implements TransaccionService {
         ZonedDateTime nowInBuenosAires = ZonedDateTime.now(buenosAiresZone);
         transaccion.setFechaCreacion(nowInBuenosAires.toLocalDateTime());
 
-        espacio.actualizarSaldoNuevaTransaccion(transaccion.getMonto(), transaccion.getTipo());
-        espacioRepository.save(espacio);
+        BigDecimal delta = TipoTransaccion.INGRESO.equals(transaccion.getTipo()) ? transaccion.getMonto() : transaccion.getMonto().negate();
+        espacioTrabajoApi.aplicarMovimientoSaldo(idEspacio, delta);
 
         // Actualizar manualmente fecha_modificacion para que el motivo aparezca primero
         motivo.setFechaModificacion(LocalDateTime.now());
         MotivoTransaccion motivoGuardado = motivoRepository.save(motivo);
         log.info("Motivo ID {} actualizado tras registro de transaccion", motivoGuardado.getId());
 
-        transaccion.setEspacioTrabajo(espacio);
         transaccion.setMotivo(motivoGuardado);
 
         Transaccion transaccionGuardada = transaccionRepository.save(transaccion);
-        log.info("Transaccion ID {} registrada exitosamente en espacio ID {}. Nuevo saldo: {}", transaccionGuardada.getId(), espacio.getId(), espacio.getSaldo());
-        
+        log.info("Transaccion ID {} registrada exitosamente en espacio ID {}. Nuevo saldo: {}", transaccionGuardada.getId(), idEspacio, espacioTrabajoApi.obtenerSaldo(idEspacio));
+
         // 📊 MÉTRICA: Incrementar contador de transacciones creadas
         Counter.builder(MetricsConfig.MetricNames.TRANSACCIONES_CREADAS)
                 .description("Total de transacciones registradas exitosamente")
                 .tag(MetricsConfig.TagNames.TIPO_TRANSACCION, transaccion.getTipo().name())
-                .tag(MetricsConfig.TagNames.ESPACIO_TRABAJO, espacio.getId().toString())
+                .tag(MetricsConfig.TagNames.ESPACIO_TRABAJO, idEspacio.toString())
                 .register(meterRegistry)
                 .increment();
-        
+
+        eventPublisher.publishEvent(new TransaccionRegistradaEvent(
+                idEspacio, transaccion.getTipo(), transaccion.getMonto(), transaccion.getFecha()));
+
         return transaccionMapper.toResponse(transaccionGuardada);
 
     }
@@ -156,8 +160,15 @@ public class TransaccionServiceImpl implements TransaccionService {
 
         Transaccion transaccion = buscarTransaccionPorId(id);
 
-        EspacioTrabajo espacio = transaccion.getEspacioTrabajo();
-        espacio.actualizarSaldoEliminarTransaccion(transaccion.getMonto(), transaccion.getTipo());
+        UUID idEspacio = transaccion.getIdEspacioTrabajo();
+
+        // El listener del dashboard revierte gastos/ingresos y lanza SaldoInsuficienteException
+        // si el saldo mensual es insuficiente, provocando el rollback de toda la operación.
+        eventPublisher.publishEvent(new TransaccionEliminadaEvent(
+                idEspacio, transaccion.getTipo(), transaccion.getMonto(), transaccion.getFecha()));
+
+        BigDecimal delta = TipoTransaccion.INGRESO.equals(transaccion.getTipo()) ? transaccion.getMonto().negate() : transaccion.getMonto();
+        espacioTrabajoApi.aplicarMovimientoSaldo(idEspacio, delta);
 
         if(transaccion.getCuentaBancaria() != null) {
             CuentaBancaria cuenta = transaccion.getCuentaBancaria();
@@ -167,17 +178,14 @@ public class TransaccionServiceImpl implements TransaccionService {
             log.info("Saldo de cuenta bancaria ID {} actualizado a {} tras remocion de transaccion ID {}", cuenta.getId(), cuenta.getSaldoActual(), id);
         }
 
-        gastosIngresosMesDelete(transaccion.getTipo(), transaccion.getMonto(), espacio.getId(), transaccion.getFecha());
-
         transaccionRepository.delete(transaccion);
-        espacioRepository.save(espacio);
-        log.info("Transaccion ID {} removida exitosamente. Saldo del espacio ID {} actualizado a {}", id, espacio.getId(), espacio.getSaldo());
+        log.info("Transaccion ID {} removida exitosamente. Saldo del espacio ID {} actualizado a {}", id, idEspacio, espacioTrabajoApi.obtenerSaldo(idEspacio));
         
         // 📊 MÉTRICA: Incrementar contador de transacciones eliminadas
         Counter.builder(MetricsConfig.MetricNames.TRANSACCIONES_ELIMINADAS)
                 .description("Total de transacciones eliminadas")
                 .tag(MetricsConfig.TagNames.TIPO_TRANSACCION, transaccion.getTipo().name())
-                .tag(MetricsConfig.TagNames.ESPACIO_TRABAJO, espacio.getId().toString())
+                .tag(MetricsConfig.TagNames.ESPACIO_TRABAJO, idEspacio.toString())
                 .register(meterRegistry)
                 .increment();
     }
@@ -202,7 +210,7 @@ public class TransaccionServiceImpl implements TransaccionService {
         // Crear el Pageable con ordenamiento por fecha descendente
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "fechaCreacion"));
 
-        Specification<Transaccion> spec = (root, query, cb) -> cb.equal(root.get("espacioTrabajo").get("id"), datosBusqueda.idEspacioTrabajo());
+        Specification<Transaccion> spec = (root, query, cb) -> cb.equal(root.get("idEspacioTrabajo"), datosBusqueda.idEspacioTrabajo());
 
         if (datosBusqueda.anio() != null) {
             int anio = datosBusqueda.anio();
@@ -252,7 +260,7 @@ public class TransaccionServiceImpl implements TransaccionService {
 
         // Validar que no exista un contacto con el mismo nombre en el espacio de trabajo
         Optional<ContactoTransferencia> contactoExistente = contactoRepository
-                .findFirstByNombreAndEspacioTrabajo_Id(contactoDTO.nombre(), contactoDTO.idEspacioTrabajo());
+                .findFirstByNombreAndIdEspacioTrabajo(contactoDTO.nombre(), contactoDTO.idEspacioTrabajo());
         
         if (contactoExistente.isPresent()) {
             String msg = String.format("Ya existe un contacto con el nombre '%s' en este espacio de trabajo. Por favor, utiliza un nombre diferente.", 
@@ -261,13 +269,17 @@ public class TransaccionServiceImpl implements TransaccionService {
             throw new EntidadDuplicadaException(msg);
         }
 
-        ContactoTransferencia contacto = contactoTransferenciaMapper.toEntity(contactoDTO);
+        if (!espacioTrabajoApi.existe(contactoDTO.idEspacioTrabajo())) {
+            String msg = "Espacio de trabajo con ID " + contactoDTO.idEspacioTrabajo() + " no encontrado";
+            log.warn(msg);
+            throw new EntityNotFoundException(msg);
+        }
 
-        EspacioTrabajo espacio = buscarEspacioTrabajoPorId(contactoDTO.idEspacioTrabajo());
-        contacto.setEspacioTrabajo(espacio);
+        ContactoTransferencia contacto = contactoTransferenciaMapper.toEntity(contactoDTO);
+        contacto.setIdEspacioTrabajo(contactoDTO.idEspacioTrabajo());
 
         ContactoTransferencia contactoGuardado = contactoRepository.save(contacto);
-        log.info("Contacto '{}' (ID: {}) registrado exitosamente en espacio ID {}.", contactoGuardado.getNombre(), contactoGuardado.getId(), espacio.getId());
+        log.info("Contacto '{}' (ID: {}) registrado exitosamente en espacio ID {}.", contactoGuardado.getNombre(), contactoGuardado.getId(), contactoDTO.idEspacioTrabajo());
         return contactoTransferenciaMapper.toResponse(contactoGuardado);
     }
 
@@ -286,7 +298,7 @@ public class TransaccionServiceImpl implements TransaccionService {
 
         // Validar que no exista un motivo con el mismo nombre en el espacio de trabajo
         Optional<MotivoTransaccion> motivoExistente = motivoRepository
-                .findFirstByMotivoAndEspacioTrabajo_Id(motivoDTO.motivo(), motivoDTO.idEspacioTrabajo());
+                .findFirstByMotivoAndIdEspacioTrabajo(motivoDTO.motivo(), motivoDTO.idEspacioTrabajo());
         
         if (motivoExistente.isPresent()) {
             String msg = String.format("Ya existe un motivo con el nombre '%s' en este espacio de trabajo. Por favor, utiliza un nombre diferente.", 
@@ -295,13 +307,17 @@ public class TransaccionServiceImpl implements TransaccionService {
             throw new EntidadDuplicadaException(msg);
         }
 
-        MotivoTransaccion motivo = motivoTransaccionMapper.toEntity(motivoDTO);
+        if (!espacioTrabajoApi.existe(motivoDTO.idEspacioTrabajo())) {
+            String msg = "Espacio de trabajo con ID " + motivoDTO.idEspacioTrabajo() + " no encontrado";
+            log.warn(msg);
+            throw new EntityNotFoundException(msg);
+        }
 
-        EspacioTrabajo espacio = buscarEspacioTrabajoPorId(motivoDTO.idEspacioTrabajo());
-        motivo.setEspacioTrabajo(espacio);
+        MotivoTransaccion motivo = motivoTransaccionMapper.toEntity(motivoDTO);
+        motivo.setIdEspacioTrabajo(motivoDTO.idEspacioTrabajo());
 
         MotivoTransaccion motivoGuardado = motivoRepository.save(motivo);
-        log.info("Motivo '{}' (ID: {}) registrado exitosamente en espacio ID {}.", motivoGuardado.getMotivo(), motivoGuardado.getId(), espacio.getId());
+        log.info("Motivo '{}' (ID: {}) registrado exitosamente en espacio ID {}.", motivoGuardado.getMotivo(), motivoGuardado.getId(), motivoDTO.idEspacioTrabajo());
         return motivoTransaccionMapper.toResponse(motivoGuardado);
     }
 
@@ -316,7 +332,7 @@ public class TransaccionServiceImpl implements TransaccionService {
 
         log.info("Listando contactos para el espacio de trabajo ID: {}", idEspacioTrabajo);
 
-        List<ContactoDTOResponse> contactos = contactoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(idEspacioTrabajo).stream()
+        List<ContactoDTOResponse> contactos = contactoRepository.findByIdEspacioTrabajoOrderByFechaModificacionDesc(idEspacioTrabajo).stream()
                 .map(contactoTransferenciaMapper::toResponse)
                 .toList();
         log.info("Se encontraron {} contactos para el espacio ID {} (ordenados por última modificación).", contactos.size(), idEspacioTrabajo);
@@ -334,7 +350,7 @@ public class TransaccionServiceImpl implements TransaccionService {
 
         log.info("Listando motivos para el espacio de trabajo ID: {}", idEspacioTrabajo);
 
-        List<MotivoDTOResponse> motivos = motivoRepository.findByEspacioTrabajo_IdOrderByFechaModificacionDesc(idEspacioTrabajo).stream()
+        List<MotivoDTOResponse> motivos = motivoRepository.findByIdEspacioTrabajoOrderByFechaModificacionDesc(idEspacioTrabajo).stream()
                 .map(motivoTransaccionMapper::toResponse)
                 .toList();
         log.info("Se encontraron {} motivos para el espacio ID {} (ordenados por última modificación).", motivos.size(), idEspacioTrabajo);
@@ -357,7 +373,7 @@ public class TransaccionServiceImpl implements TransaccionService {
         LocalDateTime fechaActual = nowInBuenosAires.toLocalDateTime();
 
         Specification<Transaccion> spec = (root, query, cb) -> cb.and(
-            cb.equal(root.get("espacioTrabajo").get("id"), idEspacioTrabajo),
+            cb.equal(root.get("idEspacioTrabajo"), idEspacioTrabajo),
             cb.lessThanOrEqualTo(root.get("fechaCreacion"), fechaActual)
         );
 
@@ -374,87 +390,6 @@ public class TransaccionServiceImpl implements TransaccionService {
         MÉTODOS AUXILIARES PRIVADOS
     ===========================================================================
     */
-
-    /**
-     * Método auxiliar para anotar gastos e ingresos por mes.
-     * Usa la fecha real de la transacción para determinar el anio/mes del registro.
-     */
-    private void gastosIgresosMesAnotar(TipoTransaccion tipo, BigDecimal monto, UUID idEspacioTrabajo, LocalDate fecha) {
-
-        Integer anio = fecha.getYear();
-        Integer mes = fecha.getMonthValue();
-
-        Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(idEspacioTrabajo, anio, mes);
-
-        GastosIngresosMensuales registro = opt.orElseGet(() -> {
-            EspacioTrabajo espacio = buscarEspacioTrabajoPorId(idEspacioTrabajo);
-            return GastosIngresosMensuales.builder()
-                    .anio(anio)
-                    .mes(mes)
-                    .gastos(BigDecimal.ZERO)
-                    .ingresos(BigDecimal.ZERO)
-                    .comprasCredito(BigDecimal.ZERO)
-                    .pagoResumen(BigDecimal.ZERO)
-                    .espacioTrabajo(espacio)
-                    .build();
-        });
-
-        if (tipo.equals(TipoTransaccion.GASTO)) {
-            registro.actualizarGastos(monto);
-        } else {
-            registro.actualizarIngresos(monto);
-        }
-
-        gastosIngresosMensualesRepository.save(registro);
-        log.info("Gastos/Ingresos mensuales anotados: espacioId={}, anio={}, mes={}, gastos={}, ingresos={}",
-                idEspacioTrabajo, anio, mes, registro.getGastos(), registro.getIngresos());
-    }
-
-    /**
-     * Método auxiliar para eliminar gastos e ingresos por mes porque se eliminó una transacción.
-     * Usa la fecha real de la transacción para determinar el anio/mes del registro.
-     */
-    private void gastosIngresosMesDelete(TipoTransaccion tipo, BigDecimal monto, UUID idEspacioTrabajo, LocalDate fecha) {
-
-        Integer anio = fecha.getYear();
-        Integer mes = fecha.getMonthValue();
-
-        Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository.findByEspacioTrabajo_IdAndAnioAndMes(idEspacioTrabajo, anio, mes);
-
-        GastosIngresosMensuales registro = opt.orElseThrow(() -> {
-            String msg = "Registro de GastosIngresosMensuales no encontrado para espacioId=" + idEspacioTrabajo + ", anio=" + anio + ", mes=" + mes;
-            log.warn(msg);
-            return new EntityNotFoundException(msg);
-        });
-
-        if (tipo.equals(TipoTransaccion.GASTO)) {
-            if (registro.getGastos().compareTo(monto) < 0) {
-                String msg = String.format("No se puede eliminar la transacción. El monto a eliminar ($%.2f) es mayor que los gastos registrados en este mes ($%.2f).", monto, registro.getGastos());
-                log.warn(msg);
-                throw new SaldoInsuficienteException(msg);
-            }
-            registro.eliminarGastos(monto);
-        } else {
-            if (registro.getIngresos().compareTo(monto) < 0) {
-                String msg = String.format("No se puede eliminar la transacción. El monto a eliminar ($%.2f) es mayor que los ingresos registrados en este mes ($%.2f).", monto, registro.getIngresos());
-                log.warn(msg);
-                throw new SaldoInsuficienteException(msg);
-            }
-            registro.eliminarIngresos(monto);
-        }
-
-        gastosIngresosMensualesRepository.save(registro);
-        log.info("Gastos/Ingresos mensuales anotados: espacioId={}, anio={}, mes={}, gastos={}, ingresos={}",
-                idEspacioTrabajo, anio, mes, registro.getGastos(), registro.getIngresos());
-    }
-
-    private EspacioTrabajo buscarEspacioTrabajoPorId(UUID idEspacioTrabajo) {
-        return espacioRepository.findById(idEspacioTrabajo).orElseThrow(() -> {
-            String msg = "Espacio de trabajo con ID " + idEspacioTrabajo + " no encontrado";
-            log.warn(msg);
-            return new EntityNotFoundException(msg);
-        });
-    }
 
     private MotivoTransaccion buscarMotivoPorId(Long idMotivo) {
         return motivoRepository.findById(idMotivo).orElseThrow(() -> {
@@ -480,11 +415,3 @@ public class TransaccionServiceImpl implements TransaccionService {
         });
     }
 }
-
-
-
-
-
-
-
-

@@ -6,12 +6,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-// Dependencia a corregir para reducir acoplamiento con el módulo de usuarios
-import com.campito.backend.usuarios.domain.entity.EspacioTrabajo;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "transacciones")
@@ -43,9 +41,11 @@ public class Transaccion {
     @Column(name = "fecha_creacion", nullable = false)
     private LocalDateTime fechaCreacion;
 
-    @ManyToOne
-    @JoinColumn(name = "espacio_trabajo_id", nullable = false)
-    private EspacioTrabajo espacioTrabajo;
+    @Column(name = "espacio_trabajo_id", nullable = false)
+    private UUID idEspacioTrabajo;
+
+    @Column(name = "nombre_espacio_trabajo", nullable = false, length = 50)
+    private String nombreEspacioTrabajo;
 
     @ManyToOne
     @JoinColumn(name = "motivo_transaccion_id", nullable = false)
