@@ -20,7 +20,7 @@ import java.util.UUID;
  * usuario pueda consultarlas posteriormente.
  */
 @Entity
-@Table(name = "notificaciones")
+@Table(name = "notificaciones", schema = "notificaciones")
 @EntityListeners(AuditingEntityListener.class)
 @Data
 @NoArgsConstructor

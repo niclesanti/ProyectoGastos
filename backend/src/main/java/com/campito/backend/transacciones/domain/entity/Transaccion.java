@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "transacciones")
+@Table(name = "transacciones", schema = "transacciones")
 @Data // Genera equals, hashCode, toString y getters/setters para todos los campos
 @NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)
 @AllArgsConstructor  // Genera constructor con todos los argumentos

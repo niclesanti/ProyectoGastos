@@ -11,7 +11,7 @@ import java.util.UUID;
 
 
 @Entity
-@Table(name = "usuarios")
+@Table(name = "usuarios", schema = "usuarios")
 @Data // Genera equals, hashCode, toString y getters/setters para todos los campos
 @NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)
 @AllArgsConstructor  // Genera constructor con todos los argumentos

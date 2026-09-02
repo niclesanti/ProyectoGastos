@@ -15,7 +15,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
-@Table(name = "espacios_trabajo")
+@Table(name = "espacios_trabajo", schema = "usuarios")
 @EntityListeners(AuditingEntityListener.class)
 @Data // Genera equals, hashCode, toString y getters/setters para todos los campos
 @NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)
@@ -38,7 +38,7 @@ public class EspacioTrabajo {
     private Usuario usuarioAdmin;
 
     @ManyToMany
-    @JoinTable(name = "espacios_trabajo_usuarios", joinColumns = @JoinColumn(name = "espacio_trabajo_id"), inverseJoinColumns = @JoinColumn(name = "usuario_id"))
+    @JoinTable(name = "espacios_trabajo_usuarios", schema = "usuarios", joinColumns = @JoinColumn(name = "espacio_trabajo_id"), inverseJoinColumns = @JoinColumn(name = "usuario_id"))
     private List<Usuario> usuariosParticipantes;
 
     @CreatedDate

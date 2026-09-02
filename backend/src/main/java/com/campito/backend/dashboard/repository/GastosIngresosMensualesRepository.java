@@ -30,7 +30,7 @@ public interface GastosIngresosMensualesRepository extends JpaRepository<GastosI
      * @return Lista de registros encontrados, ordenados por año y mes descendente
      */
     @Query(value = """
-        SELECT g.* FROM gastos_ingresos_mensuales g
+        SELECT g.* FROM dashboard.gastos_ingresos_mensuales g
         WHERE g.espacio_trabajo_id = :espacioTrabajoId
           AND CONCAT(LPAD(CAST(g.anio AS TEXT), 4, '0'), '-', LPAD(CAST(g.mes AS TEXT), 2, '0')) IN (:anioMeses)
         ORDER BY g.anio DESC, g.mes DESC

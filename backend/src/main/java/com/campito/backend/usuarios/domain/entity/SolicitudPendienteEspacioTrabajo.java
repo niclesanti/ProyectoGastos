@@ -11,7 +11,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
-@Table(name = "solicitudes_pendientes_espacio_trabajo")
+@Table(name = "solicitudes_pendientes_espacio_trabajo", schema = "usuarios")
 @EntityListeners(AuditingEntityListener.class)
 @Data // Genera equals, hashCode, toString y getters/setters para todos los campos
 @NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)

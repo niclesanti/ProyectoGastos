@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "motivos_transaccion")
+@Table(name = "motivos_transaccion", schema = "transacciones")
 @EntityListeners(AuditingEntityListener.class)
 @Data // Genera equals, hashCode, toString y getters/setters para todos los campos
 @NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)

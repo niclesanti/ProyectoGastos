@@ -20,7 +20,7 @@ import java.util.UUID;
 * cada vez que se requiere esta información.
 */
 @Entity
-@Table(name = "gastos_ingresos_mensuales")
+@Table(name = "gastos_ingresos_mensuales", schema = "dashboard")
 @Data // Genera equals, hashCode, toString y getters/setters para todos los campos
 @NoArgsConstructor  // Genera constructor sin argumentos (requerido por JPA)
 @AllArgsConstructor  // Genera constructor con todos los argumentos

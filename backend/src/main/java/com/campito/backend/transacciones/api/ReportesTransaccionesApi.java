@@ -23,9 +23,9 @@ public interface ReportesTransaccionesApi extends JpaRepository<Transaccion, Lon
     @Query(value = """
             SELECT
                 mt.motivo,
-                (SUM(t.monto) * 100.0 / (SELECT SUM(t2.monto) FROM transacciones t2 WHERE t2.espacio_trabajo_id = :idEspacio AND t2.tipo = 'GASTO' AND t2.fecha >= :fechaLimite)) AS porcentaje
-            FROM transacciones t
-            JOIN motivos_transaccion mt ON t.motivo_transaccion_id = mt.id
+                (SUM(t.monto) * 100.0 / (SELECT SUM(t2.monto) FROM transacciones.transacciones t2 WHERE t2.espacio_trabajo_id = :idEspacio AND t2.tipo = 'GASTO' AND t2.fecha >= :fechaLimite)) AS porcentaje
+            FROM transacciones.transacciones t
+            JOIN transacciones.motivos_transaccion mt ON t.motivo_transaccion_id = mt.id
             WHERE t.espacio_trabajo_id = :idEspacio
               AND t.tipo = 'GASTO'
               AND t.fecha >= :fechaLimite
@@ -39,8 +39,8 @@ public interface ReportesTransaccionesApi extends JpaRepository<Transaccion, Lon
             SELECT
                 mt.motivo,
                 ROUND(SUM(cc.monto_total) * 100.0 / SUM(SUM(cc.monto_total)) OVER (), 2) AS porcentaje
-            FROM compras_credito cc
-            JOIN motivos_transaccion mt ON cc.motivo_transaccion_id = mt.id
+            FROM transacciones.compras_credito cc
+            JOIN transacciones.motivos_transaccion mt ON cc.motivo_transaccion_id = mt.id
             WHERE cc.espacio_trabajo_id = :idEspacio
               AND cc.fecha_compra >= :fechaLimite
             GROUP BY mt.motivo
