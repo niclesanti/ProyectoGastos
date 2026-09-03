@@ -161,7 +161,10 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
         CompraCredito compraCreditoGuardada = compraCreditoRepository.save(compraCredito);
         crearCuotas(compraCreditoGuardada);
         eventPublisher.publishEvent(new CompraCreditoRegistradaEvent(
-                idEspacio, compraCreditoGuardada.getMontoTotal(), compraCreditoGuardada.getFechaCompra()));
+                idEspacio,
+                compraCreditoGuardada.getMontoTotal(),
+                calcularSumaCuotas(compraCreditoGuardada),
+                compraCreditoGuardada.getFechaCompra()));
         log.info("Compra credito ID {} registrada exitosamente en espacio ID {}.", compraCreditoGuardada.getId(), idEspacio);
         
         // 📊 MÉTRICA: Incrementar contador de compras a crédito registradas
@@ -245,13 +248,16 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
             throw new OperacionNoPermitidaException(msg);
         }
 
+        // Calcular la suma de cuotas ANTES de borrar las cuotas (mantiene la invariante de deuda)
+        BigDecimal sumaCuotas = calcularSumaCuotas(compraCredito);
+
         // Eliminar todas las cuotas asociadas
         cuotaCreditoRepository.deleteByCompraCredito_Id(id);
         log.info("Cuotas de la compra crédito ID {} eliminadas", id);
 
         // Revertir el impacto en GastosIngresosMensuales via evento síncrono del dashboard
         eventPublisher.publishEvent(new CompraCreditoEliminadaEvent(
-                compraCredito.getIdEspacioTrabajo(), compraCredito.getMontoTotal(), compraCredito.getFechaCompra()));
+                compraCredito.getIdEspacioTrabajo(), compraCredito.getMontoTotal(), sumaCuotas, compraCredito.getFechaCompra()));
 
         // Eliminar la compra crédito
         compraCreditoRepository.deleteById(id);
@@ -643,6 +649,23 @@ public class CompraCreditoServiceImpl implements CompraCreditoService {
     ===========================================================================
     */
     
+    /**
+     * Calcula la suma de los montos de cuota de una compra a crédito.
+     * Cada cuota usa {@code MoneyUtils.divide(montoTotal, cantidadCuotas)}
+     * (redondeo HALF_UP), por lo que la suma puede diferir de montoTotal.
+     * Esta suma es la fuente de verdad del incremento/decremento de deuda.
+     *
+     * @param compraCredito compra con montoTotal y cantidadCuotas
+     * @return montoCuota * cantidadCuotas
+     */
+    private BigDecimal calcularSumaCuotas(CompraCredito compraCredito) {
+        if (compraCredito.getCantidadCuotas() <= 0) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal montoCuota = MoneyUtils.divide(compraCredito.getMontoTotal(), compraCredito.getCantidadCuotas());
+        return montoCuota.multiply(BigDecimal.valueOf(compraCredito.getCantidadCuotas()));
+    }
+
     /**
      * Metodo privado que crea las cuotas asociadas a una compra a crédito.
      * @param compraCredito

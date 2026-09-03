@@ -1,17 +1,22 @@
 package com.campito.backend.dashboard.event;
 
 import com.campito.backend.dashboard.domain.entity.GastosIngresosMensuales;
+import com.campito.backend.dashboard.domain.entity.ResumenFinanciero;
 import com.campito.backend.dashboard.repository.GastosIngresosMensualesRepository;
+import com.campito.backend.dashboard.repository.ResumenFinancieroRepository;
+import com.campito.backend.dashboard.service.DashboardCacheNames;
 import com.campito.backend.common.exception.SaldoInsuficienteException;
 import com.campito.backend.common.event.CompraCreditoEliminadaEvent;
 import com.campito.backend.common.event.CompraCreditoRegistradaEvent;
 import com.campito.backend.common.event.ResumenPagadoEvent;
+import com.campito.backend.common.event.SaldoActualizadoEvent;
 import com.campito.backend.common.event.TransaccionEliminadaEvent;
 import com.campito.backend.common.event.TransaccionRegistradaEvent;
 import com.campito.backend.common.domain.TipoTransaccion;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -34,30 +39,94 @@ import java.util.UUID;
 public class DashboardEventListener {
 
     private final GastosIngresosMensualesRepository gastosIngresosMensualesRepository;
+    private final ResumenFinancieroRepository resumenFinancieroRepository;
 
     @EventListener
+    @CacheEvict(cacheNames = {DashboardCacheNames.GASTOS_INGRESOS_MENSUALES, DashboardCacheNames.DISTRIBUCION_GASTOS}, key = "#event.idEspacioTrabajo")
     public void onTransaccionRegistrada(TransaccionRegistradaEvent event) {
         gastosIgresosMesAnotar(event.tipo(), event.monto(), event.idEspacioTrabajo(), event.fecha());
     }
 
     @EventListener
+    @CacheEvict(cacheNames = {DashboardCacheNames.GASTOS_INGRESOS_MENSUALES, DashboardCacheNames.DISTRIBUCION_GASTOS}, key = "#event.idEspacioTrabajo")
     public void onTransaccionEliminada(TransaccionEliminadaEvent event) {
         gastosIngresosMesDelete(event.tipo(), event.monto(), event.idEspacioTrabajo(), event.fecha());
     }
 
     @EventListener
+    @CacheEvict(cacheNames = DashboardCacheNames.RESUMEN_FINANCIERO, key = "#event.idEspacioTrabajo")
+    public void onSaldoActualizado(SaldoActualizadoEvent event) {
+        actualizarSaldo(event.idEspacioTrabajo(), event.nuevoSaldo());
+    }
+
+    @EventListener
+    @CacheEvict(cacheNames = {DashboardCacheNames.GASTOS_INGRESOS_MENSUALES, DashboardCacheNames.RESUMEN_FINANCIERO, DashboardCacheNames.DISTRIBUCION_COMPRAS_CREDITO, DashboardCacheNames.RESUMEN_MENSUAL}, key = "#event.idEspacioTrabajo")
     public void onCompraCreditoRegistrada(CompraCreditoRegistradaEvent event) {
         compraCreditoMesAnotar(event.montoTotal(), event.idEspacioTrabajo(), event.fechaCompra());
+        incrementarDeuda(event.idEspacioTrabajo(), event.sumaCuotas());
     }
 
     @EventListener
+    @CacheEvict(cacheNames = {DashboardCacheNames.GASTOS_INGRESOS_MENSUALES, DashboardCacheNames.RESUMEN_FINANCIERO, DashboardCacheNames.DISTRIBUCION_COMPRAS_CREDITO, DashboardCacheNames.RESUMEN_MENSUAL}, key = "#event.idEspacioTrabajo")
     public void onCompraCreditoEliminada(CompraCreditoEliminadaEvent event) {
         compraCreditoMesDelete(event.montoTotal(), event.idEspacioTrabajo(), event.fechaCompra());
+        decrementarDeuda(event.idEspacioTrabajo(), event.sumaCuotas());
     }
 
     @EventListener
+    @CacheEvict(cacheNames = {DashboardCacheNames.GASTOS_INGRESOS_MENSUALES, DashboardCacheNames.RESUMEN_FINANCIERO, DashboardCacheNames.RESUMEN_MENSUAL}, key = "#event.idEspacioTrabajo")
     public void onResumenPagado(ResumenPagadoEvent event) {
         pagoResumenMesAnotar(event.montoTotal(), event.idEspacioTrabajo(), LocalDate.of(event.anio(), event.mes(), 1));
+        decrementarDeuda(event.idEspacioTrabajo(), event.montoTotal());
+    }
+
+    /**
+     * Actualiza (upsert) el saldo del read-model financiero del dashboard.
+     * Si no existe la fila, se crea con deuda 0 (saldo actual y deuda pendiente).
+     */
+    private void actualizarSaldo(UUID idEspacioTrabajo, BigDecimal saldo) {
+        ResumenFinanciero rf = resumenFinancieroRepository.findById(idEspacioTrabajo)
+                .orElseGet(() -> ResumenFinanciero.builder()
+                        .idEspacioTrabajo(idEspacioTrabajo)
+                        .saldo(BigDecimal.ZERO)
+                        .deudaTotal(BigDecimal.ZERO)
+                        .build());
+        rf.setSaldo(saldo);
+        rf.setFechaActualizacion(java.time.LocalDateTime.now());
+        resumenFinancieroRepository.save(rf);
+        log.info("Saldo del read-model actualizado: espacioId={}, saldo={}", idEspacioTrabajo, saldo);
+    }
+
+    /**
+     * Incrementa la deuda total pendiente del read-model (al registrar una compra a crédito).
+     * Usa la suma de cuotas redondeadas (no el monto total) para mantener la invariante.
+     */
+    private void incrementarDeuda(UUID idEspacioTrabajo, BigDecimal monto) {
+        ResumenFinanciero rf = resumenFinancieroRepository.findById(idEspacioTrabajo)
+                .orElseGet(() -> ResumenFinanciero.builder()
+                        .idEspacioTrabajo(idEspacioTrabajo)
+                        .saldo(BigDecimal.ZERO)
+                        .deudaTotal(BigDecimal.ZERO)
+                        .build());
+        rf.incrementarDeuda(monto);
+        rf.setFechaActualizacion(java.time.LocalDateTime.now());
+        resumenFinancieroRepository.save(rf);
+        log.info("Deuda del read-model incrementada: espacioId={}, +{} => deuda={}",
+                idEspacioTrabajo, monto, rf.getDeudaTotal());
+    }
+
+    /**
+     * Decrementa la deuda total pendiente del read-model (al eliminar una compra
+     * o pagar un resumen). Usa la suma de cuotas redondeadas / monto del resumen.
+     */
+    private void decrementarDeuda(UUID idEspacioTrabajo, BigDecimal monto) {
+        resumenFinancieroRepository.findById(idEspacioTrabajo).ifPresent(rf -> {
+            rf.decrementarDeuda(monto);
+            rf.setFechaActualizacion(java.time.LocalDateTime.now());
+            resumenFinancieroRepository.save(rf);
+            log.info("Deuda del read-model decrementada: espacioId={}, -{} => deuda={}",
+                    idEspacioTrabajo, monto, rf.getDeudaTotal());
+        });
     }
 
     /**

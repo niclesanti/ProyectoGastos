@@ -24,10 +24,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.campito.backend.transacciones.api.CuotasCreditoApi;
-import com.campito.backend.transacciones.api.ReportesTransaccionesApi;
-import com.campito.backend.usuarios.api.EspacioTrabajoApi;
-import com.campito.backend.dashboard.repository.*;
 import com.campito.backend.dashboard.domain.dto.*;
 import com.campito.backend.common.dto.*;
 import com.campito.backend.dashboard.domain.entity.*;
@@ -38,16 +34,10 @@ import jakarta.persistence.EntityNotFoundException;
 class DashboardServiceTest {
 
     @Mock
-    private EspacioTrabajoApi espacioTrabajoApi;
+    private DashboardReportesService dashboardReportesService;
 
     @Mock
-    private CuotasCreditoApi cuotasCreditoApi;
-
-    @Mock
-    private ReportesTransaccionesApi reportesTransaccionesApi;
-
-    @Mock
-    private GastosIngresosMensualesRepository gastosIngresosMensualesRepository;
+    private DashboardReadModelService dashboardReadModelService;
 
     @Mock
     private Executor taskExecutor;
@@ -72,32 +62,39 @@ class DashboardServiceTest {
         }).when(taskExecutor).execute(any(Runnable.class));
     }
 
+    private ResumenFinanciero resumenFinanciero(BigDecimal saldo, BigDecimal deuda) {
+        return ResumenFinanciero.builder()
+                .idEspacioTrabajo(idEspacio)
+                .saldo(saldo)
+                .deudaTotal(deuda)
+                .build();
+    }
+
     // --------------------------------------------------
     // Tests for obtenerDashboardStats
     // --------------------------------------------------
 
     @Test
     void obtenerDashboardStats_espacioNoExiste_lanzaEntityNotFound() {
-        when(espacioTrabajoApi.obtenerSaldo(idEspacio))
-            .thenThrow(new EntityNotFoundException("Espacio de trabajo con ID " + idEspacio + " no encontrado"));
+        when(dashboardReadModelService.obtenerResumenFinanciero(idEspacio))
+            .thenThrow(new EntityNotFoundException("Espacio de trabajo no encontrado para ID: " + idEspacio));
 
         assertThrows(EntityNotFoundException.class, () -> dashboardService.obtenerDashboardStats(idEspacio));
 
-        verify(espacioTrabajoApi).obtenerSaldo(idEspacio);
+        verify(dashboardReadModelService).obtenerResumenFinanciero(idEspacio);
     }
 
     @Test
     void obtenerDashboardStats_gastosNoEncontrado_completaConCerosYCalculaOtrosCampos() {
-        when(espacioTrabajoApi.obtenerSaldo(idEspacio)).thenReturn(new BigDecimal("123.45"));
+        when(dashboardReadModelService.obtenerResumenFinanciero(idEspacio)).thenReturn(resumenFinanciero(new BigDecimal("123.45"), new BigDecimal("500.00")));
 
-        when(gastosIngresosMensualesRepository.findByIdEspacioTrabajoAndAnioAndMes(any(java.util.UUID.class), anyInt(), anyInt()))
-            .thenReturn(Optional.empty());
+        when(dashboardReadModelService.gastosMesActual(eq(idEspacio), anyInt(), anyInt()))
+            .thenReturn(BigDecimal.ZERO);
 
-        when(cuotasCreditoApi.calcularDeudaTotalPendiente(idEspacio)).thenReturn(new BigDecimal("500.00"));
-        when(cuotasCreditoApi.resumenMensual(eq(idEspacio), any(LocalDate.class))).thenReturn(BigDecimal.ZERO);
-        when(reportesTransaccionesApi.findDistribucionGastos(eq(idEspacio), any(LocalDate.class))).thenReturn(new ArrayList<>());
-        when(reportesTransaccionesApi.findDistribucionComprasCredito(eq(idEspacio), any(LocalDate.class))).thenReturn(new ArrayList<>());
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(eq(idEspacio), anyList())).thenReturn(new ArrayList<>());
+        when(dashboardReportesService.resumenMensual(eq(idEspacio), any(LocalDate.class))).thenReturn(BigDecimal.ZERO);
+        when(dashboardReportesService.distribucionGastos(eq(idEspacio), any(LocalDate.class))).thenReturn(new ArrayList<>());
+        when(dashboardReportesService.distribucionComprasCredito(eq(idEspacio), any(LocalDate.class))).thenReturn(new ArrayList<>());
+        when(dashboardReadModelService.obtenerRegistrosMensuales(eq(idEspacio), anyList())).thenReturn(new ArrayList<>());
 
         DashboardStatsDTO stats = dashboardService.obtenerDashboardStats(idEspacio);
 
@@ -117,7 +114,7 @@ class DashboardServiceTest {
 
     @Test
     void obtenerDashboardStats_conDatos_mapeaValoresResumenYFlujoYDistribucion() {
-        when(espacioTrabajoApi.obtenerSaldo(idEspacio)).thenReturn(new BigDecimal("123.45"));
+        when(dashboardReadModelService.obtenerResumenFinanciero(idEspacio)).thenReturn(resumenFinanciero(new BigDecimal("123.45"), new BigDecimal("250.50")));
 
         LocalDate now = LocalDate.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
@@ -146,18 +143,17 @@ class DashboardServiceTest {
                 .idEspacioTrabajo(idEspacio)
                 .build();
 
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(idEspacio, ultimosMeses))
+        when(dashboardReadModelService.obtenerRegistrosMensuales(idEspacio, ultimosMeses))
                 .thenReturn(List.of(g1, g2));
 
-        when(gastosIngresosMensualesRepository.findByIdEspacioTrabajoAndAnioAndMes(eq(idEspacio), anyInt(), anyInt()))
-                .thenReturn(Optional.of(g1));
+        when(dashboardReadModelService.gastosMesActual(eq(idEspacio), anyInt(), anyInt()))
+                .thenReturn(new BigDecimal("100.00"));
 
-        when(cuotasCreditoApi.calcularDeudaTotalPendiente(idEspacio)).thenReturn(new BigDecimal("250.50"));
-        when(cuotasCreditoApi.resumenMensual(eq(idEspacio), any(LocalDate.class))).thenReturn(new BigDecimal("200.00"));
+        when(dashboardReportesService.resumenMensual(eq(idEspacio), any(LocalDate.class))).thenReturn(new BigDecimal("200.00"));
 
         DistribucionGastoDTO distribMock = mock(DistribucionGastoDTO.class);
-        when(reportesTransaccionesApi.findDistribucionGastos(eq(idEspacio), any(LocalDate.class))).thenReturn(List.of(distribMock));
-        when(reportesTransaccionesApi.findDistribucionComprasCredito(eq(idEspacio), any(LocalDate.class))).thenReturn(new ArrayList<>());
+        when(dashboardReportesService.distribucionGastos(eq(idEspacio), any(LocalDate.class))).thenReturn(List.of(distribMock));
+        when(dashboardReportesService.distribucionComprasCredito(eq(idEspacio), any(LocalDate.class))).thenReturn(new ArrayList<>());
 
         DashboardStatsDTO stats = dashboardService.obtenerDashboardStats(idEspacio);
 
@@ -165,24 +161,23 @@ class DashboardServiceTest {
         assertEquals(new BigDecimal("123.45"), stats.balanceTotal());
         assertEquals(new BigDecimal("100.00"), stats.gastosMensuales());
         assertEquals(new BigDecimal("250.50"), stats.deudaTotalPendiente());
-        assertEquals(new BigDecimal("200.00"), stats.resumenMensual(), "Resumen mensual proviene del facade de cuotas");
+        assertEquals(new BigDecimal("200.00"), stats.resumenMensual(), "Resumen mensual proviene del read modelo/cache de reportes");
         assertEquals(12, stats.flujoMensual().size());
         assertEquals(1, stats.distribucionGastos().size());
 
-        verify(cuotasCreditoApi).resumenMensual(eq(idEspacio), any(LocalDate.class));
+        verify(dashboardReportesService).resumenMensual(eq(idEspacio), any(LocalDate.class));
     }
 
     @Test
     void obtenerDashboardStats_sinTarjetas_resumenMensualCero() {
-        when(espacioTrabajoApi.obtenerSaldo(idEspacio)).thenReturn(new BigDecimal("123.45"));
-        when(gastosIngresosMensualesRepository.findByIdEspacioTrabajoAndAnioAndMes(eq(idEspacio), anyInt(), anyInt()))
-                .thenReturn(Optional.of(GastosIngresosMensuales.builder().anio(LocalDate.now().getYear()).mes(LocalDate.now().getMonthValue()).gastos(new BigDecimal("10.00")).ingresos(new BigDecimal("20.00")).idEspacioTrabajo(idEspacio).build()));
+        when(dashboardReadModelService.obtenerResumenFinanciero(idEspacio)).thenReturn(resumenFinanciero(new BigDecimal("123.45"), BigDecimal.ZERO));
+        when(dashboardReadModelService.gastosMesActual(eq(idEspacio), anyInt(), anyInt()))
+                .thenReturn(new BigDecimal("10.00"));
 
-        when(cuotasCreditoApi.calcularDeudaTotalPendiente(idEspacio)).thenReturn(BigDecimal.ZERO);
-        when(cuotasCreditoApi.resumenMensual(eq(idEspacio), any(LocalDate.class))).thenReturn(BigDecimal.ZERO);
-        when(reportesTransaccionesApi.findDistribucionGastos(eq(idEspacio), any(LocalDate.class))).thenReturn(List.of());
-        when(reportesTransaccionesApi.findDistribucionComprasCredito(eq(idEspacio), any(LocalDate.class))).thenReturn(List.of());
-        when(gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(eq(idEspacio), anyList())).thenReturn(new ArrayList<>());
+        when(dashboardReportesService.resumenMensual(eq(idEspacio), any(LocalDate.class))).thenReturn(BigDecimal.ZERO);
+        when(dashboardReportesService.distribucionGastos(eq(idEspacio), any(LocalDate.class))).thenReturn(List.of());
+        when(dashboardReportesService.distribucionComprasCredito(eq(idEspacio), any(LocalDate.class))).thenReturn(List.of());
+        when(dashboardReadModelService.obtenerRegistrosMensuales(eq(idEspacio), anyList())).thenReturn(new ArrayList<>());
 
         DashboardStatsDTO stats = dashboardService.obtenerDashboardStats(idEspacio);
 
@@ -191,15 +186,19 @@ class DashboardServiceTest {
     }
 
     @Test
-    void obtenerDashboardStats_whenDebtCalcThrows_propagatesException() {
-        when(espacioTrabajoApi.obtenerSaldo(idEspacio)).thenReturn(new BigDecimal("123.45"));
-        when(gastosIngresosMensualesRepository.findByIdEspacioTrabajoAndAnioAndMes(eq(idEspacio), anyInt(), anyInt()))
-                .thenReturn(Optional.of(GastosIngresosMensuales.builder().anio(LocalDate.now().getYear()).mes(LocalDate.now().getMonthValue()).gastos(new BigDecimal("10.00")).ingresos(new BigDecimal("20.00")).idEspacioTrabajo(idEspacio).build()));
+    void obtenerDashboardStats_whenDebtCalcFailsFromReadModel_noEsRuta() {
+        // La deuda ya no se calcula; viene del read-model. Verificamos flujo normal.
+        when(dashboardReadModelService.obtenerResumenFinanciero(idEspacio)).thenReturn(resumenFinanciero(new BigDecimal("123.45"), new BigDecimal("10.00")));
+        when(dashboardReadModelService.gastosMesActual(eq(idEspacio), anyInt(), anyInt()))
+                .thenReturn(new BigDecimal("10.00"));
 
-        when(cuotasCreditoApi.calcularDeudaTotalPendiente(idEspacio)).thenThrow(new RuntimeException("DB error"));
+        when(dashboardReportesService.resumenMensual(eq(idEspacio), any(LocalDate.class))).thenReturn(BigDecimal.ZERO);
+        when(dashboardReportesService.distribucionGastos(eq(idEspacio), any(LocalDate.class))).thenReturn(List.of());
+        when(dashboardReportesService.distribucionComprasCredito(eq(idEspacio), any(LocalDate.class))).thenReturn(List.of());
+        when(dashboardReadModelService.obtenerRegistrosMensuales(eq(idEspacio), anyList())).thenReturn(new ArrayList<>());
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> dashboardService.obtenerDashboardStats(idEspacio));
-        assertEquals("DB error", ex.getMessage());
+        DashboardStatsDTO stats = dashboardService.obtenerDashboardStats(idEspacio);
+        assertEquals(new BigDecimal("10.00"), stats.deudaTotalPendiente());
     }
 
 }

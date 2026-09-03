@@ -26,11 +26,16 @@ import com.campito.backend.usuarios.repository.EspacioTrabajoRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 
+import org.springframework.context.ApplicationEventPublisher;
+
 @ExtendWith(MockitoExtension.class)
 class EspacioTrabajoApiTest {
 
     @Mock
     private EspacioTrabajoRepository espacioTrabajoRepository;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private EspacioTrabajoApiImpl espacioTrabajoApi;

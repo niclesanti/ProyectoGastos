@@ -10,7 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.campito.backend.common.event.NotificacionEvent;
+import com.campito.backend.common.event.SaldoActualizadoEvent;
 import com.campito.backend.common.event.TipoNotificacion;
+import com.campito.backend.common.util.MoneyUtils;
 
 import com.campito.backend.usuarios.repository.EspacioTrabajoRepository;
 import com.campito.backend.usuarios.repository.SolicitudPendienteEspacioTrabajoRepository;
@@ -82,6 +84,9 @@ public class EspacioTrabajoServiceImpl implements EspacioTrabajoService {
         espacioTrabajo.getUsuariosParticipantes().add(usuario);
         espacioRepository.save(espacioTrabajo);
         log.info("Espacio de trabajo '{}' registrado exitosamente.", espacioTrabajo.getNombre());
+
+        // Garantizar fila inicial en el read-model del dashboard (saldo 0, deuda 0)
+        eventPublisher.publishEvent(new SaldoActualizadoEvent(espacioTrabajo.getId(), MoneyUtils.ZERO));
     }
 
     /**

@@ -10,19 +10,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
-import com.campito.backend.usuarios.api.EspacioTrabajoApi;
-import com.campito.backend.transacciones.api.CuotasCreditoApi;
-import com.campito.backend.transacciones.api.ReportesTransaccionesApi;
-
-import com.campito.backend.dashboard.repository.GastosIngresosMensualesRepository;
+import jakarta.persistence.EntityNotFoundException;
 
 import com.campito.backend.dashboard.domain.dto.DashboardStatsDTO;
 import com.campito.backend.common.dto.DistribucionGastoDTO;
@@ -32,7 +30,7 @@ import com.campito.backend.dashboard.domain.dto.IngresosGastosMesDTO;
 import com.campito.backend.dashboard.domain.dto.IngresosGastosMesDTOImpl;
 
 import com.campito.backend.dashboard.domain.entity.GastosIngresosMensuales;
-
+import com.campito.backend.dashboard.domain.entity.ResumenFinanciero;
 
 import lombok.RequiredArgsConstructor;
 
@@ -48,10 +46,8 @@ import lombok.RequiredArgsConstructor;
 @Slf4j
 public class DashboardServiceImpl implements DashboardService {
 
-    private final EspacioTrabajoApi espacioTrabajoApi;
-    private final CuotasCreditoApi cuotasCreditoApi;
-    private final ReportesTransaccionesApi reportesTransaccionesApi;
-    private final GastosIngresosMensualesRepository gastosIngresosMensualesRepository;
+    private final DashboardReportesService dashboardReportesService;
+    private final DashboardReadModelService dashboardReadModelService;
 
     @Qualifier("taskExecutor")
     private final Executor taskExecutor;
@@ -62,7 +58,7 @@ public class DashboardServiceImpl implements DashboardService {
      * 
      * @param idEspacio ID del espacio de trabajo.
      * @return DTO con todas las estadísticas del dashboard (KPIs + charts).
-     * @throws jakarta.persistence.EntityNotFoundException si el espacio de trabajo no se encuentra.
+     * @throws EntityNotFoundException si el espacio de trabajo no se encuentra.
      * @throws IllegalArgumentException si el ID del espacio es nulo.
      */
     @Override
@@ -84,40 +80,41 @@ public class DashboardServiceImpl implements DashboardService {
 
         LocalDate fechaLimite = now.minusMonths(1);
 
-        /* === FASE 1: Ejecutar queries independientes en paralelo === */
+        /* === FASE 1: Leer escalares del read-model desnormalizado en paralelo === */
 
-        CompletableFuture<BigDecimal> balanceFuture = CompletableFuture.supplyAsync(
-            () -> espacioTrabajoApi.obtenerSaldo(idEspacio), taskExecutor);
+        CompletableFuture<ResumenFinanciero> resumenFuture = CompletableFuture.supplyAsync(
+            () -> dashboardReadModelService.obtenerResumenFinanciero(idEspacio), taskExecutor);
 
-        CompletableFuture<BigDecimal> deudaFuture = CompletableFuture.supplyAsync(
-            () -> cuotasCreditoApi.calcularDeudaTotalPendiente(idEspacio), taskExecutor);
+        /* === FASE 2: Ejecutar queries independientes en paralelo === */
 
         CompletableFuture<List<GastosIngresosMensuales>> registrosMensualesFuture = CompletableFuture.supplyAsync(
-            () -> gastosIngresosMensualesRepository.findByEspacioTrabajoAndMeses(idEspacio, ultimosMeses), taskExecutor);
+            () -> dashboardReadModelService.obtenerRegistrosMensuales(idEspacio, ultimosMeses), taskExecutor);
 
         CompletableFuture<List<DistribucionGastoDTO>> distribucionGastosFuture = CompletableFuture.supplyAsync(
-            () -> reportesTransaccionesApi.findDistribucionGastos(idEspacio, fechaLimite), taskExecutor);
+            () -> dashboardReportesService.distribucionGastos(idEspacio, fechaLimite), taskExecutor);
 
         CompletableFuture<List<DistribucionGastoDTO>> distribucionComprasCreditoFuture = CompletableFuture.supplyAsync(
-            () -> reportesTransaccionesApi.findDistribucionComprasCredito(idEspacio, fechaLimite), taskExecutor);
+            () -> dashboardReportesService.distribucionComprasCredito(idEspacio, fechaLimite), taskExecutor);
 
         CompletableFuture<BigDecimal> resumenMensualFuture = CompletableFuture.supplyAsync(
-            () -> cuotasCreditoApi.resumenMensual(idEspacio, now), taskExecutor);
+            () -> dashboardReportesService.resumenMensual(idEspacio, now), taskExecutor);
 
         CompletableFuture<BigDecimal> gastosMensualesFuture = CompletableFuture.supplyAsync(
-            () -> gastosMesActual(idEspacio, anioActual, mesActual), taskExecutor);
+            () -> dashboardReadModelService.gastosMesActual(idEspacio, anioActual, mesActual), taskExecutor);
 
-        /* === FASE 2: Combinar resultados y construir el DTO === */
+        /* === FASE 3: Combinar resultados y construir el DTO === */
 
         CompletableFuture<DashboardStatsDTO> statsFuture = CompletableFuture.allOf(
-                balanceFuture, gastosMensualesFuture, deudaFuture,
+                resumenFuture,
+                gastosMensualesFuture,
                 registrosMensualesFuture, distribucionGastosFuture,
                 distribucionComprasCreditoFuture, resumenMensualFuture
             ).thenApplyAsync(v -> {
 
-                BigDecimal balanceTotal = balanceFuture.join();
+                ResumenFinanciero resumen = resumenFuture.join();
+                BigDecimal balanceTotal = resumen.getSaldo();
+                BigDecimal deudaTotalPendiente = resumen.getDeudaTotal();
                 BigDecimal gastosMensuales = gastosMensualesFuture.join();
-                BigDecimal deudaTotalPendiente = deudaFuture.join();
                 List<GastosIngresosMensuales> registrosMensuales = registrosMensualesFuture.join();
                 List<DistribucionGastoDTO> distribucionGastos = distribucionGastosFuture.join();
                 List<DistribucionGastoDTO> distribucionComprasCredito = distribucionComprasCreditoFuture.join();
@@ -151,10 +148,10 @@ public class DashboardServiceImpl implements DashboardService {
             }, taskExecutor);
 
         try {
-            return statsFuture.orTimeout(30, java.util.concurrent.TimeUnit.SECONDS).join();
-        } catch (java.util.concurrent.CompletionException e) {
+            return statsFuture.orTimeout(30, TimeUnit.SECONDS).join();
+        } catch (CompletionException e) {
             Throwable cause = e.getCause();
-            if (cause instanceof java.util.concurrent.TimeoutException) {
+            if (cause instanceof TimeoutException) {
                 throw new RuntimeException("Timeout al obtener estadísticas del dashboard para el espacio " + idEspacio, cause);
             }
             if (cause instanceof RuntimeException) {
@@ -169,25 +166,6 @@ public class DashboardServiceImpl implements DashboardService {
         MÉTODOS AUXILIARES PRIVADOS
     ===========================================================================
     */
-
-    /**
-     * Calcula el total de gastos del mes actual para el espacio dado.
-     */
-    private BigDecimal gastosMesActual(UUID idEspacio, Integer anioActual, Integer mesActual) {
-        Optional<GastosIngresosMensuales> opt = gastosIngresosMensualesRepository.findByIdEspacioTrabajoAndAnioAndMes(idEspacio, anioActual, mesActual);
-
-        GastosIngresosMensuales registro = opt.orElseGet(() ->
-            GastosIngresosMensuales.builder()
-                    .anio(anioActual)
-                    .mes(mesActual)
-                    .gastos(BigDecimal.ZERO)
-                    .ingresos(BigDecimal.ZERO)
-                    .idEspacioTrabajo(idEspacio)
-                    .build()
-        );
-
-        return registro.getGastos();
-    }
 
     /**
      * Obtiene el flujo mensual de ingresos y gastos para los últimos 12 meses.
