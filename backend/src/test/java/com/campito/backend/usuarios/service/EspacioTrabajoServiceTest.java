@@ -318,4 +318,107 @@ public class EspacioTrabajoServiceTest {
         verify(solicitudPendienteRepository, never()).save(any());
         verify(eventPublisher, never()).publishEvent(any());
     }
+
+    // --------------------------------------------------
+    // Tests para cubrir paths adicionales
+    // --------------------------------------------------
+
+    @Test
+    void registrarEspacioTrabajo_cuandoNombreDuplicado_entoncesLanzaEntidadDuplicadaException() {
+        EspacioTrabajoDTORequest dto = new EspacioTrabajoDTORequest("Espacio Existente", usuarioAdmin.getId());
+        when(espacioTrabajoRepository.findFirstByNombreAndUsuarioAdmin_Id("Espacio Existente", usuarioAdmin.getId()))
+            .thenReturn(Optional.of(espacioTrabajo));
+
+        assertThrows(com.campito.backend.common.exception.EntidadDuplicadaException.class, () -> {
+            espacioTrabajoService.registrarEspacioTrabajo(dto);
+        });
+
+        verify(espacioTrabajoRepository, never()).save(any());
+    }
+
+    @Test
+    void registrarEspacioTrabajo_cuandoRegistroExitoso_entoncesPublicaEventoSaldo() {
+        EspacioTrabajoDTORequest dto = new EspacioTrabajoDTORequest("Nuevo Espacio", usuarioAdmin.getId());
+        when(espacioTrabajoRepository.findFirstByNombreAndUsuarioAdmin_Id("Nuevo Espacio", usuarioAdmin.getId()))
+            .thenReturn(Optional.empty());
+        when(usuarioRepository.findById(usuarioAdmin.getId())).thenReturn(Optional.of(usuarioAdmin));
+        when(espacioTrabajoRepository.save(any(EspacioTrabajo.class))).thenReturn(espacioTrabajo);
+
+        espacioTrabajoService.registrarEspacioTrabajo(dto);
+
+        verify(eventPublisher, times(1)).publishEvent(any(com.campito.backend.common.event.SaldoActualizadoEvent.class));
+    }
+
+    @Test
+    void compartirEspacioTrabajo_cuandoUsuarioYaEsColaborador_entoncesLanzaEntidadDuplicadaException() {
+        Usuario usuarioInvitado = new Usuario();
+        usuarioInvitado.setId(UUID.fromString("00000000-0000-0000-0000-000000000005"));
+        usuarioInvitado.setEmail("compartido@test.com");
+        usuarioInvitado.setNombre("Compartido");
+
+        // El usuario ya es participante del espacio
+        espacioTrabajo.getUsuariosParticipantes().add(usuarioInvitado);
+
+        when(espacioTrabajoRepository.findById(espacioTrabajo.getId())).thenReturn(Optional.of(espacioTrabajo));
+        when(usuarioRepository.findByEmail("compartido@test.com")).thenReturn(Optional.of(usuarioInvitado));
+
+        assertThrows(com.campito.backend.common.exception.EntidadDuplicadaException.class, () -> {
+            espacioTrabajoService.compartirEspacioTrabajo("compartido@test.com", espacioTrabajo.getId());
+        });
+
+        verify(solicitudPendienteRepository, never()).save(any());
+    }
+
+    @Test
+    void listarEspaciosTrabajoPorUsuario_cuandoHayEspacios_entoncesRetornaLista() {
+        UUID idUsuario = usuarioAdmin.getId();
+        when(espacioTrabajoRepository.findByUsuariosParticipantes_IdOrderByFechaModificacionDesc(idUsuario))
+            .thenReturn(java.util.List.of(espacioTrabajo));
+
+        EspacioTrabajoDTOResponse dto = new EspacioTrabajoDTOResponse(
+            espacioTrabajo.getId(), "Espacio de Prueba", BigDecimal.ZERO, usuarioAdmin.getId()
+        );
+        when(espacioTrabajoMapper.toResponse(espacioTrabajo)).thenReturn(dto);
+
+        var resultado = espacioTrabajoService.listarEspaciosTrabajoPorUsuario(idUsuario);
+
+        assertEquals(1, resultado.size());
+        assertEquals(dto, resultado.get(0));
+    }
+
+    @Test
+    void listarEspaciosTrabajoPorUsuario_cuandoNoHayEspacios_entoncesRetornaListaVacia() {
+        UUID idUsuario = UUID.fromString("00000000-0000-0000-0000-000000000099");
+        when(espacioTrabajoRepository.findByUsuariosParticipantes_IdOrderByFechaModificacionDesc(idUsuario))
+            .thenReturn(java.util.List.of());
+
+        var resultado = espacioTrabajoService.listarEspaciosTrabajoPorUsuario(idUsuario);
+
+        assertTrue(resultado.isEmpty());
+    }
+
+    @Test
+    void obtenerMiembrosEspacioTrabajo_cuandoEspacioExiste_entoncesRetornaMiembros() {
+        when(espacioTrabajoRepository.findById(espacioTrabajo.getId())).thenReturn(Optional.of(espacioTrabajo));
+
+        UsuarioDTOResponse dto = new UsuarioDTOResponse(
+            usuarioAdmin.getId(), "Admin", "admin@test.com", "foto.jpg"
+        );
+        when(usuarioMapper.toResponse(usuarioAdmin)).thenReturn(dto);
+
+        var resultado = espacioTrabajoService.obtenerMiembrosEspacioTrabajo(espacioTrabajo.getId());
+
+        assertEquals(1, resultado.size());
+        assertEquals(dto, resultado.get(0));
+    }
+
+    @Test
+    void obtenerMiembrosEspacioTrabajo_cuandoEspacioNoExiste_entoncesLanzaExcepcion() {
+        when(espacioTrabajoRepository.findById(UUID.fromString("00000000-0000-0000-0000-000000000099")))
+            .thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> {
+            espacioTrabajoService.obtenerMiembrosEspacioTrabajo(UUID.fromString("00000000-0000-0000-0000-000000000099"));
+        });
+    }
 }

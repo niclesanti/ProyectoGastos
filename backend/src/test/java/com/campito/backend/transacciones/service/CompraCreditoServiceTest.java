@@ -587,4 +587,359 @@ public class CompraCreditoServiceTest {
         assertEquals(1, res.size());
     }
 
+    // ---------------------------------------------------------
+    // Tests adicionales para cubrir ramas faltantes
+    // ---------------------------------------------------------
+
+    @Test
+    void registrarTarjeta_duplicada_lanzaEntidadDuplicada() {
+        var req = new TarjetaDTORequest("1234", "Entidad", "VISA", 1, 5, espacio.getId());
+        Tarjeta existente = new Tarjeta();
+        existente.setId(10L);
+        when(tarjetaRepository.findFirstByNumeroTarjetaAndEntidadFinancieraAndRedDePagoAndIdEspacioTrabajo(
+            "1234", "Entidad", "VISA", espacio.getId()))
+            .thenReturn(Optional.of(existente));
+
+        assertThrows(com.campito.backend.common.exception.EntidadDuplicadaException.class,
+            () -> compraCreditoService.registrarTarjeta(req));
+    }
+
+    @Test
+    void removerTarjeta_noExiste_lanzaEntityNotFound() {
+        when(tarjetaRepository.existsById(99L)).thenReturn(false);
+        assertThrows(EntityNotFoundException.class, () -> compraCreditoService.removerTarjeta(99L));
+    }
+
+    @Test
+    void removerTarjeta_tieneComprasAsociadas_lanzaOperacionNoPermitida() {
+        when(tarjetaRepository.existsById(10L)).thenReturn(true);
+        when(compraCreditoRepository.existsByTarjeta_Id(10L)).thenReturn(true);
+        assertThrows(com.campito.backend.common.exception.OperacionNoPermitidaException.class,
+            () -> compraCreditoService.removerTarjeta(10L));
+    }
+
+    @Test
+    void removerTarjeta_sinComprasAsociadas_elimina() {
+        when(tarjetaRepository.existsById(10L)).thenReturn(true);
+        when(compraCreditoRepository.existsByTarjeta_Id(10L)).thenReturn(false);
+
+        compraCreditoService.removerTarjeta(10L);
+        verify(tarjetaRepository).deleteById(10L);
+    }
+
+    @Test
+    void buscarComprasCreditoConPaginacion_conAnioYMes_filtraPorRango() {
+        CompraCreditoBusquedaDTO busqueda = new CompraCreditoBusquedaDTO(
+            6, 2025, null, null, espacio.getId(), 0, 10);
+        when(compraCreditoRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of()));
+
+        var res = compraCreditoService.buscarComprasCredito(busqueda);
+        assertNotNull(res);
+    }
+
+    @Test
+    void buscarComprasCreditoConPaginacion_conAnioSinMes_filtraAnioCompleto() {
+        CompraCreditoBusquedaDTO busqueda = new CompraCreditoBusquedaDTO(
+            null, 2025, null, null, espacio.getId(), 0, 10);
+        when(compraCreditoRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of()));
+
+        var res = compraCreditoService.buscarComprasCredito(busqueda);
+        assertNotNull(res);
+    }
+
+    @Test
+    void buscarComprasCreditoConPaginacion_mesSinAnio_lanzaIllegalArgument() {
+        CompraCreditoBusquedaDTO busqueda = new CompraCreditoBusquedaDTO(
+            6, null, null, null, espacio.getId(), 0, 10);
+        assertThrows(IllegalArgumentException.class, () -> compraCreditoService.buscarComprasCredito(busqueda));
+    }
+
+    @Test
+    void buscarComprasCreditoConPaginacion_conMotivo_filtra() {
+        CompraCreditoBusquedaDTO busqueda = new CompraCreditoBusquedaDTO(
+            null, null, "super", null, espacio.getId(), 0, 10);
+        when(compraCreditoRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of()));
+
+        var res = compraCreditoService.buscarComprasCredito(busqueda);
+        assertNotNull(res);
+    }
+
+    @Test
+    void buscarComprasCreditoConPaginacion_conContacto_filtra() {
+        CompraCreditoBusquedaDTO busqueda = new CompraCreditoBusquedaDTO(
+            null, null, null, "comercio", espacio.getId(), 0, 10);
+        when(compraCreditoRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of()));
+
+        var res = compraCreditoService.buscarComprasCredito(busqueda);
+        assertNotNull(res);
+    }
+
+    @Test
+    void pagarResumenTarjeta_resumenAbierto_lanzaIllegalState() {
+        Resumen resumen = new Resumen();
+        resumen.setId(70L);
+        resumen.setEstado(EstadoResumen.ABIERTO);
+        resumen.setTarjeta(tarjeta);
+        var req = new PagarResumenTarjetaRequest(70L, LocalDate.now(), new BigDecimal("100.00"), "Aud", espacio.getId(), null);
+        when(resumenRepository.findById(70L)).thenReturn(Optional.of(resumen));
+        assertThrows(IllegalStateException.class, () -> compraCreditoService.pagarResumenTarjeta(req));
+    }
+
+    @Test
+    void pagarResumenTarjeta_espacioNoCoincide_lanzaIllegalArgument() {
+        Resumen resumen = new Resumen();
+        resumen.setId(71L);
+        resumen.setEstado(EstadoResumen.CERRADO);
+        resumen.setMontoTotal(new BigDecimal("100.00"));
+        Tarjeta tarjetaOtroEspacio = new Tarjeta();
+        tarjetaOtroEspacio.setId(10L);
+        tarjetaOtroEspacio.setIdEspacioTrabajo(UUID.fromString("00000000-0000-0000-0000-000000000099"));
+        resumen.setTarjeta(tarjetaOtroEspacio);
+        var req = new PagarResumenTarjetaRequest(71L, LocalDate.now(), new BigDecimal("100.00"), "Aud", espacio.getId(), null);
+        when(resumenRepository.findById(71L)).thenReturn(Optional.of(resumen));
+        assertThrows(IllegalArgumentException.class, () -> compraCreditoService.pagarResumenTarjeta(req));
+    }
+
+    @Test
+    void pagarResumenTarjeta_cuentaNoPerteneceAEspacio_lanzaIllegalArgument() {
+        Resumen resumen = new Resumen();
+        resumen.setId(72L);
+        resumen.setEstado(EstadoResumen.CERRADO);
+        resumen.setMontoTotal(new BigDecimal("100.00"));
+        resumen.setTarjeta(tarjeta);
+
+        CuentaBancaria cuentaOtra = new CuentaBancaria();
+        cuentaOtra.setId(4L);
+        cuentaOtra.setIdEspacioTrabajo(UUID.fromString("00000000-0000-0000-0000-000000000099"));
+
+        when(resumenRepository.findById(72L)).thenReturn(Optional.of(resumen));
+        when(cuentaBancariaRepository.findById(4L)).thenReturn(Optional.of(cuentaOtra));
+
+        var req = new PagarResumenTarjetaRequest(72L, LocalDate.now(), new BigDecimal("100.00"), "Aud", espacio.getId(), 4L);
+        assertThrows(IllegalArgumentException.class, () -> compraCreditoService.pagarResumenTarjeta(req));
+    }
+
+    @Test
+    void pagarResumenTarjeta_cuentaNoExiste_lanzaEntityNotFound() {
+        Resumen resumen = new Resumen();
+        resumen.setId(73L);
+        resumen.setEstado(EstadoResumen.CERRADO);
+        resumen.setMontoTotal(new BigDecimal("100.00"));
+        resumen.setTarjeta(tarjeta);
+
+        when(resumenRepository.findById(73L)).thenReturn(Optional.of(resumen));
+        when(cuentaBancariaRepository.findById(4L)).thenReturn(Optional.empty());
+
+        var req = new PagarResumenTarjetaRequest(73L, LocalDate.now(), new BigDecimal("100.00"), "Aud", espacio.getId(), 4L);
+        assertThrows(EntityNotFoundException.class, () -> compraCreditoService.pagarResumenTarjeta(req));
+    }
+
+    @Test
+    void pagarResumenTarjeta_conMotivoExistente_usaMotivoExistente() {
+        Resumen resumen = new Resumen();
+        resumen.setId(65L);
+        resumen.setEstado(EstadoResumen.CERRADO);
+        resumen.setTarjeta(tarjeta);
+        resumen.setMontoTotal(new BigDecimal("200.00"));
+        resumen.setAnio(2026);
+        resumen.setMes(3);
+
+        MotivoTransaccion motivoExistente = new MotivoTransaccion();
+        motivoExistente.setId(50L);
+        motivoExistente.setMotivo("Pago de tarjeta");
+
+        when(resumenRepository.findById(65L)).thenReturn(Optional.of(resumen));
+        when(motivoRepository.findFirstByMotivoAndIdEspacioTrabajo("Pago de tarjeta", espacio.getId()))
+            .thenReturn(Optional.of(motivoExistente));
+
+        TransaccionDTOResponse txResp = new TransaccionDTOResponse(800L, LocalDate.now(), new BigDecimal("200.00"),
+            TipoTransaccion.GASTO, "desc", "Aud", java.time.LocalDateTime.now(), espacio.getId(), "esp", 50L, "mot", 1L, "contact", "nombreCuenta");
+        when(transaccionService.registrarTransaccion(any())).thenReturn(txResp);
+        when(transaccionRepository.findById(800L)).thenReturn(Optional.of(new Transaccion()));
+        when(cuotaCreditoRepository.findByResumenAsociado_Id(65L)).thenReturn(List.of());
+
+        PagarResumenTarjetaRequest req = new PagarResumenTarjetaRequest(65L, LocalDate.now(), new BigDecimal("200.00"), "Aud", espacio.getId(), null);
+        compraCreditoService.pagarResumenTarjeta(req);
+        verify(motivoRepository, never()).save(any(MotivoTransaccion.class));
+    }
+
+    @Test
+    void pagarResumenTarjeta_cuotaYaPagada_laSalta() {
+        Resumen resumen = new Resumen();
+        resumen.setId(66L);
+        resumen.setEstado(EstadoResumen.CERRADO);
+        resumen.setTarjeta(tarjeta);
+        resumen.setMontoTotal(new BigDecimal("100.00"));
+        resumen.setAnio(2026);
+        resumen.setMes(4);
+
+        when(resumenRepository.findById(66L)).thenReturn(Optional.of(resumen));
+        when(motivoRepository.findFirstByMotivoAndIdEspacioTrabajo("Pago de tarjeta", espacio.getId())).thenReturn(Optional.empty());
+        when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TransaccionDTOResponse txResp = new TransaccionDTOResponse(900L, LocalDate.now(), new BigDecimal("100.00"),
+            TipoTransaccion.GASTO, "desc", "Aud", java.time.LocalDateTime.now(), espacio.getId(), "esp", 1L, "mot", 1L, "contact", "nombreCuenta");
+        when(transaccionService.registrarTransaccion(any())).thenReturn(txResp);
+        when(transaccionRepository.findById(900L)).thenReturn(Optional.of(new Transaccion()));
+
+        CuotaCredito cuotaPagada = new CuotaCredito();
+        cuotaPagada.setId(3L);
+        cuotaPagada.setPagada(true); // Already paid
+        CompraCredito compra = new CompraCredito();
+        compra.setCantidadCuotas(1);
+        compra.setCuotasPagadas(1);
+        cuotaPagada.setCompraCredito(compra);
+
+        when(cuotaCreditoRepository.findByResumenAsociado_Id(66L)).thenReturn(List.of(cuotaPagada));
+
+        PagarResumenTarjetaRequest req = new PagarResumenTarjetaRequest(66L, LocalDate.now(), new BigDecimal("100.00"), "Aud", espacio.getId(), null);
+        compraCreditoService.pagarResumenTarjeta(req);
+        verify(compraCreditoRepository, never()).save(any(CompraCredito.class));
+    }
+
+    @Test
+    void pagarResumenTarjeta_cuotasVacias_registraTransaccion() {
+        Resumen resumen = new Resumen();
+        resumen.setId(67L);
+        resumen.setEstado(EstadoResumen.CERRADO);
+        resumen.setTarjeta(tarjeta);
+        resumen.setMontoTotal(new BigDecimal("100.00"));
+        resumen.setAnio(2026);
+        resumen.setMes(5);
+
+        when(resumenRepository.findById(67L)).thenReturn(Optional.of(resumen));
+        when(motivoRepository.findFirstByMotivoAndIdEspacioTrabajo("Pago de tarjeta", espacio.getId())).thenReturn(Optional.empty());
+        when(motivoRepository.save(any(MotivoTransaccion.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TransaccionDTOResponse txResp = new TransaccionDTOResponse(950L, LocalDate.now(), new BigDecimal("100.00"),
+            TipoTransaccion.GASTO, "desc", "Aud", java.time.LocalDateTime.now(), espacio.getId(), "esp", 1L, "mot", 1L, "contact", "nombreCuenta");
+        when(transaccionService.registrarTransaccion(any())).thenReturn(txResp);
+        when(transaccionRepository.findById(950L)).thenReturn(Optional.of(new Transaccion()));
+        when(cuotaCreditoRepository.findByResumenAsociado_Id(67L)).thenReturn(List.of());
+
+        PagarResumenTarjetaRequest req = new PagarResumenTarjetaRequest(67L, LocalDate.now(), new BigDecimal("100.00"), "Aud", espacio.getId(), null);
+        compraCreditoService.pagarResumenTarjeta(req);
+        verify(cuotaCreditoRepository).saveAll(List.of());
+    }
+
+    @Test
+    void listarComprasCreditoDebeCuotas_conPaginaExplicita() {
+        when(compraCreditoRepository.findByIdEspacioTrabajoAndCuotasPendientesPageable(eq(espacio.getId()), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of()));
+        var res = compraCreditoService.listarComprasCreditoDebeCuotas(espacio.getId(), 2, 5);
+        assertNotNull(res);
+    }
+
+    @Test
+    void listarResumenesPorTarjeta_conCuotas_retornaConCuotas() {
+        Resumen r = new Resumen();
+        r.setId(1L);
+        r.setTarjeta(tarjeta);
+
+        CompraCredito compraRes = new CompraCredito();
+        compraRes.setId(10L);
+        compraRes.setDescripcion("Compra Test");
+        compraRes.setCantidadCuotas(3);
+        MotivoTransaccion motivoRes = new MotivoTransaccion();
+        motivoRes.setMotivo("Motivo Test");
+        compraRes.setMotivo(motivoRes);
+
+        CuotaCredito cuotaRes = new CuotaCredito();
+        cuotaRes.setId(1L);
+        cuotaRes.setNumeroCuota(1);
+        cuotaRes.setMontoCuota(new BigDecimal("100.00"));
+        cuotaRes.setCompraCredito(compraRes);
+
+        when(resumenRepository.findByTarjetaIdAndEstadoIn(10L, List.of(EstadoResumen.CERRADO, EstadoResumen.PAGADO_PARCIAL)))
+            .thenReturn(List.of(r));
+        when(cuotaCreditoRepository.findByResumenAsociado_Id(1L)).thenReturn(List.of(cuotaRes));
+
+        var res = compraCreditoService.listarResumenesPorTarjeta(10L);
+        assertEquals(1, res.size());
+    }
+
+    @Test
+    void listarResumenesPorTarjeta_conCuotaSinDescripcion_usaFallback() {
+        Resumen r = new Resumen();
+        r.setId(1L);
+        r.setTarjeta(tarjeta);
+
+        CompraCredito compraSinDesc = new CompraCredito();
+        compraSinDesc.setId(10L);
+        compraSinDesc.setDescripcion(null); // null description
+        compraSinDesc.setCantidadCuotas(1);
+        MotivoTransaccion motivoRes = new MotivoTransaccion();
+        motivoRes.setMotivo("Motivo");
+        compraSinDesc.setMotivo(motivoRes);
+
+        CuotaCredito cuota = new CuotaCredito();
+        cuota.setId(1L);
+        cuota.setNumeroCuota(1);
+        cuota.setMontoCuota(new BigDecimal("50.00"));
+        cuota.setCompraCredito(compraSinDesc);
+
+        when(resumenRepository.findByTarjetaIdAndEstadoIn(10L, List.of(EstadoResumen.CERRADO, EstadoResumen.PAGADO_PARCIAL)))
+            .thenReturn(List.of(r));
+        when(cuotaCreditoRepository.findByResumenAsociado_Id(1L)).thenReturn(List.of(cuota));
+
+        var res = compraCreditoService.listarResumenesPorTarjeta(10L);
+        assertEquals(1, res.size());
+    }
+
+    @Test
+    void registrarCompraCredito_comercioNoExiste_lanzaEntityNotFound() {
+        CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.now(), new BigDecimal("100.00"), 2, "desc", "Aud", espacio.getId(), 1L, 99L, 10L);
+        when(espacioTrabajoApi.existe(espacio.getId())).thenReturn(true);
+        when(espacioTrabajoApi.obtenerNombre(espacio.getId())).thenReturn("Mi Espacio");
+        MotivoTransaccion motivoConId = new MotivoTransaccion();
+        motivoConId.setId(1L);
+        when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoConId));
+        when(tarjetaRepository.findById(10L)).thenReturn(Optional.of(tarjeta));
+        when(contactoRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> compraCreditoService.registrarCompraCredito(dto));
+    }
+
+    @Test
+    void registrarCompraCredito_motivoNoExiste_lanzaEntityNotFound() {
+        CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.now(), new BigDecimal("100.00"), 2, "desc", "Aud", espacio.getId(), 99L, null, 10L);
+        when(espacioTrabajoApi.existe(espacio.getId())).thenReturn(true);
+        when(motivoRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> compraCreditoService.registrarCompraCredito(dto));
+    }
+
+    @Test
+    void registrarCompraCredito_tarjetaNoExiste_lanzaEntityNotFound() {
+        CompraCreditoDTORequest dto = new CompraCreditoDTORequest(LocalDate.now(), new BigDecimal("100.00"), 2, "desc", "Aud", espacio.getId(), 1L, null, 99L);
+        when(espacioTrabajoApi.existe(espacio.getId())).thenReturn(true);
+        MotivoTransaccion motivoConId = new MotivoTransaccion();
+        motivoConId.setId(1L);
+        when(motivoRepository.findById(1L)).thenReturn(Optional.of(motivoConId));
+        when(tarjetaRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> compraCreditoService.registrarCompraCredito(dto));
+    }
+
+    @Test
+    void listarTarjetas_retornaLista() {
+        Tarjeta t1 = new Tarjeta(); t1.setId(1L);
+        when(tarjetaRepository.findByIdEspacioTrabajo(espacio.getId())).thenReturn(List.of(t1));
+        when(tarjetaMapper.toResponse(any())).thenReturn(new TarjetaDTOResponse(1L, "1234", "Banco", "Visa", 15, 5, espacio.getId()));
+
+        var res = compraCreditoService.listarTarjetas(espacio.getId());
+        assertEquals(1, res.size());
+    }
+
+    @Test
+    void listarTarjetas_vacia_retornaListaVacia() {
+        when(tarjetaRepository.findByIdEspacioTrabajo(espacio.getId())).thenReturn(List.of());
+        var res = compraCreditoService.listarTarjetas(espacio.getId());
+        assertEquals(0, res.size());
+    }
+
 }
