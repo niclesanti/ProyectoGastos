@@ -71,21 +71,74 @@ npm run test:coverage # Vitest with v8 coverage
 
 ## Architecture Notes
 
-### Backend Layered Architecture
+### Backend Modular Architecture (Modulith First)
+
+The backend follows a **Modulith First** pattern: a single deployable Spring Boot application organized into cohesive functional modules with a shared kernel and infrastructure layer. This structure reduces inter-module coupling and prepares the codebase for a future migration to microservices when scalability becomes critical.
 
 ```
-controller/ → service/ → dao/ (repositories)
-     ↓           ↓          ↓
-  REST API   Business   JPA/Hibernate
-             logic      + Flyway
+com.campito.backend
+├── BackendApplication.java
+├── common/                              ← shared kernel (pure types, no Spring wiring)
+│   ├── domain/                          ← shared enums (TipoTransaccion)
+│   ├── exception/                       ← global exceptions + ControllerAdvisor
+│   ├── event/                           ← cross-module events + TipoNotificacion enum
+│   ├── dto/                             ← shared DTOs (DistribucionGastoDTO)
+│   ├── util/                            ← utilities (MoneyUtils)
+│   └── validation/                      ← custom Jakarta validators (@ValidMonto, etc.)
+├── config/                              ← infrastructure configuration
+│   ├── AsyncConfig                      ← thread pool for CompletableFuture
+│   ├── JpaAuditingConfig                ← @EnableJpaAuditing
+│   ├── MetricsConfig                    ← business metrics (Micrometer/Prometheus)
+│   └── MapstructConfig                  ← MapStruct global config
+├── security/                            ← unified security layer
+│   ├── SecurityConfig                   ← Spring Security filter chain
+│   ├── JwtAuthenticationFilter          ← JWT validation filter
+│   ├── JwtTokenProvider                 ← JWT generation/parsing
+│   ├── OAuth2AuthenticationSuccessHandler ← OAuth2 redirect with JWT
+│   ├── SecurityService (interface)      ← ownership/access validation
+│   └── SecurityServiceImpl             ← implementation (cross-module repos)
+├── dashboard/                           ← dashboard module
+├── descuentos/                          ← discounts module
+├── notificaciones/                      ← notifications module
+│   └── service/
+│       ├── SseEmitterService            ← SSE real-time connections
+│       └── SseEmitterServiceImpl
+├── transacciones/                       ← transactions module
+└── usuarios/                            ← users/workspaces module
 ```
 
-- **DTOs** (`dto/`) are separate from JPA entities (`model/`).
-- **MapStruct** (`mapper/`) handles entity↔DTO mapping. Mappers are interfaces with `@Mapper(componentModel="spring")`.
+#### Module internal structure
+
+Each functional module follows this layered convention:
+
+```
+{module}/
+├── api/             ← module facade (interfaces + impl for inter-module calls)
+├── controller/      ← REST controllers
+├── service/         ← business logic (interface + impl)
+├── repository/      ← Spring Data JPA repositories
+├── mapper/          ← MapStruct mappers (entity↔DTO)
+├── domain/
+│   ├── dto/         ← request/response DTOs
+│   └── entity/      ← JPA entities
+└── event/           ← event listeners (async consumers)
+```
+
+#### Inter-module communication
+
+- **Asynchronous events** (`common/event/`): modules publish domain events (e.g., `TransaccionRegistradaEvent`, `CompraCreditoRegistradaEvent`) that other modules consume via `@EventListener`. This decouples modules without direct dependencies.
+- **Module facades** (`api/` packages): when synchronous data access is needed across modules, each module exposes an `Api` interface + `ApiImpl` implementation. Examples: `EspacioTrabajoApi`, `CuotasCreditoApi`, `TarjetaApi`, `ReportesTransaccionesApi`.
+- **Shared kernel** (`common/`): exceptions, events, validation annotations, DTOs, and utilities used across multiple modules. These are the "shared contract" that all modules depend on.
+- **Cross-module validation**: `SecurityServiceImpl` depends on repositories from multiple modules to validate resource ownership. This is an intentional "security nexus" — each `validate*Ownership` method checks workspace membership before allowing access.
+
+#### Key patterns
+
+- **DTOs** are separate from JPA entities. Request DTOs use validation annotations from `common/validation/`.
+- **MapStruct** (`config/MapstructConfig`) handles entity↔DTO mapping. Mappers are interfaces with `@Mapper(config = MapstructConfig.class)`.
 - **Lombok** used extensively (`@RequiredArgsConstructor`, `@Data`, etc.).
-- **Custom validators** in `validation/` (e.g., `@ValidMonto`, `@ValidSaldoActual`).
-- **Scheduler tasks** in `scheduler/` (e.g., `ResumenScheduler`, `NotificacionScheduler`).
-- **SSE notifications** via `SseEmitterService` + event-driven architecture (`event/` package).
+- **Scheduler tasks** in `scheduler/` (e.g., `ResumenScheduler`, `TarjetaCierreScheduler`, `NotificacionScheduler`).
+- **SSE notifications** via `SseEmitterService` in `notificaciones/service/` + event-driven architecture.
+- **Business metrics** centralized in `MetricsConfig` (counters, timers, gauges via Micrometer).
 
 ### Frontend Structure
 
@@ -99,7 +152,7 @@ controller/ → service/ → dao/ (repositories)
 
 ### Key Config Details
 
-- **Backend CORS**: configured in `CorsConfig.java`, frontend URL from `frontend.url` property.
+- **Backend CORS**: configured in `SecurityConfig.java` (`security/`), frontend URL from `frontend.url` property.
 - **Backend Actuator**: dev profile exposes all endpoints (`*`); prod exposes only `health,metrics,prometheus,info` on a separate management port (9090).
 - **Frontend proxy**: Vite proxies `/api` requests to `http://localhost:8080`.
 - **Docker dev**: uses `Dockerfile.dev` with hot-reload and volume mounts for `src/` and `public/`.

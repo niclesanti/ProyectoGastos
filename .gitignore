@@ -32,3 +32,6 @@ secrets/
 
 # VS Code
 .vscode/
+
+# Anotations
+prompt.md

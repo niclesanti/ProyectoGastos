@@ -127,6 +127,16 @@
 			<artifactId>micrometer-registry-prometheus</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+		<!-- Spring Cache Abstraction -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+		<!-- Caffeine - Implementación de cache en memoria (acotada para server de 1 GB) -->
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+		</dependency>
 
 	</dependencies>
 
@@ -198,14 +208,60 @@
 						<goals>
 							<goal>report</goal>
 						</goals>
+						<configuration>
+							<excludes>
+								<exclude>**/domain/dto/**</exclude>
+								<exclude>**/domain/entity/**</exclude>
+								<exclude>**/common/exception/**</exclude>
+								<exclude>**/common/domain/**</exclude>
+								<exclude>**/config/**</exclude>
+								<exclude>**/mapper/**</exclude>
+								<exclude>**/BackendApplication.class</exclude>
+								<exclude>**/scheduler/*.class</exclude>
+								<exclude>**/security/SecurityConfig.class</exclude>
+								<exclude>**/usuarios/service/CustomOidcUserService.class</exclude>
+							</excludes>
+						</configuration>
+					</execution>
+					<execution>
+						<id>check</id>
+						<phase>test</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<rule>
+									<element>BUNDLE</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.90</minimum>
+										</limit>
+										<limit>
+											<counter>BRANCH</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.80</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+							<excludes>
+								<exclude>**/domain/dto/**</exclude>
+								<exclude>**/domain/entity/**</exclude>
+								<exclude>**/common/exception/**</exclude>
+								<exclude>**/common/domain/**</exclude>
+								<exclude>**/config/**</exclude>
+								<exclude>**/mapper/**</exclude>
+								<exclude>**/BackendApplication.class</exclude>
+								<exclude>**/scheduler/*.class</exclude>
+								<exclude>**/security/SecurityConfig.class</exclude>
+								<exclude>**/usuarios/service/CustomOidcUserService.class</exclude>
+							</excludes>
+						</configuration>
 					</execution>
 				</executions>
-				<configuration>
-					<excludes>
-						<!-- Excluir implementaciones generadas por MapStruct -->
-						<exclude>com/campito/backend/mapper/**</exclude>
-					</excludes>
-				</configuration>
 			</plugin>
 		</plugins>
 	</build>
